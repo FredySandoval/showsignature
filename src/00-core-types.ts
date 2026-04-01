@@ -207,8 +207,6 @@ export interface Range {
   end: number;
 }
 
-export type OutputFormat = "plain" | "markdown";
-
 export interface DetectFenceLanguageOptions {
   registry: LanguageRegistry;
   explicitLang?: string;
@@ -219,7 +217,6 @@ export interface FormatFinalOutputOptions {
   registry: LanguageRegistry;
   sections: FileSection[];
   explicitLang?: string;
-  format?: OutputFormat;
   outputPath?: string;
   seenLangs: readonly string[];
 }

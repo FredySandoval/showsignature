@@ -12,6 +12,7 @@ import {
   detectFenceLanguage,
   formatFinalOutput,
   formatPlainOutput,
+  isMarkdownOutputPath,
   toDisplayPath,
   toMarkdownCodeBlock,
 } from "@/src/main.js";
@@ -316,6 +317,24 @@ describe("toMarkdownCodeBlock", () => {
 });
 
 // ---------------------------------------------------------------------------
+// isMarkdownOutputPath
+// ---------------------------------------------------------------------------
+
+describe("isMarkdownOutputPath", () => {
+  test("returns true for .md and .mdx output paths", () => {
+    expect(isMarkdownOutputPath("output.md")).toBe(true);
+    expect(isMarkdownOutputPath("docs/output.mdx")).toBe(true);
+    expect(isMarkdownOutputPath("OUTPUT.MD")).toBe(true);
+  });
+
+  test("returns false for missing or non-markdown extensions", () => {
+    expect(isMarkdownOutputPath(undefined)).toBe(false);
+    expect(isMarkdownOutputPath("output.txt")).toBe(false);
+    expect(isMarkdownOutputPath("output")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // formatFinalOutput
 // ---------------------------------------------------------------------------
 
@@ -346,7 +365,7 @@ describe("formatFinalOutput", () => {
     );
   });
 
-  test("returns code block when outputPath is specified", () => {
+  test("returns code block when outputPath has a markdown extension", () => {
     const registry = createLanguageRegistry();
     registry.register(
       createMockAdapter({
@@ -375,6 +394,33 @@ describe("formatFinalOutput", () => {
         "function main(): void;",
         "```",
       ].join("\n"),
+    );
+  });
+
+  test("returns plain output when outputPath is non-markdown", () => {
+    const registry = createLanguageRegistry();
+    registry.register(
+      createMockAdapter({
+        id: "ts",
+        extensions: [".ts"],
+        fenceLang: "typescript",
+      }),
+    );
+
+    const section = makeSection({
+      filePath: "src/index.ts",
+      entries: [{ kind: "signatures", lines: ["function main(): void;"] }],
+    });
+
+    const result = formatFinalOutput({
+      registry,
+      sections: [section],
+      outputPath: "output.txt",
+      seenLangs: ["ts"],
+    });
+
+    expect(result).toBe(
+      ["// src/index.ts", "function main(): void;"].join("\n"),
     );
   });
 

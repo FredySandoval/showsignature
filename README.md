@@ -72,7 +72,9 @@ This only affects folder/current-directory scans. Explicit `--file` inputs
 are still processed directly.
 
 --output <name>
-Specify a file name to save the output.
+Specify a file name to save the output. If the name ends in `.md` or `.mdx`,
+the output is wrapped in a fenced code block. Other output file names receive
+plain text output.
 
 ## Examples:
 

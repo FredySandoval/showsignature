@@ -87,7 +87,7 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("writes markdown output to a file and uses combined ordering by default", async () => {
+  test("writes markdown output to a .md file and uses combined ordering by default", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -121,6 +121,38 @@ describe("buildCli", () => {
         "function greet(): void;",
         "```",
       ].join("\n"),
+    );
+    expect(stdoutBuffer).toBe("");
+    expect(stderrBuffer).toBe("");
+  });
+
+  test("writes plain output to a non-markdown file", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      `function greet(): void {}\n`,
+    );
+
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode",
+      "--file",
+      "src/app.ts",
+      "--output",
+      "artifacts/output.txt",
+    ]);
+
+    const output = await readFile(
+      path.join(rootDir, "artifacts/output.txt"),
+      "utf8",
+    );
+
+    expect(output).toBe(
+      ["// src/app.ts", "function greet(): void;"].join("\n"),
     );
     expect(stdoutBuffer).toBe("");
     expect(stderrBuffer).toBe("");

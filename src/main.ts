@@ -23,7 +23,6 @@ import {
   type LanguageAdapterMetadata,
   type LanguageRegistry,
   type LazyLanguageAdapterRegistration,
-  type OutputFormat,
   type ParseContext,
   type PipelineError,
   type PipelineResult,
@@ -44,7 +43,6 @@ interface ParsedCliArgs {
   lang?: string;
   extract?: string;
   output?: string;
-  format?: string;
   includeTests: boolean;
 }
 
@@ -63,7 +61,6 @@ interface ResolvedInputTarget {
 
 interface OutputTarget {
   path?: string;
-  format: OutputFormat;
 }
 
 interface ExecutionPlan {
@@ -75,8 +72,6 @@ interface ExecutionPlan {
 }
 
 const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
-const DEFAULT_OUTPUT_FORMAT: OutputFormat = "plain";
-const OUTPUT_FORMATS: readonly OutputFormat[] = ["plain", "markdown"];
 const require = createRequire(import.meta.url);
 const packageMetadata = require("../package.json") as PackageMetadata;
 const CLI_NAME = packageMetadata.name ?? "showcode";
@@ -120,7 +115,6 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .option("--file <file>", "process a single file")
     .option("--folder <folder>", "process files from a folder")
     .option("--output <name>", "write formatted output to a file")
-    .option("--format <format>", `output format: ${OUTPUT_FORMATS.join(" | ")}`)
     .option(
       "--include-tests",
       "include files under test directories during discovery",
@@ -234,18 +228,6 @@ async function writeOutputFile(
   await writeFile(resolvedOutputPath, content, "utf8");
 }
 
-function parseOutputFormat(rawFormat: string | undefined): OutputFormat {
-  const normalized = rawFormat?.trim().toLowerCase() ?? DEFAULT_OUTPUT_FORMAT;
-
-  if (normalized === "plain" || normalized === "markdown") {
-    return normalized;
-  }
-
-  throw createCliError(
-    `Unsupported output format: ${rawFormat}. Supported formats: ${OUTPUT_FORMATS.join(", ")}`,
-  );
-}
-
 async function resolveInputTarget(
   args: ParsedCliArgs,
   registry: LanguageRegistry,
@@ -299,11 +281,6 @@ async function resolveExecutionPlan(
     input,
     output: {
       ...(args.output ? { path: args.output } : {}),
-      format: args.format
-        ? parseOutputFormat(args.format)
-        : args.output
-          ? "markdown"
-          : DEFAULT_OUTPUT_FORMAT,
     },
   };
 }
@@ -316,7 +293,7 @@ function renderPipelineOutput(
     registry: plan.registry,
     sections: result.sections,
     ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
-    format: plan.output.format,
+    ...(plan.output.path ? { outputPath: plan.output.path } : {}),
     seenLangs: result.meta.seenLangs,
   });
 }
@@ -1069,14 +1046,13 @@ export function toMarkdownCodeBlock(
   return `${openFence}\n${body}\`\`\``;
 }
 
-function resolveFinalOutputFormat(
-  options: FormatFinalOutputOptions,
-): OutputFormat {
-  if (options.format) {
-    return options.format;
+export function isMarkdownOutputPath(outputPath: string | undefined): boolean {
+  if (!outputPath) {
+    return false;
   }
 
-  return options.outputPath ? "markdown" : "plain";
+  const extension = path.extname(outputPath).toLowerCase();
+  return extension === ".md" || extension === ".mdx";
 }
 
 export function formatFinalOutput(options: FormatFinalOutputOptions): string {
@@ -1087,8 +1063,7 @@ export function formatFinalOutput(options: FormatFinalOutputOptions): string {
     return "";
   }
 
-  const format = resolveFinalOutputFormat(options);
-  if (format === "plain") {
+  if (!isMarkdownOutputPath(options.outputPath)) {
     return plainOutput;
   }
 
