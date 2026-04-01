@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import * as ts from "typescript";
 
-import { createTsParseContext } from "../../../src/languages/typescript/01-context";
+import { createTsParseContext } from "../../../src/languages/typescript/01-context.js";
 
 describe("createTsParseContext", () => {
   test("creates a ts context for .ts files", () => {

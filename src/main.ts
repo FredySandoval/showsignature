@@ -14,7 +14,7 @@ export {
   formatPlainOutput,
   toDisplayPath,
   toMarkdownCodeBlock,
-} from "./index";
+} from "./index.js";
 
 export {
   BUILT_IN_EXTRACT_KINDS,
@@ -45,4 +45,4 @@ export {
   type RunPipelineOptions,
   type SingleExtractResult,
   type TsParseContext,
-} from "./00-core-types";
+} from "./00-core-types.js";

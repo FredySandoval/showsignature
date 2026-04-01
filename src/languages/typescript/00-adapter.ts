@@ -3,8 +3,8 @@ import type {
   Extractor,
   LanguageAdapter,
   TsParseContext,
-} from "../../00-core-types";
-import { createTsParseContext } from "./01-context";
+} from "../../00-core-types.js";
+import { createTsParseContext } from "./01-context.js";
 import {
   createCommentsExtractor,
   createImportsExtractor,
@@ -12,7 +12,7 @@ import {
   createSignaturesExtractor,
   createTypesExtractor,
   createVariablesExtractor,
-} from "./03-extractors";
+} from "./03-extractors.js";
 
 export interface CreateTsFamilyAdapterOptions {
   id: string;
@@ -46,10 +46,16 @@ export function createTsFamilyAdapter(
     extensions: options.extensions,
     fenceLang: options.fenceLang,
     extractors,
-    buildContext({ source, filePath }) {
+    buildContext({
+      source,
+      filePath,
+    }: {
+      source: string;
+      filePath: string;
+    }): TsParseContext {
       return createTsParseContext({ source, filePath });
     },
-    supportsKind(kind) {
+    supportsKind(kind: ExtractKind): boolean {
       return extractors.has(kind);
     },
   };

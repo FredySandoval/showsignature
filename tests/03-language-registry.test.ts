@@ -5,8 +5,8 @@ import type {
   LanguageAdapter,
   ParseContext,
   SingleExtractResult,
-} from "../src/00-core-types";
-import { createLanguageRegistry } from "../src/index";
+} from "../src/00-core-types.js";
+import { createLanguageRegistry } from "../src/index.js";
 
 function createNoopExtractor(kind: ExtractKind) {
   return {

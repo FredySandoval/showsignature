@@ -5,8 +5,8 @@ import type {
   Extractor,
   SingleExtractResult,
   TsParseContext,
-} from "../../00-core-types";
-import { TsAstHelpers } from "./02-ast-helpers";
+} from "../../00-core-types.js";
+import { TsAstHelpers } from "./02-ast-helpers.js";
 
 function toResult(entries: ExtractEntry[]): SingleExtractResult {
   return { entries, warnings: [] };
@@ -128,7 +128,7 @@ function renderClassSignature(
 export function createSignaturesExtractor(): Extractor<TsParseContext> {
   return {
     kind: "signatures",
-    extract(context): SingleExtractResult {
+    extract(context: TsParseContext): SingleExtractResult {
       const entries: ExtractEntry[] = [];
       const { sourceFile, filePath } = context;
 
@@ -169,7 +169,7 @@ export function createSignaturesExtractor(): Extractor<TsParseContext> {
 export function createInterfacesExtractor(): Extractor<TsParseContext> {
   return {
     kind: "interfaces",
-    extract(context): SingleExtractResult {
+    extract(context: TsParseContext): SingleExtractResult {
       const entries = context.sourceFile.statements
         .filter(ts.isInterfaceDeclaration)
         .map((declaration) =>
@@ -189,7 +189,7 @@ export function createInterfacesExtractor(): Extractor<TsParseContext> {
 export function createTypesExtractor(): Extractor<TsParseContext> {
   return {
     kind: "types",
-    extract(context): SingleExtractResult {
+    extract(context: TsParseContext): SingleExtractResult {
       const entries = context.sourceFile.statements
         .filter(ts.isTypeAliasDeclaration)
         .map((declaration) =>
@@ -232,7 +232,7 @@ function renderVariableDeclaration(
 export function createVariablesExtractor(): Extractor<TsParseContext> {
   return {
     kind: "variables",
-    extract(context): SingleExtractResult {
+    extract(context: TsParseContext): SingleExtractResult {
       const entries: ExtractEntry[] = [];
 
       for (const statement of context.sourceFile.statements) {
@@ -266,7 +266,7 @@ export function createVariablesExtractor(): Extractor<TsParseContext> {
 export function createCommentsExtractor(): Extractor<TsParseContext> {
   return {
     kind: "comments",
-    extract(context): SingleExtractResult {
+    extract(context: TsParseContext): SingleExtractResult {
       const ranges = TsAstHelpers.buildCommentExclusionRanges(
         context.sourceFile,
       );
@@ -304,7 +304,7 @@ export function createCommentsExtractor(): Extractor<TsParseContext> {
 export function createImportsExtractor(): Extractor<TsParseContext> {
   return {
     kind: "imports",
-    extract(context): SingleExtractResult {
+    extract(context: TsParseContext): SingleExtractResult {
       const entries = context.sourceFile.statements
         .filter(ts.isImportDeclaration)
         .map((declaration) =>

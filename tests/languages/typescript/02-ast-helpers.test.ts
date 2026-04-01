@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import * as ts from "typescript";
 
-import { TsAstHelpers } from "../../../src/languages/typescript/02-ast-helpers";
-import { createTsParseContext } from "../../../src/languages/typescript/01-context";
+import { TsAstHelpers } from "../../../src/languages/typescript/02-ast-helpers.js";
+import { createTsParseContext } from "../../../src/languages/typescript/01-context.js";
 
 function parse(source: string, filePath = "/tmp/example.ts"): ts.SourceFile {
   return createTsParseContext({ source, filePath }).sourceFile;

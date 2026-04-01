@@ -6,10 +6,10 @@ import type {
   ExtractWarning,
   LanguageAdapter,
   SingleExtractResult,
-} from "../src/00-core-types";
-import type { ParseContext } from "../src/00-core-types";
+} from "../src/00-core-types.js";
+import type { ParseContext } from "../src/00-core-types.js";
 
-import { runExtractors, type Extractor } from "../src/index";
+import { runExtractors, type Extractor } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
 // Test helpers

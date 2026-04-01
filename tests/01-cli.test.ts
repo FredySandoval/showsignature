@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { buildCli } from "../src/index";
+import { buildCli } from "../src/index.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -172,6 +172,17 @@ describe("buildCli", () => {
     ).rejects.toThrow(
       "Option --file expects a file path; use --folder for directories",
     );
+  });
+
+  test("throws a clear error when --file cannot be accessed", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    process.chdir(rootDir);
+
+    await expect(
+      buildCli().run(["showcode", "--file", "src/missing.ts"]),
+    ).rejects.toThrow("Could not access file: src/missing.ts");
   });
 
   test("includes test fixtures when explicitly requested", async () => {

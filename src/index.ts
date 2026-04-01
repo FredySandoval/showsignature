@@ -5,7 +5,7 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Command, CommanderError } from "commander";
-import { BUILT_IN_EXTRACT_KINDS } from "./00-core-types";
+import { BUILT_IN_EXTRACT_KINDS } from "./00-core-types.js";
 
 export interface CliProgram {
   run(argv?: readonly string[]): Promise<void>;
@@ -90,22 +90,32 @@ function validateCliArgs(args: ParsedCliArgs): void {
   }
 }
 
+function isExitCodeError(error: unknown): error is ExitCodeError {
+  return error instanceof Error && "exitCode" in error;
+}
+
 async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
   if (!args.file) {
     return;
   }
 
+  const resolvedFilePath = path.resolve(args.file);
+
   try {
-    const target = await stat(path.resolve(args.file));
+    const target = await stat(resolvedFilePath);
     if (target.isDirectory()) {
       throw createCliError(
         "Option --file expects a file path; use --folder for directories",
       );
     }
   } catch (error) {
-    if (error instanceof Error && "exitCode" in error) {
+    if (isExitCodeError(error)) {
       throw error;
     }
+
+    throw createCliError(
+      `Could not access file: ${args.file} (${stringifyError(error)})`,
+    );
   }
 }
 
@@ -224,7 +234,7 @@ export async function runCli(): Promise<void> {
 // ============================================================================
 // Utility — Config Shaping             [Step 2 — option parsing]
 // ============================================================================
-import type { ExtractKind, PipelineError } from "./00-core-types";
+import type { ExtractKind, PipelineError } from "./00-core-types.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -338,8 +348,8 @@ import type {
   LanguageAdapterMetadata,
   LanguageRegistry,
   LazyLanguageAdapterRegistration,
-} from "./00-core-types";
-import { createTsFamilyAdapter } from "./languages/typescript/00-adapter";
+} from "./00-core-types.js";
+import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
 function normalizeExtension(extension: string): string {
   const normalized = extension.trim().toLowerCase();
@@ -367,31 +377,31 @@ export function createLanguageRegistry(): LanguageRegistry {
   const lazyAdapters = new Map<string, LazyLanguageAdapterRegistration>();
 
   const api: LanguageRegistry = {
-    register(adapter) {
+    register(adapter: LanguageAdapter): void {
       adapters.set(adapter.id, adapter);
       lazyAdapters.delete(adapter.id);
     },
 
-    registerLazy(registration) {
+    registerLazy(registration: LazyLanguageAdapterRegistration): void {
       lazyAdapters.set(registration.id, registration);
       adapters.delete(registration.id);
     },
 
-    unregister(langId) {
+    unregister(langId: string): boolean {
       const hadEager = adapters.delete(langId);
       const hadLazy = lazyAdapters.delete(langId);
       return hadEager || hadLazy;
     },
 
-    has(langId) {
+    has(langId: string): boolean {
       return adapters.has(langId) || lazyAdapters.has(langId);
     },
 
-    get(langId) {
+    get(langId: string): LanguageAdapter | undefined {
       return adapters.get(langId);
     },
 
-    async getOrLoad(langId) {
+    async getOrLoad(langId: string): Promise<LanguageAdapter | undefined> {
       const existing = adapters.get(langId);
       if (existing) {
         return existing;
@@ -414,11 +424,11 @@ export function createLanguageRegistry(): LanguageRegistry {
       return loaded;
     },
 
-    listAdapters() {
+    listAdapters(): readonly LanguageAdapter[] {
       return [...adapters.values()];
     },
 
-    listAdapterMetadata() {
+    listAdapterMetadata(): readonly LanguageAdapterMetadata[] {
       const eagerMetadata = [...adapters.values()].map(adapterToMetadata);
       const lazyMetadata = [...lazyAdapters.values()]
         .filter((registration) => !adapters.has(registration.id))
@@ -431,7 +441,7 @@ export function createLanguageRegistry(): LanguageRegistry {
       return [...eagerMetadata, ...lazyMetadata];
     },
 
-    inferFromFile(filePath) {
+    inferFromFile(filePath: string): string | undefined {
       const ext = normalizeExtension(path.extname(filePath));
       if (!ext) {
         return undefined;
@@ -460,7 +470,7 @@ export function createLanguageRegistry(): LanguageRegistry {
       return undefined;
     },
 
-    supportedExtensions() {
+    supportedExtensions(): string[] {
       const extensions = new Set<string>();
 
       for (const adapter of adapters.values()) {
@@ -478,7 +488,7 @@ export function createLanguageRegistry(): LanguageRegistry {
       return [...extensions].filter((ext) => ext.length > 0);
     },
 
-    supportedLanguages() {
+    supportedLanguages(): string[] {
       const ids = new Set<string>();
       for (const id of adapters.keys()) {
         ids.add(id);
@@ -520,7 +530,7 @@ export function buildDefaultRegistry(): LanguageRegistry {
 // Uses fast-glob to discover files
 // ============================================================================
 import fg from "fast-glob";
-import type { DiscoverFilesOptions } from "./00-core-types";
+import type { DiscoverFilesOptions } from "./00-core-types.js";
 
 function normalizePathForMatch(filePath: string): string {
   return filePath.replace(/\\/g, "/").toLowerCase();
@@ -611,7 +621,7 @@ import type {
   PipelineResult,
   ProcessFileOptions,
   RunPipelineOptions,
-} from "./00-core-types";
+} from "./00-core-types.js";
 
 function uniqueInOrder(values: readonly string[]): string[] {
   const seen = new Set<string>();
@@ -684,7 +694,7 @@ export async function runPipeline(
   options: RunPipelineOptions,
 ): Promise<PipelineResult> {
   const sections: FileSection[] = [];
-  const errors = [];
+  const errors: PipelineError[] = [];
 
   for (const filePath of options.files) {
     try {
@@ -720,7 +730,7 @@ export async function runPipeline(
 // ============================================================================
 // Language Adapter                     [Step 6 — adapter + extractors]
 // ============================================================================
-import type { SingleExtractResult, ParseContext } from "./00-core-types";
+import type { SingleExtractResult, ParseContext } from "./00-core-types.js";
 
 export interface Extractor<TContext extends ParseContext = ParseContext> {
   readonly kind: ExtractKind;
@@ -746,7 +756,7 @@ import type {
   CombinedExtractEntry,
   ExtractEntry,
   ExtractWarning,
-} from "./00-core-types";
+} from "./00-core-types.js";
 // import {
 //   mergeAndSortEntries,
 //   stripCombinedPositions,
@@ -875,7 +885,7 @@ export function stripCombinedPositions(
 import type {
   DetectFenceLanguageOptions,
   FormatFinalOutputOptions,
-} from "./00-core-types";
+} from "./00-core-types.js";
 
 export function toDisplayPath(filePath: string): string {
   const normalised = path.isAbsolute(filePath)

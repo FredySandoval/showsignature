@@ -5,9 +5,9 @@ import type {
   LanguageAdapter as CoreLanguageAdapter,
   ParseContext as CoreParseContext,
   SingleExtractResult,
-} from "../src/00-core-types";
-import type { Extractor, LanguageAdapter } from "../src/index";
-import type { ParseContext } from "../src/00-core-types";
+} from "../src/00-core-types.js";
+import type { Extractor, LanguageAdapter } from "../src/index.js";
+import type { ParseContext } from "../src/00-core-types.js";
 
 interface TestParseContext extends ParseContext {
   readonly lang: string;

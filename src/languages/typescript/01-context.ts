@@ -2,7 +2,7 @@ import path from "node:path";
 
 import * as ts from "typescript";
 
-import type { TsParseContext } from "../../00-core-types";
+import type { TsParseContext } from "../../00-core-types.js";
 
 export interface CreateTsParseContextOptions {
   source: string;

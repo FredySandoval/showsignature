@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { ParseContext } from "../src/00-core-types";
+import type { ParseContext } from "../src/00-core-types.js";
 
 function readContextSummary(context: ParseContext): string {
   return `${context.filePath}:${context.source.length}`;

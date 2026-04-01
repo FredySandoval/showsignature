@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 
-import type { Range } from "../../00-core-types";
+import type { Range } from "../../00-core-types.js";
 
 function mergeRanges(ranges: Range[]): Range[] {
   if (ranges.length === 0) {
