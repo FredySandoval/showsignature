@@ -520,7 +520,7 @@ export function buildDefaultRegistry(): LanguageRegistry {
   registry.register(
     createTsFamilyAdapter({
       id: "ts",
-      extensions: [".ts", ".tsx", ".mts", ".cts"],
+      extensions: [".ts", ".mts", ".cts"],
       fenceLang: "ts",
     }),
   );

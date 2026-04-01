@@ -11,7 +11,6 @@ export interface CreateTsParseContextOptions {
 
 const EXTENSION_TO_SCRIPT_KIND: Record<string, ts.ScriptKind> = {
   ".ts": ts.ScriptKind.TS,
-  ".tsx": ts.ScriptKind.TSX,
   ".js": ts.ScriptKind.JS,
   ".jsx": ts.ScriptKind.JSX,
   ".mts": ts.ScriptKind.TS,
