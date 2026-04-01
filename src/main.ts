@@ -6,7 +6,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { Command, CommanderError } from "commander";
-import fg from "fast-glob";
+import { globby } from "globby";
 import {
   BUILT_IN_EXTRACT_KINDS,
   type AggregatedExtractResult,
@@ -109,15 +109,18 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .name(CLI_NAME)
     .usage("[options]")
     .version(CLI_VERSION)
-    .option("--lang <lang>", "language to use when resolving files")
-    .option("--extract <options>", "comma-separated extract options")
+    .option(
+      "--lang <lang>",
+      "(optional) inferred from file extension if not provided",
+    )
+    .option(
+      "--extract <options>",
+      "comma-separated extract types; results are combined in source order",
+    )
     .option("--file <file>", "process a single file")
     .option("--folder <folder>", "process files from a folder")
     .option("--output <name>", "write formatted output to a file")
-    .option(
-      "--format <format>",
-      `output format: ${OUTPUT_FORMATS.join(" | ")}`,
-    )
+    .option("--format <format>", `output format: ${OUTPUT_FORMATS.join(" | ")}`)
     .option(
       "--include-tests",
       "include files under test directories during discovery",
@@ -155,7 +158,10 @@ function isExitCodeError(error: unknown): error is ExitCodeError {
   return error instanceof Error && "exitCode" in error;
 }
 
-async function assertPathExists(targetPath: string, label: string): Promise<void> {
+async function assertPathExists(
+  targetPath: string,
+  label: string,
+): Promise<void> {
   try {
     await stat(targetPath);
   } catch (error) {
@@ -267,7 +273,9 @@ async function resolveInputTarget(
   return { files };
 }
 
-async function resolveExecutionPlan(args: ParsedCliArgs): Promise<ExecutionPlan> {
+async function resolveExecutionPlan(
+  args: ParsedCliArgs,
+): Promise<ExecutionPlan> {
   validateCliArgs(args);
   await validateInputPaths(args);
 
@@ -679,7 +687,7 @@ export function buildDefaultRegistry(): LanguageRegistry {
 
 // ============================================================================
 // File Discovery                       [Step 3 — resolve files]
-// Uses fast-glob to discover files
+// Uses globby to discover files
 // ============================================================================
 function normalizePathForMatch(filePath: string): string {
   return filePath.replace(/\\/g, "/").toLowerCase();
@@ -745,12 +753,12 @@ export async function discoverFiles(
   const cwd = inferDirectory(options);
   await assertPathExists(cwd, "folder");
 
-  const discovered = await fg(globs, {
+  const discovered = await globby(globs, {
     cwd,
     absolute: true,
     onlyFiles: true,
-    unique: true,
     followSymbolicLinks: false,
+    gitignore: true,
   });
 
   return (
@@ -857,7 +865,9 @@ export async function runPipeline(
         await processFile({
           registry: options.registry,
           filePath,
-          ...(options.explicitLang ? { explicitLang: options.explicitLang } : {}),
+          ...(options.explicitLang
+            ? { explicitLang: options.explicitLang }
+            : {}),
           extractOrder: options.extractOrder,
         }),
       );
@@ -1035,7 +1045,9 @@ export function detectFenceLanguage(
   const { registry, explicitLang, seenLangs } = options;
 
   if (explicitLang) {
-    return getRegistryMetadata(registry, explicitLang)?.fenceLang ?? explicitLang;
+    return (
+      getRegistryMetadata(registry, explicitLang)?.fenceLang ?? explicitLang
+    );
   }
 
   if (seenLangs.length === 1) {
