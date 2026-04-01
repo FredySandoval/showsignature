@@ -32,7 +32,9 @@ function createStubExtractor(
           {
             kind,
             lines,
-            metadata: { sourcePos: opts?.sourcePos },
+            ...(opts?.sourcePos !== undefined
+              ? { metadata: { sourcePos: opts.sourcePos } }
+              : {}),
           },
         ],
         warnings: opts?.warnings ?? [],
@@ -52,7 +54,9 @@ function createMultiEntryExtractor(
         entries: entriesData.map((data) => ({
           kind,
           lines: data.lines,
-          metadata: { sourcePos: data.sourcePos },
+          ...(data.sourcePos !== undefined
+            ? { metadata: { sourcePos: data.sourcePos } }
+            : {}),
         })),
         warnings: [],
       };

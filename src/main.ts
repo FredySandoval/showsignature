@@ -19,7 +19,6 @@ import {
   type ExtractWarning,
   type FileSection,
   type FormatFinalOutputOptions,
-  type Extractor,
   type LanguageAdapter,
   type LanguageAdapterMetadata,
   type LanguageRegistry,
@@ -287,11 +286,11 @@ async function resolveExecutionPlan(args: ParsedCliArgs): Promise<ExecutionPlan>
 
   return {
     registry,
-    explicitLang,
+    ...(explicitLang ? { explicitLang } : {}),
     extractOrder,
     input,
     output: {
-      path: args.output,
+      ...(args.output ? { path: args.output } : {}),
       format: args.format
         ? parseOutputFormat(args.format)
         : args.output
@@ -308,7 +307,7 @@ function renderPipelineOutput(
   return formatFinalOutput({
     registry: plan.registry,
     sections: result.sections,
-    explicitLang: plan.explicitLang,
+    ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
     format: plan.output.format,
     seenLangs: result.meta.seenLangs,
   });
@@ -355,7 +354,7 @@ export function buildCli(): CliProgram {
       const result = await runPipeline({
         registry: plan.registry,
         files: plan.input.files,
-        explicitLang: plan.explicitLang,
+        ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
         extractOrder: plan.extractOrder,
       });
       const formattedOutput = renderPipelineOutput(plan, result);
@@ -858,7 +857,7 @@ export async function runPipeline(
         await processFile({
           registry: options.registry,
           filePath,
-          explicitLang: options.explicitLang,
+          ...(options.explicitLang ? { explicitLang: options.explicitLang } : {}),
           extractOrder: options.extractOrder,
         }),
       );
@@ -1081,7 +1080,11 @@ export function formatFinalOutput(options: FormatFinalOutputOptions): string {
     return plainOutput;
   }
 
-  const fenceLang = detectFenceLanguage({ registry, explicitLang, seenLangs });
+  const fenceLang = detectFenceLanguage({
+    registry,
+    ...(explicitLang ? { explicitLang } : {}),
+    seenLangs,
+  });
   return toMarkdownCodeBlock(plainOutput, fenceLang);
 }
 
