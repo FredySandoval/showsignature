@@ -670,6 +670,24 @@ function normalizePathForMatch(filePath: string): string {
   return filePath.replace(/\\/g, "/").toLowerCase();
 }
 
+function compareFilesLogical(left: string, right: string): number {
+  const leftNormalized = normalizePathForMatch(
+    path.isAbsolute(left) ? path.relative(process.cwd(), left) : left,
+  );
+  const rightNormalized = normalizePathForMatch(
+    path.isAbsolute(right) ? path.relative(process.cwd(), right) : right,
+  );
+
+  const leftDepth = leftNormalized.split("/").length;
+  const rightDepth = rightNormalized.split("/").length;
+
+  if (leftDepth !== rightDepth) {
+    return leftDepth - rightDepth;
+  }
+
+  return leftNormalized.localeCompare(rightNormalized);
+}
+
 export function getSupportedGlobs(registry: LanguageRegistry): string[] {
   const extensions = registry.supportedExtensions();
   const globs = new Set<string>();
@@ -742,7 +760,7 @@ export async function discoverFiles(
     options.includeTests
       ? discovered
       : discovered.filter((filePath) => !isTestFile(filePath))
-  ).sort();
+  ).sort(compareFilesLogical);
 }
 
 // ============================================================================
