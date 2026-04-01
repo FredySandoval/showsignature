@@ -4,6 +4,7 @@
 // ============================================================================
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { Command, CommanderError } from "commander";
 import { BUILT_IN_EXTRACT_KINDS } from "./00-core-types.js";
 
@@ -24,7 +25,16 @@ interface ExitCodeError extends Error {
   exitCode?: number;
 }
 
+interface PackageMetadata {
+  name?: string;
+  version?: string;
+}
+
 const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
+const require = createRequire(import.meta.url);
+const packageMetadata = require("../package.json") as PackageMetadata;
+const CLI_NAME = packageMetadata.name ?? "showcode";
+const CLI_VERSION = packageMetadata.version ?? "0.0.0";
 
 function createCliError(message: string, exitCode = 1): ExitCodeError {
   const error = new Error(message) as ExitCodeError;
@@ -50,8 +60,9 @@ function normalizeCommanderErrorMessage(message: string): string {
 
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   const program = new Command()
-    .name("showcode")
+    .name(CLI_NAME)
     .usage("[options]")
+    .version(CLI_VERSION)
     .option("--lang <lang>", "language to use when resolving files")
     .option("--extract <options>", "comma-separated extract options")
     .option("--file <file>", "process a single file")
