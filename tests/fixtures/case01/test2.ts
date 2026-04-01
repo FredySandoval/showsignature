@@ -15,7 +15,7 @@ class UserAccount implements User {
     public id: number,
     public name: string,
     public email: string,
-    public isActive: boolean = true
+    public isActive: boolean = true,
   ) {}
 
   // Method with return type annotation

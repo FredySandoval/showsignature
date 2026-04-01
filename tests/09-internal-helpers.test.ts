@@ -1,18 +1,18 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { ensureArray } from '../src/09-internal-helpers';
+import { ensureArray } from "../src/index";
 
-describe('ensureArray', () => {
-  test('wraps non-array values in an array', () => {
-    expect(ensureArray('value')).toEqual(['value']);
+describe("ensureArray", () => {
+  test("wraps non-array values in an array", () => {
+    expect(ensureArray("value")).toEqual(["value"]);
     expect(ensureArray(42)).toEqual([42]);
   });
 
-  test('returns array values unchanged by reference', () => {
-    const input = ['a', 'b'];
+  test("returns array values unchanged by reference", () => {
+    const input = ["a", "b"];
     const result = ensureArray(input);
 
     expect(result).toBe(input);
-    expect(result).toEqual(['a', 'b']);
+    expect(result).toEqual(["a", "b"]);
   });
 });

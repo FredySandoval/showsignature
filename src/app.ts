@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-
-import { runCli } from './01-cli';
+import { runCli } from "./index";
 
 await runCli();
-

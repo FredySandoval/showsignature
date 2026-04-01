@@ -1,23 +1,23 @@
 // ============================================================================
 // Core Types
 // ============================================================================
-import type * as ts from 'typescript';
+import type * as ts from "typescript";
 
 export type BuiltInExtractKind =
-  | 'signatures'
-  | 'interfaces'
-  | 'types'
-  | 'variables'
-  | 'comments'
-  | 'imports';
+  | "signatures"
+  | "interfaces"
+  | "types"
+  | "variables"
+  | "comments"
+  | "imports";
 
 export const BUILT_IN_EXTRACT_KINDS: readonly BuiltInExtractKind[] = [
-  'signatures',
-  'interfaces',
-  'types',
-  'variables',
-  'comments',
-  'imports',
+  "signatures",
+  "interfaces",
+  "types",
+  "variables",
+  "comments",
+  "imports",
 ] as const;
 
 declare const pluginExtractKindBrand: unique symbol;
@@ -32,7 +32,7 @@ export function toPluginExtractKind(kind: string): PluginExtractKind {
   return kind as PluginExtractKind;
 }
 
-export type DiagnosticSeverity = 'info' | 'warning' | 'error';
+export type DiagnosticSeverity = "info" | "warning" | "error";
 
 export interface ExtractEntryMetadata {
   filePath?: string;

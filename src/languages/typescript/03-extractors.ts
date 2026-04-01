@@ -1,19 +1,19 @@
-import * as ts from 'typescript';
+import * as ts from "typescript";
 
 import type {
   ExtractEntry,
   Extractor,
   SingleExtractResult,
   TsParseContext,
-} from '../../00-core-types';
-import { TsAstHelpers } from './02-ast-helpers';
+} from "../../00-core-types";
+import { TsAstHelpers } from "./02-ast-helpers";
 
 function toResult(entries: ExtractEntry[]): SingleExtractResult {
   return { entries, warnings: [] };
 }
 
 function toEntry(
-  kind: ExtractEntry['kind'],
+  kind: ExtractEntry["kind"],
   lines: string[],
   sourcePos: number,
   filePath: string,
@@ -32,18 +32,21 @@ function renderFunctionSignature(
   node: ts.FunctionDeclaration,
   sourceFile: ts.SourceFile,
 ): string {
-  const modifiers = TsAstHelpers.getModifiers(node).join(' ');
-  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : '';
+  const modifiers = TsAstHelpers.getModifiers(node).join(" ");
+  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : "";
   const asyncPrefix =
-    TsAstHelpers.hasAsyncModifier(node) && !modifiers.includes('async')
-      ? 'async '
-      : '';
-  const generator = node.asteriskToken ? '*' : '';
-  const name = node.name ? node.name.getText(sourceFile) : '';
-  const typeParams = TsAstHelpers.printTypeParams(node.typeParameters, sourceFile);
+    TsAstHelpers.hasAsyncModifier(node) && !modifiers.includes("async")
+      ? "async "
+      : "";
+  const generator = node.asteriskToken ? "*" : "";
+  const name = node.name ? node.name.getText(sourceFile) : "";
+  const typeParams = TsAstHelpers.printTypeParams(
+    node.typeParameters,
+    sourceFile,
+  );
   const params = TsAstHelpers.printParams(node.parameters, sourceFile);
   const returnType = TsAstHelpers.printType(node, sourceFile);
-  const returnPart = returnType.length > 0 ? `: ${returnType}` : '';
+  const returnPart = returnType.length > 0 ? `: ${returnType}` : "";
 
   return `${modifierPrefix}${asyncPrefix}function ${generator}${name}${typeParams}(${params})${returnPart};`;
 }
@@ -60,19 +63,22 @@ function renderMethodSignature(
   node: ts.MethodDeclaration,
   sourceFile: ts.SourceFile,
 ): string {
-  const modifiers = TsAstHelpers.getModifiers(node).join(' ');
-  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : '';
+  const modifiers = TsAstHelpers.getModifiers(node).join(" ");
+  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : "";
   const asyncPrefix =
-    TsAstHelpers.hasAsyncModifier(node) && !modifiers.includes('async')
-      ? 'async '
-      : '';
-  const generator = node.asteriskToken ? '*' : '';
+    TsAstHelpers.hasAsyncModifier(node) && !modifiers.includes("async")
+      ? "async "
+      : "";
+  const generator = node.asteriskToken ? "*" : "";
   const name = node.name.getText(sourceFile);
-  const optional = node.questionToken ? '?' : '';
-  const typeParams = TsAstHelpers.printTypeParams(node.typeParameters, sourceFile);
+  const optional = node.questionToken ? "?" : "";
+  const typeParams = TsAstHelpers.printTypeParams(
+    node.typeParameters,
+    sourceFile,
+  );
   const params = TsAstHelpers.printParams(node.parameters, sourceFile);
   const returnType = TsAstHelpers.printType(node, sourceFile);
-  const returnPart = returnType.length > 0 ? `: ${returnType}` : '';
+  const returnPart = returnType.length > 0 ? `: ${returnType}` : "";
 
   return `${modifierPrefix}${asyncPrefix}${generator}${name}${optional}${typeParams}(${params})${returnPart};`;
 }
@@ -81,22 +87,27 @@ function renderClassSignature(
   node: ts.ClassDeclaration,
   sourceFile: ts.SourceFile,
 ): string[] {
-  const modifiers = TsAstHelpers.getModifiers(node).join(' ');
-  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : '';
-  const name = node.name ? node.name.getText(sourceFile) : '';
-  const typeParams = TsAstHelpers.printTypeParams(node.typeParameters, sourceFile);
+  const modifiers = TsAstHelpers.getModifiers(node).join(" ");
+  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : "";
+  const name = node.name ? node.name.getText(sourceFile) : "";
+  const typeParams = TsAstHelpers.printTypeParams(
+    node.typeParameters,
+    sourceFile,
+  );
 
   const heritage = node.heritageClauses
     ?.map((clause) => {
       const keyword =
-        clause.token === ts.SyntaxKind.ExtendsKeyword ? 'extends' : 'implements';
+        clause.token === ts.SyntaxKind.ExtendsKeyword
+          ? "extends"
+          : "implements";
       const types = clause.types
         .map((heritageType) => heritageType.getText(sourceFile))
-        .join(', ');
+        .join(", ");
       return `${keyword} ${types}`;
     })
-    .join(' ');
-  const heritagePart = heritage && heritage.length > 0 ? ` ${heritage}` : '';
+    .join(" ");
+  const heritagePart = heritage && heritage.length > 0 ? ` ${heritage}` : "";
 
   const classHeader = `${modifierPrefix}class ${name}${typeParams}${heritagePart} {`;
   const memberLines = node.members.flatMap((member) => {
@@ -111,12 +122,12 @@ function renderClassSignature(
     return [];
   });
 
-  return [classHeader, ...memberLines, '}'];
+  return [classHeader, ...memberLines, "}"];
 }
 
 export function createSignaturesExtractor(): Extractor<TsParseContext> {
   return {
-    kind: 'signatures',
+    kind: "signatures",
     extract(context): SingleExtractResult {
       const entries: ExtractEntry[] = [];
       const { sourceFile, filePath } = context;
@@ -125,7 +136,7 @@ export function createSignaturesExtractor(): Extractor<TsParseContext> {
         if (ts.isClassDeclaration(node)) {
           entries.push(
             toEntry(
-              'signatures',
+              "signatures",
               renderClassSignature(node, sourceFile),
               node.getStart(sourceFile),
               filePath,
@@ -137,7 +148,7 @@ export function createSignaturesExtractor(): Extractor<TsParseContext> {
         if (ts.isFunctionDeclaration(node)) {
           entries.push(
             toEntry(
-              'signatures',
+              "signatures",
               [renderFunctionSignature(node, sourceFile)],
               node.getStart(sourceFile),
               filePath,
@@ -157,13 +168,13 @@ export function createSignaturesExtractor(): Extractor<TsParseContext> {
 
 export function createInterfacesExtractor(): Extractor<TsParseContext> {
   return {
-    kind: 'interfaces',
+    kind: "interfaces",
     extract(context): SingleExtractResult {
       const entries = context.sourceFile.statements
         .filter(ts.isInterfaceDeclaration)
         .map((declaration) =>
           toEntry(
-            'interfaces',
+            "interfaces",
             declaration.getText(context.sourceFile).split(/\r?\n/u),
             declaration.getStart(context.sourceFile),
             context.filePath,
@@ -177,13 +188,13 @@ export function createInterfacesExtractor(): Extractor<TsParseContext> {
 
 export function createTypesExtractor(): Extractor<TsParseContext> {
   return {
-    kind: 'types',
+    kind: "types",
     extract(context): SingleExtractResult {
       const entries = context.sourceFile.statements
         .filter(ts.isTypeAliasDeclaration)
         .map((declaration) =>
           toEntry(
-            'types',
+            "types",
             declaration.getText(context.sourceFile).split(/\r?\n/u),
             declaration.getStart(context.sourceFile),
             context.filePath,
@@ -200,12 +211,12 @@ function renderVariableDeclaration(
   declaration: ts.VariableDeclaration,
   sourceFile: ts.SourceFile,
 ): string {
-  const modifiers = TsAstHelpers.getModifiers(statement).join(' ');
-  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : '';
+  const modifiers = TsAstHelpers.getModifiers(statement).join(" ");
+  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : "";
   const keyword = TsAstHelpers.getDeclarationKeyword(statement.declarationList);
   const name = declaration.name.getText(sourceFile);
   const type = TsAstHelpers.printType(declaration, sourceFile);
-  const typePart = type.length > 0 ? `: ${type}` : '';
+  const typePart = type.length > 0 ? `: ${type}` : "";
 
   if (!declaration.initializer) {
     return `${modifierPrefix}${keyword} ${name}${typePart};`;
@@ -220,7 +231,7 @@ function renderVariableDeclaration(
 
 export function createVariablesExtractor(): Extractor<TsParseContext> {
   return {
-    kind: 'variables',
+    kind: "variables",
     extract(context): SingleExtractResult {
       const entries: ExtractEntry[] = [];
 
@@ -232,8 +243,14 @@ export function createVariablesExtractor(): Extractor<TsParseContext> {
         for (const declaration of statement.declarationList.declarations) {
           entries.push(
             toEntry(
-              'variables',
-              [renderVariableDeclaration(statement, declaration, context.sourceFile)],
+              "variables",
+              [
+                renderVariableDeclaration(
+                  statement,
+                  declaration,
+                  context.sourceFile,
+                ),
+              ],
               declaration.getStart(context.sourceFile),
               context.filePath,
             ),
@@ -248,10 +265,15 @@ export function createVariablesExtractor(): Extractor<TsParseContext> {
 
 export function createCommentsExtractor(): Extractor<TsParseContext> {
   return {
-    kind: 'comments',
+    kind: "comments",
     extract(context): SingleExtractResult {
-      const ranges = TsAstHelpers.buildCommentExclusionRanges(context.sourceFile);
-      const maskedSource = TsAstHelpers.maskExcludedRanges(context.source, ranges);
+      const ranges = TsAstHelpers.buildCommentExclusionRanges(
+        context.sourceFile,
+      );
+      const maskedSource = TsAstHelpers.maskExcludedRanges(
+        context.source,
+        ranges,
+      );
       const commentPattern = /\/\/[^\r\n]*|\/\*[\s\S]*?\*\//gu;
       const entries: ExtractEntry[] = [];
 
@@ -266,7 +288,7 @@ export function createCommentsExtractor(): Extractor<TsParseContext> {
 
         entries.push(
           toEntry(
-            'comments',
+            "comments",
             context.source.slice(start, end).split(/\r?\n/u),
             start,
             context.filePath,
@@ -281,13 +303,13 @@ export function createCommentsExtractor(): Extractor<TsParseContext> {
 
 export function createImportsExtractor(): Extractor<TsParseContext> {
   return {
-    kind: 'imports',
+    kind: "imports",
     extract(context): SingleExtractResult {
       const entries = context.sourceFile.statements
         .filter(ts.isImportDeclaration)
         .map((declaration) =>
           toEntry(
-            'imports',
+            "imports",
             [declaration.getText(context.sourceFile)],
             declaration.getStart(context.sourceFile),
             context.filePath,

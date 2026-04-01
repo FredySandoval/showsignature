@@ -1,25 +1,27 @@
-import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
-import { buildCli } from '../src/01-cli';
+import { buildCli } from "../src/index";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 const originalStdoutWrite = process.stdout.write;
 const originalStderrWrite = process.stderr.write;
 
-let stdoutBuffer = '';
-let stderrBuffer = '';
+let stdoutBuffer = "";
+let stderrBuffer = "";
 
 function captureWrite(chunk: string | Uint8Array): string {
-  return typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8');
+  return typeof chunk === "string"
+    ? chunk
+    : Buffer.from(chunk).toString("utf8");
 }
 
 function installOutputCapture(): void {
-  stdoutBuffer = '';
-  stderrBuffer = '';
+  stdoutBuffer = "";
+  stderrBuffer = "";
   process.exitCode = 0;
 
   process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -34,7 +36,7 @@ function installOutputCapture(): void {
 }
 
 async function createTempDir(): Promise<string> {
-  const dirPath = await mkdtemp(path.join(os.tmpdir(), 'showcode-readme-'));
+  const dirPath = await mkdtemp(path.join(os.tmpdir(), "showcode-readme-"));
   tempDirs.push(dirPath);
   return dirPath;
 }
@@ -46,7 +48,7 @@ async function writeFixtureFile(
 ): Promise<string> {
   const filePath = path.join(rootDir, relativePath);
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, content, 'utf8');
+  await writeFile(filePath, content, "utf8");
   return filePath;
 }
 
@@ -57,90 +59,92 @@ afterEach(async () => {
   process.exitCode = 0;
 
   await Promise.all(
-    tempDirs.splice(0).map((dirPath) => rm(dirPath, { recursive: true, force: true })),
+    tempDirs
+      .splice(0)
+      .map((dirPath) => rm(dirPath, { recursive: true, force: true })),
   );
 });
 
-describe('README acceptance', () => {
-  test('extracts every documented feature and skips test files during recursive folder traversal', async () => {
+describe("README acceptance", () => {
+  test("extracts every documented feature and skips test files during recursive folder traversal", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
     await writeFixtureFile(
       rootDir,
-      'src/nested/feature.ts',
+      "src/nested/feature.ts",
       [
         'import fs from "node:fs";',
         'import type { UserShape } from "./types";',
-        '',
-        '// Env setup',
-        'export interface User {',
-        '  id: number;',
-        '}',
-        '',
-        'export type UserId = string | number;',
-        '',
+        "",
+        "// Env setup",
+        "export interface User {",
+        "  id: number;",
+        "}",
+        "",
+        "export type UserId = string | number;",
+        "",
         'export const API_URL = "https://example.com";',
-        'let cache: Map<string, User> = new Map();',
+        "let cache: Map<string, User> = new Map();",
         'const settings = { theme: "dark", compact: true };',
-        '',
-        'export abstract class UserAccount<T extends User> implements User {',
-        '  constructor(public id: number) {}',
-        '  getProfile(): string {',
+        "",
+        "export abstract class UserAccount<T extends User> implements User {",
+        "  constructor(public id: number) {}",
+        "  getProfile(): string {",
         '    return "something";',
-        '  }',
-        '}',
-        '',
-        'export function printUserInfo<T extends User>(user: T): void {',
-        '  console.log(user);',
-        '}',
-        '',
-      ].join('\n'),
+        "  }",
+        "}",
+        "",
+        "export function printUserInfo<T extends User>(user: T): void {",
+        "  console.log(user);",
+        "}",
+        "",
+      ].join("\n"),
     );
     await writeFixtureFile(
       rootDir,
-      'src/nested/feature.test.ts',
-      'export function shouldNotAppear(): void {}\n',
+      "src/nested/feature.test.ts",
+      "export function shouldNotAppear(): void {}\n",
     );
     await writeFixtureFile(
       rootDir,
-      'src/tests/ignored.ts',
-      'export function shouldAlsoNotAppear(): void {}\n',
+      "src/tests/ignored.ts",
+      "export function shouldAlsoNotAppear(): void {}\n",
     );
 
     process.chdir(rootDir);
 
     await buildCli().run([
-      'showcode',
-      '--folder',
-      'src',
-      '--extract=imports,comments,interfaces,types,variables,signatures',
+      "showcode",
+      "--folder",
+      "src",
+      "--extract=imports,comments,interfaces,types,variables,signatures",
     ]);
 
     expect(stdoutBuffer).toBe(
       [
-        '// src/nested/feature.ts',
+        "// src/nested/feature.ts",
         'import fs from "node:fs";',
         'import type { UserShape } from "./types";',
-        '// Env setup',
-        'export interface User {',
-        '  id: number;',
-        '}',
-        'export type UserId = string | number;',
+        "// Env setup",
+        "export interface User {",
+        "  id: number;",
+        "}",
+        "export type UserId = string | number;",
         'export const API_URL = "https://example.com";',
-        'let cache: Map<string, User> = ...;',
-        'const settings = {...};',
-        'export abstract class UserAccount<T extends User> implements User {',
-        '  constructor(public id: number);',
-        '  getProfile(): string;',
-        '}',
-        'export function printUserInfo<T extends User>(user: T): void;',
-        '',
-      ].join('\n'),
+        "let cache: Map<string, User> = ...;",
+        "const settings = {...};",
+        "export abstract class UserAccount<T extends User> implements User {",
+        "  constructor(public id: number);",
+        "  getProfile(): string;",
+        "}",
+        "export function printUserInfo<T extends User>(user: T): void;",
+        "",
+      ].join("\n"),
     );
-    expect(stdoutBuffer).not.toContain('shouldNotAppear');
-    expect(stdoutBuffer).not.toContain('shouldAlsoNotAppear');
-    expect(stderrBuffer).toBe('');
+    expect(stdoutBuffer).not.toContain("shouldNotAppear");
+    expect(stdoutBuffer).not.toContain("shouldAlsoNotAppear");
+    expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
   });
 });

@@ -3,8 +3,8 @@ import type {
   Extractor,
   LanguageAdapter,
   TsParseContext,
-} from '../../00-core-types';
-import { createTsParseContext } from './01-context';
+} from "../../00-core-types";
+import { createTsParseContext } from "./01-context";
 import {
   createCommentsExtractor,
   createImportsExtractor,
@@ -12,7 +12,7 @@ import {
   createSignaturesExtractor,
   createTypesExtractor,
   createVariablesExtractor,
-} from './03-extractors';
+} from "./03-extractors";
 
 export interface CreateTsFamilyAdapterOptions {
   id: string;
@@ -20,7 +20,10 @@ export interface CreateTsFamilyAdapterOptions {
   fenceLang: string;
 }
 
-function buildExtractors(): ReadonlyMap<ExtractKind, Extractor<TsParseContext>> {
+function buildExtractors(): ReadonlyMap<
+  ExtractKind,
+  Extractor<TsParseContext>
+> {
   const extractors: Extractor<TsParseContext>[] = [
     createSignaturesExtractor(),
     createInterfacesExtractor(),

@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from "bun:test";
 
-import { createTsParseContext } from '../../../src/languages/typescript/01-context';
+import { createTsParseContext } from "../../../src/languages/typescript/01-context";
 import {
   createCommentsExtractor,
   createImportsExtractor,
@@ -8,17 +8,17 @@ import {
   createSignaturesExtractor,
   createTypesExtractor,
   createVariablesExtractor,
-} from '../../../src/languages/typescript/03-extractors';
+} from "../../../src/languages/typescript/03-extractors";
 
 function buildContext(source: string) {
   return createTsParseContext({
     source,
-    filePath: '/tmp/example.ts',
+    filePath: "/tmp/example.ts",
   });
 }
 
-describe('createSignaturesExtractor', () => {
-  test('extracts class and function signatures', () => {
+describe("createSignaturesExtractor", () => {
+  test("extracts class and function signatures", () => {
     const source = `
       export abstract class UserAccount<T> extends BaseAccount implements User {
         constructor(public id: number) {}
@@ -36,25 +36,33 @@ describe('createSignaturesExtractor', () => {
 
     expect(result.warnings).toEqual([]);
     expect(result.entries.map((entry) => entry.kind)).toEqual([
-      'signatures',
-      'signatures',
+      "signatures",
+      "signatures",
     ]);
     expect(result.entries[0]?.lines).toEqual([
-      'export abstract class UserAccount<T> extends BaseAccount implements User {',
-      '  constructor(public id: number);',
-      '  async getProfile(): Promise<string>;',
-      '}',
+      "export abstract class UserAccount<T> extends BaseAccount implements User {",
+      "  constructor(public id: number);",
+      "  async getProfile(): Promise<string>;",
+      "}",
     ]);
     expect(result.entries[1]?.lines).toEqual([
-      'export function printUserInfo<T extends User>(user: T): void;',
+      "export function printUserInfo<T extends User>(user: T): void;",
     ]);
-    expect(result.entries.every((entry) => entry.metadata?.filePath === '/tmp/example.ts')).toBe(true);
-    expect(result.entries.every((entry) => typeof entry.metadata?.sourcePos === 'number')).toBe(true);
+    expect(
+      result.entries.every(
+        (entry) => entry.metadata?.filePath === "/tmp/example.ts",
+      ),
+    ).toBe(true);
+    expect(
+      result.entries.every(
+        (entry) => typeof entry.metadata?.sourcePos === "number",
+      ),
+    ).toBe(true);
   });
 });
 
-describe('createInterfacesExtractor', () => {
-  test('extracts interface definitions', () => {
+describe("createInterfacesExtractor", () => {
+  test("extracts interface definitions", () => {
     const source = `
       export interface User {
         id: string;
@@ -65,17 +73,17 @@ describe('createInterfacesExtractor', () => {
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toHaveLength(1);
-    expect(result.entries[0]?.kind).toBe('interfaces');
+    expect(result.entries[0]?.kind).toBe("interfaces");
     expect(result.entries[0]?.lines).toEqual([
-      'export interface User {',
-      '        id: string;',
-      '      }',
+      "export interface User {",
+      "        id: string;",
+      "      }",
     ]);
   });
 });
 
-describe('createTypesExtractor', () => {
-  test('extracts type aliases', () => {
+describe("createTypesExtractor", () => {
+  test("extracts type aliases", () => {
     const source = `
       export type UserId = string | number;
     `;
@@ -84,13 +92,15 @@ describe('createTypesExtractor', () => {
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toHaveLength(1);
-    expect(result.entries[0]?.kind).toBe('types');
-    expect(result.entries[0]?.lines).toEqual(['export type UserId = string | number;']);
+    expect(result.entries[0]?.kind).toBe("types");
+    expect(result.entries[0]?.lines).toEqual([
+      "export type UserId = string | number;",
+    ]);
   });
 });
 
-describe('createVariablesExtractor', () => {
-  test('extracts variable declarations and summarizes initializers', () => {
+describe("createVariablesExtractor", () => {
+  test("extracts variable declarations and summarizes initializers", () => {
     const source = `
       export const API_URL = "https://example.com";
       let cache: Map<string, User> = new Map();
@@ -105,17 +115,17 @@ describe('createVariablesExtractor', () => {
     expect(result.warnings).toEqual([]);
     expect(result.entries.map((entry) => entry.lines[0])).toEqual([
       'export const API_URL = "https://example.com";',
-      'let cache: Map<string, User> = ...;',
-      'const settings = {...};',
-      'const list = [...];',
-      'const fn = ...;',
-      'let deferred: number;',
+      "let cache: Map<string, User> = ...;",
+      "const settings = {...};",
+      "const list = [...];",
+      "const fn = ...;",
+      "let deferred: number;",
     ]);
   });
 });
 
-describe('createCommentsExtractor', () => {
-  test('extracts comments and ignores comment-like tokens in strings/regex/templates', () => {
+describe("createCommentsExtractor", () => {
+  test("extracts comments and ignores comment-like tokens in strings/regex/templates", () => {
     const source = `
       const a = "not // comment";
       const b = \`not /* comment */\`;
@@ -130,16 +140,16 @@ describe('createCommentsExtractor', () => {
     const result = extractor.extract(buildContext(source));
 
     expect(result.warnings).toEqual([]);
-    expect(result.entries.map((entry) => entry.lines.join('\n'))).toEqual([
-      '// first real comment',
-      '/*\n        second real comment\n      */',
-      '// trailing',
+    expect(result.entries.map((entry) => entry.lines.join("\n"))).toEqual([
+      "// first real comment",
+      "/*\n        second real comment\n      */",
+      "// trailing",
     ]);
   });
 });
 
-describe('createImportsExtractor', () => {
-  test('extracts import declarations only', () => {
+describe("createImportsExtractor", () => {
+  test("extracts import declarations only", () => {
     const source = `
       import fs from "node:fs";
       import { readFile } from "node:fs/promises";
@@ -152,9 +162,9 @@ describe('createImportsExtractor', () => {
 
     expect(result.warnings).toEqual([]);
     expect(result.entries.map((entry) => entry.kind)).toEqual([
-      'imports',
-      'imports',
-      'imports',
+      "imports",
+      "imports",
+      "imports",
     ]);
     expect(result.entries.map((entry) => entry.lines[0])).toEqual([
       'import fs from "node:fs";',

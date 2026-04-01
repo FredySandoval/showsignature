@@ -1,6 +1,6 @@
-import * as ts from 'typescript';
+import * as ts from "typescript";
 
-import type { Range } from '../../00-core-types';
+import type { Range } from "../../00-core-types";
 
 function mergeRanges(ranges: Range[]): Range[] {
   if (ranges.length === 0) {
@@ -54,7 +54,7 @@ export namespace TsAstHelpers {
     };
 
     if (!nodeWithType.type) {
-      return '';
+      return "";
     }
 
     return nodeWithType.type.getText(sourceFile);
@@ -65,12 +65,12 @@ export namespace TsAstHelpers {
     sourceFile: ts.SourceFile,
   ): string {
     if (!typeParams || typeParams.length === 0) {
-      return '';
+      return "";
     }
 
     const rendered = typeParams
       .map((typeParam) => typeParam.getText(sourceFile))
-      .join(', ');
+      .join(", ");
 
     return `<${rendered}>`;
   }
@@ -79,21 +79,21 @@ export namespace TsAstHelpers {
     params: ts.NodeArray<ts.ParameterDeclaration>,
     sourceFile: ts.SourceFile,
   ): string {
-    return params.map((param) => param.getText(sourceFile)).join(', ');
+    return params.map((param) => param.getText(sourceFile)).join(", ");
   }
 
   export function getDeclarationKeyword(
     declarationList: ts.VariableDeclarationList,
   ): string {
     if (declarationList.flags & ts.NodeFlags.Const) {
-      return 'const';
+      return "const";
     }
 
     if (declarationList.flags & ts.NodeFlags.Let) {
-      return 'let';
+      return "let";
     }
 
-    return 'var';
+    return "var";
   }
 
   export function hasAsyncModifier(node: ts.Node): boolean {
@@ -116,11 +116,11 @@ export namespace TsAstHelpers {
     sourceFile: ts.SourceFile,
   ): string {
     if (ts.isObjectLiteralExpression(initializer)) {
-      return '{...}';
+      return "{...}";
     }
 
     if (ts.isArrayLiteralExpression(initializer)) {
-      return '[...]';
+      return "[...]";
     }
 
     if (
@@ -128,7 +128,7 @@ export namespace TsAstHelpers {
       ts.isFunctionExpression(initializer) ||
       ts.isClassExpression(initializer)
     ) {
-      return '...';
+      return "...";
     }
 
     if (
@@ -144,10 +144,12 @@ export namespace TsAstHelpers {
       return initializer.getText(sourceFile);
     }
 
-    return '...';
+    return "...";
   }
 
-  export function buildCommentExclusionRanges(sourceFile: ts.SourceFile): Range[] {
+  export function buildCommentExclusionRanges(
+    sourceFile: ts.SourceFile,
+  ): Range[] {
     const ranges: Range[] = [];
 
     function addRange(node: ts.Node): void {
@@ -177,7 +179,7 @@ export namespace TsAstHelpers {
       return source;
     }
 
-    const masked = source.split('');
+    const masked = source.split("");
     const mergedRanges = mergeRanges(ranges);
 
     for (const range of mergedRanges) {
@@ -185,13 +187,13 @@ export namespace TsAstHelpers {
       const end = Math.min(source.length, range.end);
 
       for (let i = start; i < end; i += 1) {
-        if (masked[i] !== '\n' && masked[i] !== '\r') {
-          masked[i] = ' ';
+        if (masked[i] !== "\n" && masked[i] !== "\r") {
+          masked[i] = " ";
         }
       }
     }
 
-    return masked.join('');
+    return masked.join("");
   }
 
   export function isRangeExcluded(
