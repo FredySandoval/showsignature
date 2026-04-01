@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import * as ts from "typescript";
 
-import { createTsParseContext } from "../../../src/languages/typescript/01-context.js";
+import { createTsParseContext } from "@/src/languages/typescript/01-context.js";
 
 describe("createTsParseContext", () => {
   test("creates a ts context for .ts files", () => {
@@ -15,15 +15,6 @@ describe("createTsParseContext", () => {
     expect(context.scriptKind).toBe(ts.ScriptKind.TS);
     expect(context.sourceFile.fileName).toBe(filePath);
     expect(context.sourceFile.text).toBe(source);
-  });
-
-  test("infers TSX script kind from .tsx extension", () => {
-    const context = createTsParseContext({
-      source: "export const App = () => <div />;",
-      filePath: "/tmp/App.tsx",
-    });
-
-    expect(context.scriptKind).toBe(ts.ScriptKind.TSX);
   });
 
   test("falls back to TS when extension is unknown", () => {

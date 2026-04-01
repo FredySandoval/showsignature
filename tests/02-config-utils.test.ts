@@ -4,8 +4,8 @@ import {
   parseExtractOptions,
   stringifyError,
   toPipelineError,
-} from "../src/main.js";
-import { BUILT_IN_EXTRACT_KINDS } from "../src/00-core-types.js";
+} from "@/src/main.js";
+import { BUILT_IN_EXTRACT_KINDS } from "@/src/00-core-types.js";
 
 describe("parseExtractOptions", () => {
   test("parses comma-separated kinds in order", () => {

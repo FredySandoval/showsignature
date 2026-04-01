@@ -4,8 +4,8 @@ import {
   flattenExtractEntries,
   mergeAndSortEntries,
   stripCombinedPositions,
-} from "../src/main.js";
-import type { CombinedExtractEntry, ExtractEntry } from "../src/00-core-types.js";
+} from "@/src/main.js";
+import type { CombinedExtractEntry, ExtractEntry } from "@/src/00-core-types.js";
 
 describe("flattenExtractEntries", () => {
   test("flattens groups while preserving group and entry order", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { createTsParseContext } from "../../../src/languages/typescript/01-context.js";
+import { createTsParseContext } from "@/src/languages/typescript/01-context.js";
 import {
   createCommentsExtractor,
   createImportsExtractor,
@@ -8,7 +8,7 @@ import {
   createSignaturesExtractor,
   createTypesExtractor,
   createVariablesExtractor,
-} from "../../../src/languages/typescript/03-extractors.js";
+} from "@/src/languages/typescript/03-extractors.js";
 
 function buildContext(source: string) {
   return createTsParseContext({

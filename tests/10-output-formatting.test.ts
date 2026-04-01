@@ -6,15 +6,15 @@ import type {
   LanguageAdapter,
   ParseContext,
   SingleExtractResult,
-} from "../src/00-core-types.js";
-import { createLanguageRegistry } from "../src/main.js";
+} from "@/src/00-core-types.js";
+import { createLanguageRegistry } from "@/src/main.js";
 import {
   detectFenceLanguage,
   formatFinalOutput,
   formatPlainOutput,
   toDisplayPath,
   toMarkdownCodeBlock,
-} from "../src/main.js";
+} from "@/src/main.js";
 
 // ---------------------------------------------------------------------------
 // Test helpers

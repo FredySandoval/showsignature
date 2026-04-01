@@ -10,9 +10,9 @@ import type {
   LanguageAdapter,
   ParseContext,
   SingleExtractResult,
-} from "../src/00-core-types.js";
-import { extractFromSource, processFile, runPipeline } from "../src/main.js";
-import { createLanguageRegistry } from "../src/main.js";
+} from "@/src/00-core-types.js";
+import { extractFromSource, processFile, runPipeline } from "@/src/main.js";
+import { createLanguageRegistry } from "@/src/main.js";
 
 const tempDirs: string[] = [];
 

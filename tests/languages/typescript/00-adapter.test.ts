@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import * as ts from "typescript";
 
-import { toPluginExtractKind } from "../../../src/00-core-types.js";
-import { createTsFamilyAdapter } from "../../../src/languages/typescript/00-adapter.js";
+import { toPluginExtractKind } from "@/src/00-core-types.js";
+import { createTsFamilyAdapter } from "@/src/languages/typescript/00-adapter.js";
 
 describe("createTsFamilyAdapter", () => {
   test("builds an adapter with expected metadata and extractor kinds", () => {
