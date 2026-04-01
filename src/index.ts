@@ -34,6 +34,7 @@ export {
   type LanguageAdapter,
   type LanguageAdapterMetadata,
   type LanguageRegistry,
+  type OutputFormat,
   type ParseContext,
   type PipelineDiagnostics,
   type PipelineError,

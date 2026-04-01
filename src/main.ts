@@ -2,11 +2,38 @@
 // CLI                                  [Step 1 — entry point]
 // Uses commanderjs to parse CLI arguments and run the pipeline
 // ============================================================================
-import { mkdir, stat, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import path from "node:path";
 import { Command, CommanderError } from "commander";
-import { BUILT_IN_EXTRACT_KINDS } from "./00-core-types.js";
+import fg from "fast-glob";
+import {
+  BUILT_IN_EXTRACT_KINDS,
+  type AggregatedExtractResult,
+  type CombinedExtractEntry,
+  type DetectFenceLanguageOptions,
+  type DiscoverFilesOptions,
+  type ExtractEntry,
+  type ExtractFromSourceOptions,
+  type ExtractKind,
+  type ExtractWarning,
+  type FileSection,
+  type FormatFinalOutputOptions,
+  type Extractor,
+  type LanguageAdapter,
+  type LanguageAdapterMetadata,
+  type LanguageRegistry,
+  type LazyLanguageAdapterRegistration,
+  type OutputFormat,
+  type ParseContext,
+  type PipelineError,
+  type PipelineResult,
+  type ProcessFileOptions,
+  type RunPipelineOptions,
+} from "./00-core-types.js";
+import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
+
+export type { Extractor, LanguageAdapter } from "./00-core-types.js";
 
 export interface CliProgram {
   run(argv?: readonly string[]): Promise<void>;
@@ -18,6 +45,7 @@ interface ParsedCliArgs {
   lang?: string;
   extract?: string;
   output?: string;
+  format?: string;
   includeTests: boolean;
 }
 
@@ -30,7 +58,26 @@ interface PackageMetadata {
   version?: string;
 }
 
+interface ResolvedInputTarget {
+  files: string[];
+}
+
+interface OutputTarget {
+  path?: string;
+  format: OutputFormat;
+}
+
+interface ExecutionPlan {
+  registry: LanguageRegistry;
+  explicitLang?: string;
+  extractOrder: ExtractKind[];
+  input: ResolvedInputTarget;
+  output: OutputTarget;
+}
+
 const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
+const DEFAULT_OUTPUT_FORMAT: OutputFormat = "plain";
+const OUTPUT_FORMATS: readonly OutputFormat[] = ["plain", "markdown"];
 const require = createRequire(import.meta.url);
 const packageMetadata = require("../package.json") as PackageMetadata;
 const CLI_NAME = packageMetadata.name ?? "showcode";
@@ -69,6 +116,10 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .option("--folder <folder>", "process files from a folder")
     .option("--output <name>", "write formatted output to a file")
     .option(
+      "--format <format>",
+      `output format: ${OUTPUT_FORMATS.join(" | ")}`,
+    )
+    .option(
       "--include-tests",
       "include files under test directories during discovery",
       false,
@@ -105,28 +156,57 @@ function isExitCodeError(error: unknown): error is ExitCodeError {
   return error instanceof Error && "exitCode" in error;
 }
 
-async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
-  if (!args.file) {
-    return;
-  }
-
-  const resolvedFilePath = path.resolve(args.file);
-
+async function assertPathExists(targetPath: string, label: string): Promise<void> {
   try {
-    const target = await stat(resolvedFilePath);
-    if (target.isDirectory()) {
+    await stat(targetPath);
+  } catch (error) {
+    throw createCliError(
+      `Could not access ${label}: ${targetPath} (${stringifyError(error)})`,
+    );
+  }
+}
+
+async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
+  if (args.file) {
+    const resolvedFilePath = path.resolve(args.file);
+
+    try {
+      const target = await stat(resolvedFilePath);
+      if (target.isDirectory()) {
+        throw createCliError(
+          "Option --file expects a file path; use --folder for directories",
+        );
+      }
+    } catch (error) {
+      if (isExitCodeError(error)) {
+        throw error;
+      }
+
       throw createCliError(
-        "Option --file expects a file path; use --folder for directories",
+        `Could not access file: ${args.file} (${stringifyError(error)})`,
       );
     }
-  } catch (error) {
-    if (isExitCodeError(error)) {
-      throw error;
-    }
+  }
 
-    throw createCliError(
-      `Could not access file: ${args.file} (${stringifyError(error)})`,
-    );
+  if (args.folder) {
+    const resolvedFolderPath = path.resolve(args.folder);
+
+    try {
+      const target = await stat(resolvedFolderPath);
+      if (!target.isDirectory()) {
+        throw createCliError(
+          "Option --folder expects a directory path; use --file for files",
+        );
+      }
+    } catch (error) {
+      if (isExitCodeError(error)) {
+        throw error;
+      }
+
+      throw createCliError(
+        `Could not access folder: ${args.folder} (${stringifyError(error)})`,
+      );
+    }
   }
 }
 
@@ -149,6 +229,119 @@ async function writeOutputFile(
   await writeFile(resolvedOutputPath, content, "utf8");
 }
 
+function parseOutputFormat(rawFormat: string | undefined): OutputFormat {
+  const normalized = rawFormat?.trim().toLowerCase() ?? DEFAULT_OUTPUT_FORMAT;
+
+  if (normalized === "plain" || normalized === "markdown") {
+    return normalized;
+  }
+
+  throw createCliError(
+    `Unsupported output format: ${rawFormat}. Supported formats: ${OUTPUT_FORMATS.join(", ")}`,
+  );
+}
+
+async function resolveInputTarget(
+  args: ParsedCliArgs,
+  registry: LanguageRegistry,
+): Promise<ResolvedInputTarget> {
+  if (args.file) {
+    const resolvedFilePath = path.resolve(args.file);
+    return { files: [resolvedFilePath] };
+  }
+
+  const files = await discoverFiles(
+    args.folder
+      ? {
+          registry,
+          folder: args.folder,
+          includeTests: args.includeTests,
+        }
+      : { registry, includeTests: args.includeTests },
+  );
+
+  if (files.length === 0) {
+    const scope = args.folder ? path.resolve(args.folder) : process.cwd();
+    throw createCliError(`No supported source files found in: ${scope}`);
+  }
+
+  return { files };
+}
+
+async function resolveExecutionPlan(args: ParsedCliArgs): Promise<ExecutionPlan> {
+  validateCliArgs(args);
+  await validateInputPaths(args);
+
+  const registry = buildDefaultRegistry();
+  const explicitLang = args.lang?.trim();
+
+  if (explicitLang && !registry.has(explicitLang)) {
+    throw createCliError(`${explicitLang} not supported`);
+  }
+
+  const extractOrder = args.extract
+    ? parseExtractOptions(args.extract, BUILT_IN_EXTRACT_KINDS)
+    : DEFAULT_EXTRACT_ORDER;
+
+  const input = await resolveInputTarget(args, registry);
+
+  return {
+    registry,
+    explicitLang,
+    extractOrder,
+    input,
+    output: {
+      path: args.output,
+      format: args.format
+        ? parseOutputFormat(args.format)
+        : args.output
+          ? "markdown"
+          : DEFAULT_OUTPUT_FORMAT,
+    },
+  };
+}
+
+function renderPipelineOutput(
+  plan: ExecutionPlan,
+  result: PipelineResult,
+): string {
+  return formatFinalOutput({
+    registry: plan.registry,
+    sections: result.sections,
+    explicitLang: plan.explicitLang,
+    format: plan.output.format,
+    seenLangs: result.meta.seenLangs,
+  });
+}
+
+async function emitPipelineResult(
+  plan: ExecutionPlan,
+  result: PipelineResult,
+  formattedOutput: string,
+): Promise<void> {
+  if (plan.output.path) {
+    await writeOutputFile(plan.output.path, formattedOutput);
+  } else if (formattedOutput) {
+    process.stdout.write(`${formattedOutput}\n`);
+  }
+
+  for (const warning of result.diagnostics.warnings) {
+    process.stderr.write(
+      `${formatDiagnostic("warning", warning.message, warning.filePath)}\n`,
+    );
+  }
+
+  if (result.diagnostics.errors.length > 0) {
+    for (const error of result.diagnostics.errors) {
+      process.stderr.write(
+        `${formatDiagnostic("error", error.message, error.filePath)}\n`,
+      );
+    }
+
+    process.exitCode = 1;
+  }
+}
+
 export function buildCli(): CliProgram {
   return {
     async run(argv = process.argv): Promise<void> {
@@ -158,67 +351,16 @@ export function buildCli(): CliProgram {
         return;
       }
 
-      validateCliArgs(args);
-      await validateInputPaths(args);
-
-      const registry = buildDefaultRegistry();
-
-      if (args.lang && !registry.has(args.lang)) {
-        throw createCliError(`${args.lang} not supported`);
-      }
-
-      const extractOrder = args.extract
-        ? parseExtractOptions(args.extract, BUILT_IN_EXTRACT_KINDS)
-        : DEFAULT_EXTRACT_ORDER;
-
-      const files = args.file
-        ? [path.resolve(args.file)]
-        : await discoverFiles(
-            args.folder
-              ? {
-                  registry,
-                  folder: args.folder,
-                  includeTests: args.includeTests,
-                }
-              : { registry, includeTests: args.includeTests },
-          );
-
+      const plan = await resolveExecutionPlan(args);
       const result = await runPipeline({
-        registry,
-        files,
-        explicitLang: args.lang,
-        extractOrder,
+        registry: plan.registry,
+        files: plan.input.files,
+        explicitLang: plan.explicitLang,
+        extractOrder: plan.extractOrder,
       });
+      const formattedOutput = renderPipelineOutput(plan, result);
 
-      const formattedOutput = formatFinalOutput({
-        registry,
-        sections: result.sections,
-        explicitLang: args.lang,
-        outputPath: args.output,
-        seenLangs: result.meta.seenLangs,
-      });
-
-      if (args.output) {
-        await writeOutputFile(args.output, formattedOutput);
-      } else if (formattedOutput) {
-        process.stdout.write(`${formattedOutput}\n`);
-      }
-
-      for (const warning of result.diagnostics.warnings) {
-        process.stderr.write(
-          `${formatDiagnostic("warning", warning.message, warning.filePath)}\n`,
-        );
-      }
-
-      if (result.diagnostics.errors.length > 0) {
-        for (const error of result.diagnostics.errors) {
-          process.stderr.write(
-            `${formatDiagnostic("error", error.message, error.filePath)}\n`,
-          );
-        }
-
-        process.exitCode = 1;
-      }
+      await emitPipelineResult(plan, result, formattedOutput);
     },
   };
 }
@@ -245,8 +387,6 @@ export async function runCli(): Promise<void> {
 // ============================================================================
 // Utility — Config Shaping             [Step 2 — option parsing]
 // ============================================================================
-import type { ExtractKind, PipelineError } from "./00-core-types.js";
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -355,13 +495,6 @@ export function toPipelineError(
 // ============================================================================
 // Language Registry                    [Step 2b — registry setup]
 // ============================================================================
-import type {
-  LanguageAdapterMetadata,
-  LanguageRegistry,
-  LazyLanguageAdapterRegistration,
-} from "./00-core-types.js";
-import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
-
 function normalizeExtension(extension: string): string {
   const normalized = extension.trim().toLowerCase();
   if (!normalized) {
@@ -381,6 +514,15 @@ function adapterToMetadata(adapter: LanguageAdapter): LanguageAdapterMetadata {
     extensions: adapter.extensions,
     fenceLang: adapter.fenceLang,
   };
+}
+
+function getRegistryMetadata(
+  registry: LanguageRegistry,
+  langId: string,
+): LanguageAdapterMetadata | undefined {
+  return registry
+    .listAdapterMetadata()
+    .find((metadata) => metadata.id === langId);
 }
 
 export function createLanguageRegistry(): LanguageRegistry {
@@ -540,9 +682,6 @@ export function buildDefaultRegistry(): LanguageRegistry {
 // File Discovery                       [Step 3 — resolve files]
 // Uses fast-glob to discover files
 // ============================================================================
-import fg from "fast-glob";
-import type { DiscoverFilesOptions } from "./00-core-types.js";
-
 function normalizePathForMatch(filePath: string): string {
   return filePath.replace(/\\/g, "/").toLowerCase();
 }
@@ -605,6 +744,8 @@ export async function discoverFiles(
   }
 
   const cwd = inferDirectory(options);
+  await assertPathExists(cwd, "folder");
+
   const discovered = await fg(globs, {
     cwd,
     absolute: true,
@@ -623,17 +764,6 @@ export async function discoverFiles(
 // ============================================================================
 // Extraction Pipeline                  [Step 4-6 — per-file processing]
 // ============================================================================
-import { readFile } from "node:fs/promises";
-
-import type {
-  AggregatedExtractResult,
-  ExtractFromSourceOptions,
-  FileSection,
-  PipelineResult,
-  ProcessFileOptions,
-  RunPipelineOptions,
-} from "./00-core-types.js";
-
 function uniqueInOrder(values: readonly string[]): string[] {
   const seen = new Set<string>();
   const unique: string[] = [];
@@ -650,16 +780,32 @@ function uniqueInOrder(values: readonly string[]): string[] {
   return unique;
 }
 
+function resolveExtractAdapter(
+  options: ExtractFromSourceOptions,
+): LanguageAdapter {
+  if (options.adapter) {
+    return options.adapter;
+  }
+
+  if (options.registry && options.lang) {
+    const adapter = options.registry.get(options.lang);
+    if (adapter) {
+      return adapter;
+    }
+
+    throw new Error(`Language adapter not loaded for "${options.lang}"`);
+  }
+
+  throw new Error(
+    "extractFromSource requires either { adapter } or { registry, lang }",
+  );
+}
+
 export function extractFromSource(
   options: ExtractFromSourceOptions,
 ): AggregatedExtractResult {
-  const { registry, lang, filePath, source, extractOrder } = options;
-  const adapter = registry.get(lang);
-
-  if (!adapter) {
-    throw new Error(`Language adapter not loaded for "${lang}"`);
-  }
-
+  const { filePath, source, extractOrder } = options;
+  const adapter = resolveExtractAdapter(options);
   const context = adapter.buildContext({ source, filePath });
 
   return runExtractors({
@@ -686,8 +832,7 @@ export async function processFile(
   }
 
   const extracted = extractFromSource({
-    registry,
-    lang,
+    adapter,
     filePath,
     source,
     extractOrder,
@@ -739,41 +884,8 @@ export async function runPipeline(
 }
 
 // ============================================================================
-// Language Adapter                     [Step 6 — adapter + extractors]
-// ============================================================================
-import type { SingleExtractResult, ParseContext } from "./00-core-types.js";
-
-export interface Extractor<TContext extends ParseContext = ParseContext> {
-  readonly kind: ExtractKind;
-  extract(context: TContext): SingleExtractResult;
-}
-
-export interface LanguageAdapter<TContext extends ParseContext = ParseContext> {
-  readonly id: string;
-  readonly extensions: readonly string[];
-  readonly fenceLang: string;
-  readonly metadata?: LanguageAdapterMetadata;
-  readonly extractors: ReadonlyMap<ExtractKind, Extractor<TContext>>;
-
-  buildContext(options: { source: string; filePath: string }): TContext;
-
-  supportsKind(kind: ExtractKind): boolean;
-}
-
-// ============================================================================
 // Extractor                            [Step 6b — extraction units]
 // ============================================================================
-import type {
-  CombinedExtractEntry,
-  ExtractEntry,
-  ExtractWarning,
-} from "./00-core-types.js";
-
-export interface Extractor<TContext extends ParseContext = ParseContext> {
-  readonly kind: ExtractKind;
-  extract(context: TContext): SingleExtractResult;
-}
-
 export interface RunExtractorsOptions<
   TContext extends ParseContext = ParseContext,
 > {
@@ -886,20 +998,16 @@ export function stripCombinedPositions(
 ): ExtractEntry[] {
   return entries.map(({ kind, lines }) => ({ kind, lines }));
 }
+
 // ============================================================================
 // Output Formatting                    [Step 8 — format + sink]
 // ============================================================================
-import type {
-  DetectFenceLanguageOptions,
-  FormatFinalOutputOptions,
-} from "./00-core-types.js";
-
 export function toDisplayPath(filePath: string): string {
-  const normalised = path.isAbsolute(filePath)
+  const normalized = path.isAbsolute(filePath)
     ? path.relative(process.cwd(), filePath)
     : filePath;
 
-  return normalised.split(path.sep).join("/");
+  return normalized.split(path.sep).join("/");
 }
 
 export function formatPlainOutput(sections: FileSection[]): string {
@@ -928,15 +1036,13 @@ export function detectFenceLanguage(
   const { registry, explicitLang, seenLangs } = options;
 
   if (explicitLang) {
-    const adapter = registry.get(explicitLang);
-    return adapter ? adapter.fenceLang : explicitLang;
+    return getRegistryMetadata(registry, explicitLang)?.fenceLang ?? explicitLang;
   }
 
   if (seenLangs.length === 1) {
     const lang = seenLangs[0];
     if (lang) {
-      const adapter = registry.get(lang);
-      return adapter ? adapter.fenceLang : lang;
+      return getRegistryMetadata(registry, lang)?.fenceLang ?? lang;
     }
   }
 
@@ -952,18 +1058,33 @@ export function toMarkdownCodeBlock(
   return `${openFence}\n${body}\`\`\``;
 }
 
-export function formatFinalOutput(options: FormatFinalOutputOptions): string {
-  const { registry, sections, explicitLang, outputPath, seenLangs } = options;
+function resolveFinalOutputFormat(
+  options: FormatFinalOutputOptions,
+): OutputFormat {
+  if (options.format) {
+    return options.format;
+  }
 
+  return options.outputPath ? "markdown" : "plain";
+}
+
+export function formatFinalOutput(options: FormatFinalOutputOptions): string {
+  const { registry, sections, explicitLang, seenLangs } = options;
   const plainOutput = formatPlainOutput(sections);
 
-  if (!outputPath) {
+  if (!plainOutput) {
+    return "";
+  }
+
+  const format = resolveFinalOutputFormat(options);
+  if (format === "plain") {
     return plainOutput;
   }
 
   const fenceLang = detectFenceLanguage({ registry, explicitLang, seenLangs });
   return toMarkdownCodeBlock(plainOutput, fenceLang);
 }
+
 // ============================================================================
 // Utility — Internal Helpers           [Internal-only]
 // ============================================================================
