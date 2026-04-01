@@ -768,10 +768,6 @@ import type {
   ExtractEntry,
   ExtractWarning,
 } from "./00-core-types.js";
-// import {
-//   mergeAndSortEntries,
-//   stripCombinedPositions,
-// } from './08-entry-merging';
 
 export interface Extractor<TContext extends ParseContext = ParseContext> {
   readonly kind: ExtractKind;
