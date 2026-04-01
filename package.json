@@ -2,6 +2,17 @@
   "name": "showsignature",
   "version": "0.0.0",
   "type": "module",
+  "bin": {
+    "showsignature": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "scripts": {
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "dedupe": "pnpm dedupe",
