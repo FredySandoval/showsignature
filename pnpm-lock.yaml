@@ -21,6 +21,9 @@ importers:
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260331.1
         version: 7.0.0-dev.20260331.1
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
       typescript:
         specifier: 6.0.2
         version: 6.0.2
@@ -133,6 +136,11 @@ packages:
   picomatch@2.3.2:
     resolution: {integrity: sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==}
     engines: {node: '>=8.6'}
+
+  prettier@3.8.1:
+    resolution: {integrity: sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
@@ -255,6 +263,8 @@ snapshots:
       picomatch: 2.3.2
 
   picomatch@2.3.2: {}
+
+  prettier@3.8.1: {}
 
   queue-microtask@1.2.3: {}
 
