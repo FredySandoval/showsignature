@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { buildCli } from "../src/index.js";
+import { buildCli } from "../src/main.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();

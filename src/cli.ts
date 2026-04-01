@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCli } from "./index.js";
+import { runCli } from "./main.js";
 
 async function main() {
   await runCli();

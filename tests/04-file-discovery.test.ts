@@ -9,8 +9,8 @@ import type {
   ParseContext,
   SingleExtractResult,
 } from "../src/00-core-types.js";
-import { discoverFiles, getSupportedGlobs, isTestFile } from "../src/index.js";
-import { createLanguageRegistry } from "../src/index.js";
+import { discoverFiles, getSupportedGlobs, isTestFile } from "../src/main.js";
+import { createLanguageRegistry } from "../src/main.js";
 
 const tempDirs: string[] = [];
 

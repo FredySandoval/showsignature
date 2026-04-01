@@ -4,7 +4,7 @@ import {
   flattenExtractEntries,
   mergeAndSortEntries,
   stripCombinedPositions,
-} from "../src/index.js";
+} from "../src/main.js";
 import type { CombinedExtractEntry, ExtractEntry } from "../src/00-core-types.js";
 
 describe("flattenExtractEntries", () => {
