@@ -18,7 +18,6 @@ export {
 
 export {
   BUILT_IN_EXTRACT_KINDS,
-  toPluginExtractKind,
   type AggregatedExtractResult,
   type BuiltInExtractKind,
   type CombinedExtractEntry,

@@ -28,10 +28,6 @@ export type PluginExtractKind = string & {
 
 export type ExtractKind = BuiltInExtractKind | PluginExtractKind;
 
-export function toPluginExtractKind(kind: string): PluginExtractKind {
-  return kind as PluginExtractKind;
-}
-
 export type DiagnosticSeverity = "info" | "warning" | "error";
 
 export interface ExtractEntryMetadata {
