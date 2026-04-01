@@ -27,7 +27,7 @@
   "description": "Extract structure from code. Turn source files into clean, readable artifacts.",
   "dependencies": {
     "commander": "10.0.0",
-    "fast-glob": "3.3.0"
+    "globby": "^16.2.0"
   },
   "devDependencies": {
     "@types/bun": "1.3.10",
