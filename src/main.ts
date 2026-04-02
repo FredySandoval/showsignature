@@ -294,6 +294,17 @@ async function emitPipelineResult(
   }
 }
 
+async function runPlannedPipeline(
+  plan: ExecutionPlan,
+): Promise<PipelineResult> {
+  return runPipeline({
+    registry: plan.registry,
+    files: plan.input.files,
+    ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
+    extractOrder: plan.extractOrder,
+  });
+}
+
 async function execute(argv: readonly string[]): Promise<void> {
   const args = parseCliArgs(argv);
 
@@ -302,12 +313,7 @@ async function execute(argv: readonly string[]): Promise<void> {
   }
 
   const plan = await resolveExecutionPlan(args);
-  const result = await runPipeline({
-    registry: plan.registry,
-    files: plan.input.files,
-    ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
-    extractOrder: plan.extractOrder,
-  });
+  const result = await runPlannedPipeline(plan);
   const formattedOutput = renderPipelineOutput(plan, result);
 
   await emitPipelineResult(plan, result, formattedOutput);
