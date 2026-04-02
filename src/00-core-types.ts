@@ -216,3 +216,41 @@ export interface FormatFinalOutputOptions {
   outputPath?: string;
   seenLangs: readonly string[];
 }
+
+export interface CliProgram {
+  run(argv?: readonly string[]): Promise<void>;
+}
+
+export interface ParsedCliArgs {
+  file?: string;
+  folder?: string;
+  lang?: string;
+  extract?: string;
+  output?: string;
+  includeTests: boolean;
+}
+
+export interface ExitCodeError extends Error {
+  exitCode?: number;
+}
+
+export interface PackageMetadata {
+  name?: string;
+  version?: string;
+}
+
+export interface ResolvedInputTarget {
+  files: string[];
+}
+
+export interface OutputTarget {
+  path?: string;
+}
+
+export interface ExecutionPlan {
+  registry: LanguageRegistry;
+  explicitLang?: string;
+  extractOrder: ExtractKind[];
+  input: ResolvedInputTarget;
+  output: OutputTarget;
+}

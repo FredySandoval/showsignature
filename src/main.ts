@@ -10,9 +10,12 @@ import { globby } from "globby";
 import {
   BUILT_IN_EXTRACT_KINDS,
   type AggregatedExtractResult,
+  type CliProgram,
   type CombinedExtractEntry,
   type DetectFenceLanguageOptions,
   type DiscoverFilesOptions,
+  type ExecutionPlan,
+  type ExitCodeError,
   type ExtractEntry,
   type ExtractFromSourceOptions,
   type ExtractKind,
@@ -23,53 +26,18 @@ import {
   type LanguageAdapterMetadata,
   type LanguageRegistry,
   type LazyLanguageAdapterRegistration,
+  type PackageMetadata,
   type ParseContext,
+  type ParsedCliArgs,
   type PipelineError,
   type PipelineResult,
   type ProcessFileOptions,
+  type ResolvedInputTarget,
   type RunPipelineOptions,
 } from "./00-core-types.js";
 import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
 export type { Extractor, LanguageAdapter } from "./00-core-types.js";
-
-export interface CliProgram {
-  run(argv?: readonly string[]): Promise<void>;
-}
-
-interface ParsedCliArgs {
-  file?: string;
-  folder?: string;
-  lang?: string;
-  extract?: string;
-  output?: string;
-  includeTests: boolean;
-}
-
-interface ExitCodeError extends Error {
-  exitCode?: number;
-}
-
-interface PackageMetadata {
-  name?: string;
-  version?: string;
-}
-
-interface ResolvedInputTarget {
-  files: string[];
-}
-
-interface OutputTarget {
-  path?: string;
-}
-
-interface ExecutionPlan {
-  registry: LanguageRegistry;
-  explicitLang?: string;
-  extractOrder: ExtractKind[];
-  input: ResolvedInputTarget;
-  output: OutputTarget;
-}
 
 const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
 const require = createRequire(import.meta.url);
