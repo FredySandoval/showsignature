@@ -13,6 +13,7 @@ import {
   type CliProgram,
   type CombinedExtractEntry,
   type DetectFenceLanguageOptions,
+  type Diagnostic,
   type DiscoverFilesOptions,
   type ExecutionPlan,
   type ExitCodeError,
@@ -177,14 +178,21 @@ async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
   }
 }
 
-function formatDiagnostic(
-  prefix: "warning" | "error",
-  message: string,
-  filePath?: string,
-): string {
-  return filePath
-    ? `[${prefix}] ${filePath}: ${message}`
-    : `[${prefix}] ${message}`;
+function formatDiagnostic(diagnostic: Diagnostic): string {
+  const level = diagnostic.level ?? diagnostic.severity ?? "error";
+  return diagnostic.filePath
+    ? `[${level}] ${diagnostic.filePath}: ${diagnostic.message}`
+    : `[${level}] ${diagnostic.message}`;
+}
+
+function emitDiagnostic(diagnostic: Diagnostic): void {
+  process.stderr.write(`${formatDiagnostic(diagnostic)}\n`);
+}
+
+function emitDiagnostics(diagnostics: readonly Diagnostic[]): void {
+  for (const diagnostic of diagnostics) {
+    emitDiagnostic(diagnostic);
+  }
 }
 
 async function writeOutputFile(
@@ -277,19 +285,10 @@ async function emitPipelineResult(
     process.stdout.write(`${formattedOutput}\n`);
   }
 
-  for (const warning of result.diagnostics.warnings) {
-    process.stderr.write(
-      `${formatDiagnostic("warning", warning.message, warning.filePath)}\n`,
-    );
-  }
+  emitDiagnostics(result.diagnostics.warnings);
 
   if (result.diagnostics.errors.length > 0) {
-    for (const error of result.diagnostics.errors) {
-      process.stderr.write(
-        `${formatDiagnostic("error", error.message, error.filePath)}\n`,
-      );
-    }
-
+    emitDiagnostics(result.diagnostics.errors);
     process.exitCode = 1;
   }
 }
@@ -320,11 +319,9 @@ async function execute(argv: readonly string[]): Promise<void> {
 }
 
 function handleCliFailure(error: unknown): void {
-  const cliError = toPipelineError(error);
-  process.stderr.write(
-    `${formatDiagnostic("error", cliError.message, cliError.filePath)}\n`,
-  );
-  process.exitCode = isExitCodeError(error) ? (error.exitCode ?? 1) : 1;
+  const diagnostic = toDiagnostic(error, { level: "error" });
+  emitDiagnostic(diagnostic);
+  process.exitCode = diagnostic.exitCode ?? 1;
 }
 
 export function buildCli(): CliProgram {
@@ -420,6 +417,50 @@ export function stringifyError(err: unknown): string {
   } catch {
     return String(err);
   }
+}
+
+export function toDiagnostic(
+  err: unknown,
+  options?: {
+    level?: "warning" | "error";
+    filePath?: string;
+  },
+): Diagnostic {
+  const normalized: Diagnostic = {
+    level: options?.level ?? "error",
+    message: stringifyError(err),
+    cause: err,
+  };
+
+  if (options?.filePath) {
+    normalized.filePath = options.filePath;
+  }
+
+  if (!isRecord(err)) {
+    return normalized;
+  }
+
+  if (!normalized.filePath && hasStringProp(err, "filePath")) {
+    normalized.filePath = err.filePath;
+  }
+
+  if (hasStringProp(err, "code")) {
+    normalized.code = err.code;
+  }
+
+  if (hasNumberProp(err, "exitCode")) {
+    normalized.exitCode = err.exitCode;
+  }
+
+  if (hasStringProp(err, "kind")) {
+    normalized.kind = err.kind as ExtractKind;
+  }
+
+  if (hasNumberProp(err, "pos")) {
+    normalized.pos = err.pos;
+  }
+
+  return normalized;
 }
 
 export function toPipelineError(
@@ -882,9 +923,10 @@ function toUnsupportedKindWarning(
   context: ParseContext,
 ): ExtractWarning {
   return {
+    level: "warning",
+    severity: "warning",
     message: `Extractor not supported for kind "${kind}"`,
     filePath: context.filePath,
-    severity: "warning",
     kind,
     code: "EXTRACTOR_UNSUPPORTED_KIND",
   };

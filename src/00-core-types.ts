@@ -28,7 +28,19 @@ export type PluginExtractKind = string & {
 
 export type ExtractKind = BuiltInExtractKind | PluginExtractKind;
 
-export type DiagnosticSeverity = "info" | "warning" | "error";
+export type DiagnosticLevel = "warning" | "error";
+
+export interface Diagnostic {
+  level?: DiagnosticLevel;
+  message: string;
+  filePath?: string;
+  code?: string;
+  exitCode?: number;
+  cause?: unknown;
+  kind?: ExtractKind;
+  pos?: number;
+  severity?: "info" | DiagnosticLevel;
+}
 
 export interface ExtractEntryMetadata {
   filePath?: string;
@@ -41,14 +53,7 @@ export interface ExtractEntry {
   metadata?: ExtractEntryMetadata;
 }
 
-export interface ExtractWarning {
-  message: string;
-  filePath: string;
-  severity?: DiagnosticSeverity;
-  kind?: ExtractKind;
-  pos?: number;
-  code?: string;
-}
+export type ExtractWarning = Diagnostic;
 
 export interface SingleExtractResult {
   entries: ExtractEntry[];
@@ -67,16 +72,11 @@ export interface FileSection {
   warnings: ExtractWarning[];
 }
 
-export interface PipelineError {
-  message: string;
-  filePath?: string;
-  code?: string;
-  exitCode?: number;
-}
+export type PipelineError = Diagnostic;
 
 export interface PipelineDiagnostics {
-  warnings: ExtractWarning[];
-  errors: PipelineError[];
+  warnings: Diagnostic[];
+  errors: Diagnostic[];
 }
 
 export interface PipelineMeta {

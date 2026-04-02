@@ -223,6 +223,7 @@ describe("08-extractor — runExtractors", () => {
       expect(result.warnings[0]).toEqual({
         message: 'Extractor not supported for kind "types"',
         filePath: "/tmp/warn.ts",
+        level: "warning",
         severity: "warning",
         kind: "types",
         code: "EXTRACTOR_UNSUPPORTED_KIND",
