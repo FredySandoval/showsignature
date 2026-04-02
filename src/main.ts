@@ -74,7 +74,7 @@ interface ExecutionPlan {
 const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
 const require = createRequire(import.meta.url);
 const packageMetadata = require("../package.json") as PackageMetadata;
-const CLI_NAME = packageMetadata.name ?? "showcode";
+const CLI_NAME = packageMetadata.name ?? "showsignature";
 const CLI_VERSION = packageMetadata.version ?? "0.0.0";
 
 function createCliError(message: string, exitCode = 1): ExitCodeError {
@@ -326,45 +326,48 @@ async function emitPipelineResult(
   }
 }
 
+async function execute(argv: readonly string[]): Promise<void> {
+  const args = parseCliArgs(argv);
+
+  if (!args) {
+    return;
+  }
+
+  const plan = await resolveExecutionPlan(args);
+  const result = await runPipeline({
+    registry: plan.registry,
+    files: plan.input.files,
+    ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
+    extractOrder: plan.extractOrder,
+  });
+  const formattedOutput = renderPipelineOutput(plan, result);
+
+  await emitPipelineResult(plan, result, formattedOutput);
+}
+
+function handleCliFailure(error: unknown): void {
+  const cliError = toPipelineError(error);
+  process.stderr.write(
+    `${formatDiagnostic("error", cliError.message, cliError.filePath)}\n`,
+  );
+  process.exitCode = isExitCodeError(error) ? (error.exitCode ?? 1) : 1;
+}
+
 export function buildCli(): CliProgram {
   return {
-    async run(argv = process.argv): Promise<void> {
-      const args = parseCliArgs(argv);
-
-      if (!args) {
-        return;
-      }
-
-      const plan = await resolveExecutionPlan(args);
-      const result = await runPipeline({
-        registry: plan.registry,
-        files: plan.input.files,
-        ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
-        extractOrder: plan.extractOrder,
-      });
-      const formattedOutput = renderPipelineOutput(plan, result);
-
-      await emitPipelineResult(plan, result, formattedOutput);
+    run(argv = process.argv): Promise<void> {
+      return execute(argv);
     },
   };
 }
 
-export async function runCli(): Promise<void> {
+export async function runCli(
+  argv: readonly string[] = process.argv,
+): Promise<void> {
   try {
-    await buildCli().run(process.argv);
-  } catch (err) {
-    const message = stringifyError(err);
-    process.stderr.write(`${message}\n`);
-
-    const exitCode =
-      typeof err === "object" &&
-      err !== null &&
-      "exitCode" in err &&
-      typeof err.exitCode === "number"
-        ? err.exitCode
-        : 1;
-
-    process.exitCode = exitCode;
+    await execute(argv);
+  } catch (error) {
+    handleCliFailure(error);
   }
 }
 
