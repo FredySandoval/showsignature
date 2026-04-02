@@ -39,7 +39,7 @@ import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
 export type { Extractor, LanguageAdapter } from "./00-core-types.js";
 
-const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
+const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures", "comments"];
 const require = createRequire(import.meta.url);
 const packageMetadata = require("../package.json") as PackageMetadata;
 const CLI_NAME = packageMetadata.name ?? "showsignature";
