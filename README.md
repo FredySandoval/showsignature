@@ -1,96 +1,185 @@
-# ShowSignature CLI
+# showsignature
 
-Extract structure from code. Turn source files into clean, readable artifacts.
+Extract structure from source code and turn files into clean, readable artifacts.
 
-Features:
+`showsignature` is a CLI and library for extracting high-signal code structure from TypeScript and JavaScript files. It can pull out signatures, interfaces, type aliases, variables, comments, and imports, then emit them in source order across one or many files.
 
-- Class, constructor, method, and function signatures
-- Interface definitions
-- Type alias definitions
-- Variable definitions
-- Comments
-- Import declarations
-- Recursive folder traversal with test-file exclusion by default
+## Features
 
-Usage:
-ShowSignature [options]
-ShowSignature --file <file>
-ShowSignature --folder <folder>
+- Extracts:
+  - function, method, constructor, and class signatures
+  - interface declarations
+  - type alias declarations
+  - variable declarations
+  - comments
+  - import declarations
+- Supports TypeScript and JavaScript families
+- Recursively scans folders
+- Excludes test files by default during discovery
+- Preserves source ordering when combining multiple extract kinds
+- Can write plain text or Markdown-fenced output
+- Also usable as a library
 
-Input Behavior:
+## Supported languages
 
-- If --file is specified, only that file will be processed.
-- If --folder is specified, the folder will be processed recursively.
-- If neither --file nor --folder is specified, ShowSignature will
-  recursively scan from the current working directory (.)
-  and process all supported files.
+Built-in language adapters:
 
-Options:
-// TODO: ignore dist folder and other
-// maybe adding .gitignore
---lang <lang> // TODO: Optional, if not provided infers the language from the extension
-Language to parse.
-If not specified, the language will be inferred from the file extension.
-If inference fails, error `<lang> not supported` will be shown.
+- `ts` → `.ts`, `.mts`, `.cts`
+- `js` → `.js`, `.jsx`, `.mjs`, `.cjs`
 
---extract=<options>
-Comma-separated list of extraction types.
-By default, selected outputs are combined in their original source order.
-Example: `--extract=comments,signatures` interleaves comments and
-signatures based on where they appear in the file.
+If `--lang` is not provided, the language is inferred from the file extension.
 
-      Supported extract options:
-
-        signatures
-          Extract class, constructor, method, and function signatures.
-
-        interfaces
-          Extract only interface definitions.
-
-        types
-          Extract only type alias definitions.
-
-        variables
-          Extract only variable definitions.
-
-        comments
-          Extract only comments.
-
-        imports
-          Extract only import declarations.
-
---file <file>
-Specify a single file to process.
-
---folder <folder>
-Specify a folder to process recursively.
-
---include-tests
-Include files under `test`, `tests`, and `__tests__` directories,
-plus files matching `*.test.*` and `*.spec.*`, during recursive discovery.
-This only affects folder/current-directory scans. Explicit `--file` inputs
-are still processed directly.
-
---output <name>
-Specify a file name to save the output. If the name ends in `.md` or `.mdx`,
-the output is wrapped in a fenced code block. Other output file names receive
-plain text output.
-
-## Examples:
-
-# Fixture Folders
-
-If you want to extract from fixture files under `tests/fixtures`, use `--folder`
-and opt in to test discovery:
+## Installation
 
 ```bash
-ShowSignature --folder ./tests/fixtures --include-tests --extract=signatures
+pnpm install
+pnpm build
 ```
 
-`--file` expects a single file path. If you pass a directory such as
-`--file ./tests/fixtures`, ShowSignature will reject it and tell you to use `--folder`.
+Run locally with the built CLI:
 
-# Function Signature Extraction
+```bash
+node dist/cli.js --help
+```
+
+Or, when installed as a package, use:
+
+```bash
+showsignature --help
+```
+
+## CLI usage
+
+```bash
+showsignature [options]
+```
+
+### Input behavior
+
+- `--file <file>`: process exactly one file
+- `--folder <folder>`: recursively process supported files from a folder
+- no `--file` or `--folder`: recursively scan from the current working directory
+
+`--file` and `--folder` cannot be used together.
+
+## Options
+
+### `--lang <lang>`
+
+Explicitly select a language adapter.
+
+If omitted, `showsignature` infers the language from the input file extension.
+
+Supported built-in values:
+
+- `ts`
+- `js`
+
+### `--extract <options>`
+
+Comma-separated extract kinds.
+
+By default, the CLI extracts:
+
+```text
+signatures
+```
+
+Supported extract kinds:
+
+- `signatures`
+- `interfaces`
+- `types`
+- `variables`
+- `comments`
+- `imports`
+
+When multiple kinds are selected, results are combined in original source order.
+
+Example:
+
+```bash
+showsignature --file src/main.ts --extract comments,signatures
+```
+
+### `--file <file>`
+
+Process a single file.
+
+### `--folder <folder>`
+
+Process all supported files under a directory recursively.
+
+### `--include-tests`
+
+Include files that would normally be excluded during recursive discovery.
+
+By default, test-like files are skipped when scanning folders or the current directory. This includes:
+
+- directories named `test`, `tests`, or `__tests__`
+- files matching `*.test.*`, `*.spec.*`, `*_test.*`, `*_spec.*`, `*-test.*`, or `*-spec.*`
+
+This flag only affects recursive discovery. An explicit `--file` path is always processed directly.
+
+### `--output <name>`
+
+Write the final output to a file.
+
+- If the output path ends in `.md` or `.mdx`, output is wrapped in a fenced code block.
+- Otherwise, output is written as plain text.
+
+## Examples
+
+### Extract default signatures from one file
+
+```bash
+showsignature --file src/main.ts
+```
+
+### Extract comments and signatures from one file
+
+```bash
+showsignature --file src/main.ts --extract comments,signatures
+```
+
+### Scan a folder recursively
+
+```bash
+showsignature --folder src --extract signatures,imports
+```
+
+### Scan the current directory
+
+```bash
+showsignature --extract signatures
+```
+
+### Include test fixtures during discovery
+
+```bash
+showsignature --folder ./tests/fixtures --include-tests --extract signatures
+```
+
+### Write Markdown output
+
+```bash
+showsignature --folder src --extract comments,signatures --output structure.md
+```
+
+## Output format
+
+Plain output is grouped by file and prefixed with a file header comment:
+
+```ts
+// src/example.ts
+export function greet(name: string): string;
+```
+
+If the output file ends in `.md` or `.mdx`, the result is wrapped in a fenced code block. When all processed files resolve to the same language, the fence is annotated accordingly.
+
+## Extraction examples
+
+### Function signatures
 
 Input:
 
@@ -106,20 +195,7 @@ Output:
 function printUserInfo<T extends User>(user: T): void;
 ```
 
-Includes:
-
-- Name
-- Generic type parameters
-- Parameters
-- Return type
-
-Excludes:
-
-- `console.log(user)`
-
----
-
-# Method Signature Extraction
+### Method signatures
 
 Input:
 
@@ -135,9 +211,7 @@ Output:
 getProfile(): string;
 ```
 
----
-
-# Constructor Signature Extraction
+### Constructor signatures
 
 Input:
 
@@ -151,39 +225,30 @@ Output:
 constructor(public id: number);
 ```
 
----
+### Class signatures
 
-# Class Signature Extraction
-
-A class itself also has a signature-like structure.
+Input:
 
 ```ts
-class UserAccount implements User {
+export class UserAccount implements User {
+  constructor(public id: number) {}
+
+  getProfile(): string {
+    return "ok";
+  }
+}
 ```
 
-The “class signature” includes:
-
-- Class name
-- Generic parameters
-- `extends`
-- `implements`
-- Modifiers (export, abstract, etc.)
-  But not:
-- Method bodies
-- Field initializers
-
-Example Output:
+Output:
 
 ```ts
-class UserAccount implements User {
-  constructor(...);
+export class UserAccount implements User {
+  constructor(public id: number);
   getProfile(): string;
 }
 ```
 
----
-
-# Variable Definition Extraction
+### Variables
 
 Input:
 
@@ -201,9 +266,7 @@ let cache: Map<string, User> = ...;
 const settings = {...};
 ```
 
----
-
-# Comment Extraction
+### Comments
 
 Input:
 
@@ -226,9 +289,7 @@ Output:
 */
 ```
 
----
-
-# Import Extraction
+### Imports
 
 Input:
 
@@ -245,3 +306,64 @@ import fs from "node:fs";
 import { readFile } from "node:fs/promises";
 import type { User } from "./types";
 ```
+
+## Library usage
+
+The package also exports the core pipeline utilities.
+
+```ts
+import {
+  buildDefaultRegistry,
+  runPipeline,
+  formatFinalOutput,
+} from "showsignature";
+
+const registry = buildDefaultRegistry();
+
+const result = await runPipeline({
+  registry,
+  files: ["src/main.ts"],
+  extractOrder: ["signatures", "comments"],
+});
+
+const output = formatFinalOutput({
+  registry,
+  sections: result.sections,
+  seenLangs: result.meta.seenLangs,
+});
+```
+
+Notable exports include:
+
+- `buildCli`
+- `runCli`
+- `createLanguageRegistry`
+- `buildDefaultRegistry`
+- `discoverFiles`
+- `extractFromSource`
+- `processFile`
+- `runPipeline`
+- `formatPlainOutput`
+- `formatFinalOutput`
+- `toMarkdownCodeBlock`
+- `BUILT_IN_EXTRACT_KINDS`
+- related public types from `src/00-core-types.ts`
+
+## Development
+
+Scripts from `package.json`:
+
+```bash
+pnpm build
+pnpm typecheck
+pnpm test
+pnpm format
+pnpm dedupe
+pnpm clean
+```
+
+## Notes
+
+- Current built-in extraction support is for TypeScript/JavaScript source files.
+- Folder scanning respects `.gitignore`.
+- If no supported files are found, the CLI exits with an error.
