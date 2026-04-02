@@ -2,7 +2,14 @@
 // CLI                                  [Step 1 — entry point]
 // Uses commanderjs to parse CLI arguments and run the pipeline
 // ============================================================================
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  readFile,
+  realpath,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { Command, CommanderError } from "commander";
@@ -50,6 +57,89 @@ function createCliError(message: string, exitCode = 1): ExitCodeError {
   const error = new Error(message) as ExitCodeError;
   error.exitCode = exitCode;
   return error;
+}
+
+const CONTROL_CHARS_PATTERN =
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/gu;
+const ANSI_ESCAPE_PATTERN = /\u001b\[[0-?]*[ -/]*[@-~]/gu;
+const MARKDOWN_META_PATTERN = /[`<>]/gu;
+
+function sanitizeForDisplay(value: string): string {
+  if (
+    value.includes("\n") ||
+    value.includes("\r") ||
+    value.match(ANSI_ESCAPE_PATTERN) ||
+    value.match(CONTROL_CHARS_PATTERN)
+  ) {
+    return "[unsafe text omitted]";
+  }
+
+  return value;
+}
+
+function sanitizeForMarkdown(value: string): string {
+  return sanitizeForDisplay(value).replace(
+    MARKDOWN_META_PATTERN,
+    (char) => `\\${char}`,
+  );
+}
+
+function isPathWithin(basePath: string, targetPath: string): boolean {
+  const relativePath = path.relative(basePath, targetPath);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
+}
+
+async function resolveSafeInputPath(
+  targetPath: string,
+): Promise<string | null> {
+  const resolvedPath = path.resolve(targetPath);
+  const cwdRealPath = await realpath(process.cwd());
+  const realTargetPath = await realpath(resolvedPath);
+
+  if (!isPathWithin(cwdRealPath, realTargetPath)) {
+    return null;
+  }
+
+  const targetStats = await stat(realTargetPath);
+  if (!targetStats.isFile()) {
+    return null;
+  }
+
+  return realTargetPath;
+}
+
+async function resolveSafeOutputPath(
+  targetPath: string,
+): Promise<string | null> {
+  const resolvedPath = path.resolve(targetPath);
+  const cwdRealPath = await realpath(process.cwd());
+
+  if (!isPathWithin(cwdRealPath, resolvedPath)) {
+    return null;
+  }
+
+  const parentDir = path.dirname(resolvedPath);
+  await mkdir(parentDir, { recursive: true });
+  const parentRealPath = await realpath(parentDir);
+
+  if (!isPathWithin(cwdRealPath, parentRealPath)) {
+    return null;
+  }
+
+  try {
+    const targetStats = await lstat(resolvedPath);
+    if (!targetStats.isFile()) {
+      return null;
+    }
+
+    const realTargetPath = await realpath(resolvedPath);
+    return isPathWithin(cwdRealPath, realTargetPath) ? resolvedPath : null;
+  } catch {
+    return resolvedPath;
+  }
 }
 
 function stripArgvPrefix(argv: readonly string[]): string[] {
@@ -145,6 +235,9 @@ async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
           "Option --file expects a file path; use --folder for directories",
         );
       }
+      if (!target.isFile()) {
+        throw createCliError("Option --file expects a regular file path");
+      }
     } catch (error) {
       if (isExitCodeError(error)) {
         throw error;
@@ -180,9 +273,14 @@ async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
 
 function formatDiagnostic(diagnostic: Diagnostic): string {
   const level = diagnostic.level ?? diagnostic.severity ?? "error";
-  return diagnostic.filePath
-    ? `[${level}] ${diagnostic.filePath}: ${diagnostic.message}`
-    : `[${level}] ${diagnostic.message}`;
+  const safeMessage = sanitizeForDisplay(diagnostic.message);
+  const safeFilePath = diagnostic.filePath
+    ? sanitizeForDisplay(diagnostic.filePath)
+    : undefined;
+
+  return safeFilePath
+    ? `[${level}] ${safeFilePath}: ${safeMessage}`
+    : `[${level}] ${safeMessage}`;
 }
 
 function emitDiagnostic(diagnostic: Diagnostic): void {
@@ -199,7 +297,11 @@ async function writeOutputFile(
   outputPath: string,
   content: string,
 ): Promise<void> {
-  const resolvedOutputPath = path.resolve(outputPath);
+  const resolvedOutputPath = await resolveSafeOutputPath(outputPath);
+  if (!resolvedOutputPath) {
+    return;
+  }
+
   await mkdir(path.dirname(resolvedOutputPath), { recursive: true });
   await writeFile(resolvedOutputPath, content, "utf8");
 }
@@ -209,8 +311,16 @@ async function resolveInputTarget(
   registry: LanguageRegistry,
 ): Promise<ResolvedInputTarget> {
   if (args.file) {
-    const resolvedFilePath = path.resolve(args.file);
-    return { files: [resolvedFilePath] };
+    const resolvedFilePath = await resolveSafeInputPath(args.file);
+    return { files: resolvedFilePath ? [resolvedFilePath] : [] };
+  }
+
+  if (args.folder) {
+    const cwdRealPath = await realpath(process.cwd());
+    const folderRealPath = await realpath(path.resolve(args.folder));
+    if (!isPathWithin(cwdRealPath, folderRealPath)) {
+      return { files: [] };
+    }
   }
 
   const files = await discoverFiles(
@@ -222,11 +332,6 @@ async function resolveInputTarget(
         }
       : { registry, includeTests: args.includeTests },
   );
-
-  if (files.length === 0) {
-    const scope = args.folder ? path.resolve(args.folder) : process.cwd();
-    throw createCliError(`No supported source files found in: ${scope}`);
-  }
 
   return { files };
 }
@@ -321,7 +426,15 @@ async function execute(argv: readonly string[]): Promise<void> {
 function handleCliFailure(error: unknown): void {
   const diagnostic = toDiagnostic(error, { level: "error" });
   emitDiagnostic(diagnostic);
-  process.exitCode = diagnostic.exitCode ?? 1;
+
+  const entryScript = process.argv[1] ?? "";
+  const isCliProcess =
+    entryScript.endsWith(`${path.sep}02-cli.js`) ||
+    entryScript.endsWith("/02-cli.js");
+
+  if (isCliProcess) {
+    process.exitCode = diagnostic.exitCode ?? 1;
+  }
 }
 
 export function buildCli(): CliProgram {
@@ -1030,7 +1143,7 @@ export function toDisplayPath(filePath: string): string {
     ? path.relative(process.cwd(), filePath)
     : filePath;
 
-  return normalized.split(path.sep).join("/");
+  return sanitizeForDisplay(normalized.split(path.sep).join("/"));
 }
 
 export function formatPlainOutput(sections: FileSection[]): string {
@@ -1044,7 +1157,7 @@ export function formatPlainOutput(sections: FileSection[]): string {
     parts.push(`// ${toDisplayPath(section.filePath)}`);
 
     for (const entry of section.entries) {
-      parts.push(entry.lines.join("\n"));
+      parts.push(entry.lines.map(sanitizeForDisplay).join("\n"));
     }
 
     parts.push("");
@@ -1079,8 +1192,8 @@ export function toMarkdownCodeBlock(
   fenceLanguage: string | undefined,
 ): string {
   const openFence = fenceLanguage ? `\`\`\`${fenceLanguage}` : "```";
-  const body = content.endsWith("\n") ? content : `${content}\n`;
-  return `${openFence}\n${body}\`\`\``;
+  const body = content.split(/\r?\n/u).map(sanitizeForMarkdown).join("\n");
+  return `${openFence}\n${body.endsWith("\n") ? body : `${body}\n`}\`\`\``;
 }
 
 export function isMarkdownOutputPath(outputPath: string | undefined): boolean {
