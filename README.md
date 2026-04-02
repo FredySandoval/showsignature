@@ -25,7 +25,7 @@ Extract structure from source code and turn files into clean, readable artifacts
 Built-in language adapters:
 
 - `ts` → `.ts`, `.mts`, `.cts`
-- `js` → `.js`, `.jsx`, `.mjs`, `.cjs`
+- `js` → `.js`, `.mjs`, `.cjs`
 
 If `--lang` is not provided, the language is inferred from the file extension.
 

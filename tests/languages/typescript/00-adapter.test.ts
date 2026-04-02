@@ -12,12 +12,12 @@ describe("createTsFamilyAdapter", () => {
   test("builds an adapter with expected metadata and extractor kinds", () => {
     const adapter = createTsFamilyAdapter({
       id: "ts",
-      extensions: [".ts", ".tsx", ".js", ".jsx"],
+      extensions: [".ts", ".tsx", ".js"],
       fenceLang: "ts",
     });
 
     expect(adapter.id).toBe("ts");
-    expect(adapter.extensions).toEqual([".ts", ".tsx", ".js", ".jsx"]);
+    expect(adapter.extensions).toEqual([".ts", ".tsx", ".js"]);
     expect(adapter.fenceLang).toBe("ts");
     expect([...adapter.extractors.keys()]).toEqual([
       "signatures",

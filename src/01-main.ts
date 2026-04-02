@@ -785,7 +785,7 @@ export function buildDefaultRegistry(): LanguageRegistry {
   registry.register(
     createTsFamilyAdapter({
       id: "js",
-      extensions: [".js", ".jsx", ".mjs", ".cjs"],
+      extensions: [".js", ".mjs", ".cjs"],
       fenceLang: "js",
     }),
   );
