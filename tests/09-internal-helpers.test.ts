@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { ensureArray } from "@/src/main.js";
+import { ensureArray } from "@/src/01-main.js";
 
 describe("ensureArray", () => {
   test("wraps non-array values in an array", () => {

@@ -11,8 +11,8 @@ import type {
   ParseContext,
   SingleExtractResult,
 } from "@/src/00-core-types.js";
-import { extractFromSource, processFile, runPipeline } from "@/src/main.js";
-import { createLanguageRegistry } from "@/src/main.js";
+import { extractFromSource, processFile, runPipeline } from "@/src/01-main.js";
+import { createLanguageRegistry } from "@/src/01-main.js";
 
 const tempDirs: string[] = [];
 

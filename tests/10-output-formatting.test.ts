@@ -7,7 +7,7 @@ import type {
   ParseContext,
   SingleExtractResult,
 } from "@/src/00-core-types.js";
-import { createLanguageRegistry } from "@/src/main.js";
+import { createLanguageRegistry } from "@/src/01-main.js";
 import {
   detectFenceLanguage,
   formatFinalOutput,
@@ -15,7 +15,7 @@ import {
   isMarkdownOutputPath,
   toDisplayPath,
   toMarkdownCodeBlock,
-} from "@/src/main.js";
+} from "@/src/01-main.js";
 
 // ---------------------------------------------------------------------------
 // Test helpers

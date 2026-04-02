@@ -4,7 +4,7 @@ import {
   parseExtractOptions,
   stringifyError,
   toPipelineError,
-} from "@/src/main.js";
+} from "@/src/01-main.js";
 import { BUILT_IN_EXTRACT_KINDS } from "@/src/00-core-types.js";
 
 describe("parseExtractOptions", () => {

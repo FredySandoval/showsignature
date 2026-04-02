@@ -3,15 +3,15 @@
   "version": "0.0.0",
   "type": "module",
   "bin": {
-    "showsignature": "./dist/cli.js"
+    "showsignature": "./dist/02-cli.js"
   },
   "files": [
     "dist"
   ],
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/03-index.js",
+  "types": "./dist/03-index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/03-index.js"
   },
   "scripts": {
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",

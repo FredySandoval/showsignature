@@ -9,7 +9,7 @@ import type {
 } from "@/src/00-core-types.js";
 import type { ParseContext } from "@/src/00-core-types.js";
 
-import { runExtractors, type Extractor } from "@/src/main.js";
+import { runExtractors, type Extractor } from "@/src/01-main.js";
 
 // ---------------------------------------------------------------------------
 // Test helpers

@@ -6,7 +6,7 @@ import type {
   ParseContext as CoreParseContext,
   SingleExtractResult,
 } from "@/src/00-core-types.js";
-import type { Extractor, LanguageAdapter } from "@/src/main.js";
+import type { Extractor, LanguageAdapter } from "@/src/01-main.js";
 import type { ParseContext } from "@/src/00-core-types.js";
 
 interface TestParseContext extends ParseContext {

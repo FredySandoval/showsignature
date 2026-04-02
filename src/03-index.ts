@@ -14,7 +14,7 @@ export {
   formatPlainOutput,
   toDisplayPath,
   toMarkdownCodeBlock,
-} from "./main.js";
+} from "./01-main.js";
 
 export {
   BUILT_IN_EXTRACT_KINDS,
