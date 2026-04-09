@@ -158,7 +158,20 @@ function normalizeCommanderErrorMessage(message: string): string {
     : message;
 }
 
+function formatExtractKindsHelp(kinds: readonly string[]): string {
+  return kinds.join(", ");
+}
+
+function buildExtractOptionHelp(kinds: readonly string[]): string {
+  return [
+    "comma-separated extract kinds",
+    `available: ${formatExtractKindsHelp(kinds)}`,
+  ].join("\n");
+}
+
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
+  const extractOptionHelp = buildExtractOptionHelp(BUILT_IN_EXTRACT_KINDS);
+
   const program = new Command()
     .name(CLI_NAME)
     .usage("[options]")
@@ -167,10 +180,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "--lang <lang>",
       "(optional) inferred from file extension if not provided",
     )
-    .option(
-      "--extract <options>",
-      "comma-separated extract types; results are combined in source order",
-    )
+    .option("--extract <options>", extractOptionHelp)
     .option("--file <file>", "process a single file")
     .option("--folder <folder>", "process files from a folder")
     .option("--output <name>", "write formatted output to a file")
