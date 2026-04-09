@@ -80,6 +80,8 @@ Supported built-in values:
 
 Comma-separated extract kinds.
 
+Default: `signatures`.
+
 By default, the CLI extracts:
 
 ```text
@@ -110,6 +112,8 @@ Process a single file.
 ### `--folder <folder>`
 
 Process all supported files under a directory recursively.
+
+FYI: recursive discovery respects `.gitignore` files.
 
 ### `--include-tests`
 

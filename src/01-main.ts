@@ -165,7 +165,7 @@ function formatExtractKindsHelp(kinds: readonly string[]): string {
 function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   return [
     "comma-separated extract kinds to include",
-    `available: ${formatExtractKindsHelp(kinds)}`,
+    `available: ${formatExtractKindsHelp(kinds)} (default: signatures)`,
   ].join("\n");
 }
 
@@ -182,7 +182,10 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     )
     .option("--show-only <options>", showOnlyOptionHelp)
     .option("--file <file>", "process a single file")
-    .option("--folder <folder>", "process files from a folder")
+    .option(
+      "--folder <folder>",
+      "process files from a folder (.gitignore files are respected)",
+    )
     .option("--output <name>", "write formatted output to a file")
     .option(
       "--include-tests",
