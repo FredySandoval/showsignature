@@ -169,8 +169,21 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   ].join("\n");
 }
 
+function formatSupportedExtensionsHelp(extensions: readonly string[]): string {
+  return [...extensions].sort().join(", ");
+}
+
+function buildLangOptionHelp(extensions: readonly string[]): string {
+  return [
+    "(optional) inferred from file extension if not provided",
+    `supported extensions: ${formatSupportedExtensionsHelp(extensions)}`,
+  ].join("\n");
+}
+
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   const showOnlyOptionHelp = buildShowOnlyOptionHelp(BUILT_IN_EXTRACT_KINDS);
+  const registry = buildDefaultRegistry();
+  const langOptionHelp = buildLangOptionHelp(registry.supportedExtensions());
 
   const program = new Command()
     .name(CLI_NAME)
@@ -178,7 +191,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .version(CLI_VERSION)
     .option(
       "--lang <lang>",
-      "(optional) inferred from file extension if not provided",
+      langOptionHelp,
     )
     .option("--show-only <options>", showOnlyOptionHelp)
     .option("--file <file>", "process a single file")
