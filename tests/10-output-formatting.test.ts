@@ -181,6 +181,30 @@ describe("formatPlainOutput", () => {
       ["// src/app.ts", "  12 function greet(): void;"].join("\n"),
     );
   });
+
+  test("indents multi-line entries when line numbers are enabled", () => {
+    const section = makeSection({
+      filePath: "src/app.ts",
+      entries: [
+        {
+          kind: "signatures",
+          lines: ["class Command {", "  constructor();", "}"],
+          metadata: { sourceLine: 15 },
+        },
+      ],
+    });
+
+    const result = formatPlainOutput([section], { includeLineNumbers: true });
+
+    expect(result).toBe(
+      [
+        "// src/app.ts",
+        "  15 class Command {",
+        "       constructor();",
+        "     }",
+      ].join("\n"),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

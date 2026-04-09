@@ -1189,7 +1189,8 @@ function formatEntryLines(
   entry: ExtractEntry,
   includeLineNumbers: boolean,
 ): string {
-  const content = entry.lines.map(sanitizeForDisplay).join("\n");
+  const lines = entry.lines.map(sanitizeForDisplay);
+  const content = lines.join("\n");
 
   if (!includeLineNumbers) {
     return content;
@@ -1200,7 +1201,14 @@ function formatEntryLines(
     return content;
   }
 
-  return `${String(sourceLine).padStart(4, " ")} ${content}`;
+  const prefix = `${String(sourceLine).padStart(4, " ")} `;
+  const continuationPrefix = " ".repeat(prefix.length);
+
+  return lines
+    .map((line, index) =>
+      `${index === 0 ? prefix : continuationPrefix}${line}`,
+    )
+    .join("\n");
 }
 
 export function formatPlainOutput(
