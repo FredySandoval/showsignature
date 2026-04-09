@@ -77,7 +77,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "--file",
         secretFile,
-        "--extract",
+        "--show-only",
         "comments,variables",
       ]);
     } finally {
@@ -159,7 +159,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "--file",
         "linked-secret.ts",
-        "--extract",
+        "--show-only",
         "comments,variables",
       ]);
     } finally {
@@ -202,7 +202,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "--folder",
         victimDir,
-        "--extract",
+        "--show-only",
         "comments,variables",
       ]);
     } finally {
@@ -249,7 +249,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "--folder",
         path.join("..", path.basename(victimParentDir), "nested"),
-        "--extract",
+        "--show-only",
         "variables",
       ]);
     } finally {
@@ -306,7 +306,7 @@ describe("vulnerability discovery", () => {
       "showsignature",
       "--file",
       "src/app.ts",
-      "--extract",
+      "--show-only",
       "variables",
       "--output",
       victimFile,
@@ -337,7 +337,7 @@ describe("vulnerability discovery", () => {
       "showsignature",
       "--file",
       "src/app.ts",
-      "--extract",
+      "--show-only",
       "variables",
       "--output",
       "report.txt",
@@ -387,7 +387,7 @@ describe("vulnerability discovery", () => {
       "bash",
       [
         "-lc",
-        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} --file src/app.ts --extract variables --output report.txt`,
+        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} --file src/app.ts --show-only variables --output report.txt`,
       ],
       { cwd: projectDir },
     ).catch(
@@ -444,7 +444,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "--file",
         sourceFile,
-        "--extract",
+        "--show-only",
         "comments,signatures",
       ]);
     } finally {
@@ -515,7 +515,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "--file",
         filePath,
-        "--extract",
+        "--show-only",
         "variables",
       ]);
     } finally {

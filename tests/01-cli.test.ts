@@ -103,7 +103,7 @@ describe("buildCli", () => {
       "showcode",
       "--file",
       "src/app.ts",
-      "--extract=signatures,comments",
+      "--show-only=signatures,comments",
       "--output",
       "artifacts/output.md",
     ]);
@@ -178,7 +178,7 @@ describe("buildCli", () => {
       "showcode",
       "--file",
       "src/app.ts",
-      "--extract=signatures",
+      "--show-only=signatures",
       "--line-numbers",
     ]);
 
@@ -263,7 +263,7 @@ describe("buildCli", () => {
       "showcode",
       "--folder",
       "tests/fixtures",
-      "--extract=signatures",
+      "--show-only=signatures",
       "--include-tests",
     ]);
 

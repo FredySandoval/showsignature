@@ -162,15 +162,15 @@ function formatExtractKindsHelp(kinds: readonly string[]): string {
   return kinds.join(", ");
 }
 
-function buildExtractOptionHelp(kinds: readonly string[]): string {
+function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   return [
-    "comma-separated extract kinds",
+    "comma-separated extract kinds to include",
     `available: ${formatExtractKindsHelp(kinds)}`,
   ].join("\n");
 }
 
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
-  const extractOptionHelp = buildExtractOptionHelp(BUILT_IN_EXTRACT_KINDS);
+  const showOnlyOptionHelp = buildShowOnlyOptionHelp(BUILT_IN_EXTRACT_KINDS);
 
   const program = new Command()
     .name(CLI_NAME)
@@ -180,7 +180,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "--lang <lang>",
       "(optional) inferred from file extension if not provided",
     )
-    .option("--extract <options>", extractOptionHelp)
+    .option("--show-only <options>", showOnlyOptionHelp)
     .option("--file <file>", "process a single file")
     .option("--folder <folder>", "process files from a folder")
     .option("--output <name>", "write formatted output to a file")
@@ -364,8 +364,8 @@ async function resolveExecutionPlan(
     throw createCliError(`${explicitLang} not supported`);
   }
 
-  const extractOrder = args.extract
-    ? parseExtractOptions(args.extract, BUILT_IN_EXTRACT_KINDS)
+  const extractOrder = args.showOnly
+    ? parseExtractOptions(args.showOnly, BUILT_IN_EXTRACT_KINDS)
     : DEFAULT_EXTRACT_ORDER;
 
   const input = await resolveInputTarget(args, registry);

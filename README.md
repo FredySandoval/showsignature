@@ -76,7 +76,7 @@ Supported built-in values:
 - `ts`
 - `js`
 
-### `--extract <options>`
+### `--show-only <options>`
 
 Comma-separated extract kinds.
 
@@ -100,7 +100,7 @@ When multiple kinds are selected, results are combined in original source order.
 Example:
 
 ```bash
-showsignature --file src/main.ts --extract comments,signatures
+showsignature --file src/main.ts --show-only comments,signatures
 ```
 
 ### `--file <file>`
@@ -146,37 +146,37 @@ showsignature --file src/main.ts
 ### Extract comments and signatures from one file
 
 ```bash
-showsignature --file src/main.ts --extract comments,signatures
+showsignature --file src/main.ts --show-only comments,signatures
 ```
 
 ### Scan a folder recursively
 
 ```bash
-showsignature --folder src --extract signatures,imports
+showsignature --folder src --show-only signatures,imports
 ```
 
 ### Scan the current directory
 
 ```bash
-showsignature --extract signatures
+showsignature --show-only signatures
 ```
 
 ### Include test fixtures during discovery
 
 ```bash
-showsignature --folder ./tests/fixtures --include-tests --extract signatures
+showsignature --folder ./tests/fixtures --include-tests --show-only signatures
 ```
 
 ### Write Markdown output
 
 ```bash
-showsignature --folder src --extract comments,signatures --output structure.md
+showsignature --folder src --show-only comments,signatures --output structure.md
 ```
 
 ### Include source line numbers
 
 ```bash
-showsignature --folder src --extract signatures --line-numbers
+showsignature --folder src --show-only signatures --line-numbers
 ```
 
 ## Output format

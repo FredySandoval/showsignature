@@ -118,7 +118,7 @@ describe("README acceptance", () => {
       "showcode",
       "--folder",
       "src",
-      "--extract=imports,comments,interfaces,types,variables,signatures",
+      "--show-only=imports,comments,interfaces,types,variables,signatures",
     ]);
 
     expect(stdoutBuffer).toBe(

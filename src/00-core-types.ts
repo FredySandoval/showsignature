@@ -228,7 +228,7 @@ export interface ParsedCliArgs {
   file?: string;
   folder?: string;
   lang?: string;
-  extract?: string;
+  showOnly?: string;
   output?: string;
   includeTests: boolean;
   lineNumbers: boolean;
