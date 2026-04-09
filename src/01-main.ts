@@ -190,7 +190,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       false,
     )
     .option(
-      "--line-numbers",
+      "-n, --line-number",
       "prefix each extracted entry with its source line number",
       false,
     )
@@ -377,7 +377,7 @@ async function resolveExecutionPlan(
     input,
     output: {
       ...(args.output ? { path: args.output } : {}),
-      ...(args.lineNumbers ? { includeLineNumbers: true } : {}),
+      ...(args.lineNumber ? { includeLineNumbers: true } : {}),
     },
   };
 }

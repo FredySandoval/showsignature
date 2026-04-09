@@ -129,7 +129,7 @@ Write the final output to a file.
 - If the output path ends in `.md` or `.mdx`, output is wrapped in a fenced code block.
 - Otherwise, output is written as plain text.
 
-### `--line-numbers`
+### `-n, --line-number`
 
 Prefix each extracted entry with its source line number.
 
@@ -176,7 +176,7 @@ showsignature --folder src --show-only comments,signatures --output structure.md
 ### Include source line numbers
 
 ```bash
-showsignature --folder src --show-only signatures --line-numbers
+showsignature --folder src --show-only signatures --line-number
 ```
 
 ## Output format
@@ -188,7 +188,7 @@ Plain output is grouped by file and prefixed with a file header comment:
 export function greet(name: string): string;
 ```
 
-When `--line-numbers` is enabled, each extracted entry is prefixed with its source line number:
+When `--line-number` is enabled, each extracted entry is prefixed with its source line number:
 
 ```ts
 // src/example.ts

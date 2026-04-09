@@ -231,7 +231,7 @@ export interface ParsedCliArgs {
   showOnly?: string;
   output?: string;
   includeTests: boolean;
-  lineNumbers: boolean;
+  lineNumber: boolean;
 }
 
 export interface ExitCodeError extends Error {

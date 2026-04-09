@@ -179,7 +179,7 @@ describe("buildCli", () => {
       "--file",
       "src/app.ts",
       "--show-only=signatures",
-      "--line-numbers",
+      "--line-number",
     ]);
 
     expect(stdoutBuffer).toBe(
