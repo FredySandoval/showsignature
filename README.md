@@ -18,6 +18,7 @@ Extract structure from source code and turn files into clean, readable artifacts
 - Excludes test files by default during discovery
 - Preserves source ordering when combining multiple extract kinds
 - Can write plain text or Markdown-fenced output
+- Optional source line numbers in output
 - Also usable as a library
 
 ## Supported languages
@@ -128,6 +129,12 @@ Write the final output to a file.
 - If the output path ends in `.md` or `.mdx`, output is wrapped in a fenced code block.
 - Otherwise, output is written as plain text.
 
+### `--line-numbers`
+
+Prefix each extracted entry with its source line number.
+
+This is optional and off by default, so the default output stays clean and easy to scan.
+
 ## Examples
 
 ### Extract default signatures from one file
@@ -166,6 +173,12 @@ showsignature --folder ./tests/fixtures --include-tests --extract signatures
 showsignature --folder src --extract comments,signatures --output structure.md
 ```
 
+### Include source line numbers
+
+```bash
+showsignature --folder src --extract signatures --line-numbers
+```
+
 ## Output format
 
 Plain output is grouped by file and prefixed with a file header comment:
@@ -173,6 +186,13 @@ Plain output is grouped by file and prefixed with a file header comment:
 ```ts
 // src/example.ts
 export function greet(name: string): string;
+```
+
+When `--line-numbers` is enabled, each extracted entry is prefixed with its source line number:
+
+```ts
+// src/example.ts
+  12 export function greet(name: string): string;
 ```
 
 If the output file ends in `.md` or `.mdx`, the result is wrapped in a fenced code block. When all processed files resolve to the same language, the fence is annotated accordingly.

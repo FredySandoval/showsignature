@@ -158,6 +158,37 @@ describe("buildCli", () => {
     expect(stderrBuffer).toBe("");
   });
 
+  test("optionally prints source line numbers", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      [
+        "const hidden = 1;",
+        "",
+        "function greet(): void {}",
+      ].join("\n"),
+    );
+
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode",
+      "--file",
+      "src/app.ts",
+      "--extract=signatures",
+      "--line-numbers",
+    ]);
+
+    expect(stdoutBuffer).toBe(
+      ["// src/app.ts", "   3 function greet(): void;", ""].join("\n"),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("throws for unsupported explicit languages", async () => {
     installOutputCapture();
 

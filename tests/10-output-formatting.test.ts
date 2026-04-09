@@ -162,6 +162,25 @@ describe("formatPlainOutput", () => {
       ["// multi.ts", "/*\n  multi-line comment\n*/"].join("\n"),
     );
   });
+
+  test("optionally prefixes entries with source line numbers", () => {
+    const section = makeSection({
+      filePath: "src/app.ts",
+      entries: [
+        {
+          kind: "signatures",
+          lines: ["function greet(): void;"],
+          metadata: { sourceLine: 12 },
+        },
+      ],
+    });
+
+    const result = formatPlainOutput([section], { includeLineNumbers: true });
+
+    expect(result).toBe(
+      ["// src/app.ts", "  12 function greet(): void;"].join("\n"),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

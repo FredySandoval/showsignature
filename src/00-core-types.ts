@@ -45,6 +45,7 @@ export interface Diagnostic {
 export interface ExtractEntryMetadata {
   filePath?: string;
   sourcePos?: number;
+  sourceLine?: number;
 }
 
 export interface ExtractEntry {
@@ -196,6 +197,7 @@ export interface CombinedExtractEntry {
   kind: ExtractKind;
   lines: string[];
   pos: number;
+  metadata?: ExtractEntryMetadata;
 }
 
 export interface Range {
@@ -215,6 +217,7 @@ export interface FormatFinalOutputOptions {
   explicitLang?: string;
   outputPath?: string;
   seenLangs: readonly string[];
+  includeLineNumbers?: boolean;
 }
 
 export interface CliProgram {
@@ -228,6 +231,7 @@ export interface ParsedCliArgs {
   extract?: string;
   output?: string;
   includeTests: boolean;
+  lineNumbers: boolean;
 }
 
 export interface ExitCodeError extends Error {
@@ -245,6 +249,7 @@ export interface ResolvedInputTarget {
 
 export interface OutputTarget {
   path?: string;
+  includeLineNumbers?: boolean;
 }
 
 export interface ExecutionPlan {

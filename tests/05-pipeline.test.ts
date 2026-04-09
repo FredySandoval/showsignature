@@ -130,10 +130,20 @@ describe("extractFromSource", () => {
       {
         kind: "signatures",
         lines: ["function first(): void;"],
+        metadata: {
+          filePath: "/repo/file.ts",
+          sourceLine: 1,
+          sourcePos: 10,
+        },
       },
       {
         kind: "comments",
         lines: ["// second"],
+        metadata: {
+          filePath: "/repo/file.ts",
+          sourceLine: 1,
+          sourcePos: 20,
+        },
       },
     ]);
   });
@@ -182,8 +192,24 @@ describe("extractFromSource", () => {
     });
 
     expect(result.entries).toEqual([
-      { kind: "signatures", lines: ["function first(): void;"] },
-      { kind: "comments", lines: ["// second"] },
+      {
+        kind: "signatures",
+        lines: ["function first(): void;"],
+        metadata: {
+          filePath: "/repo/file.ts",
+          sourceLine: 1,
+          sourcePos: 10,
+        },
+      },
+      {
+        kind: "comments",
+        lines: ["// second"],
+        metadata: {
+          filePath: "/repo/file.ts",
+          sourceLine: 1,
+          sourcePos: 20,
+        },
+      },
     ]);
   });
 
@@ -252,6 +278,11 @@ describe("processFile", () => {
         {
           kind: "variables",
           lines: ["const value = ...;"],
+          metadata: {
+            filePath,
+            sourceLine: 1,
+            sourcePos: 0,
+          },
         },
       ],
       warnings: [
@@ -302,6 +333,9 @@ describe("processFile", () => {
       {
         kind: "signatures",
         lines: ["def main():"],
+        metadata: {
+          filePath,
+        },
       },
     ]);
     expect(registry.get("py")).toBeDefined();
@@ -432,6 +466,9 @@ describe("runPipeline", () => {
           {
             kind: "variables",
             lines: ["const good = ...;"],
+            metadata: {
+              filePath: goodFile,
+            },
           },
         ],
         warnings: [],

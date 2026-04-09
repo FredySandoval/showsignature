@@ -179,6 +179,11 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "include files under test directories during discovery",
       false,
     )
+    .option(
+      "--line-numbers",
+      "prefix each extracted entry with its source line number",
+      false,
+    )
     .exitOverride();
 
   try {
@@ -362,6 +367,7 @@ async function resolveExecutionPlan(
     input,
     output: {
       ...(args.output ? { path: args.output } : {}),
+      ...(args.lineNumbers ? { includeLineNumbers: true } : {}),
     },
   };
 }
@@ -375,6 +381,7 @@ function renderPipelineOutput(
     sections: result.sections,
     ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
     ...(plan.output.path ? { outputPath: plan.output.path } : {}),
+    ...(plan.output.includeLineNumbers ? { includeLineNumbers: true } : {}),
     seenLangs: result.meta.seenLangs,
   });
 }
@@ -1045,15 +1052,32 @@ function toUnsupportedKindWarning(
   };
 }
 
+function toLineNumber(source: string, position: number): number {
+  let lineNumber = 1;
+
+  for (let index = 0; index < position; index += 1) {
+    if (source[index] === "\n") {
+      lineNumber += 1;
+    }
+  }
+
+  return lineNumber;
+}
+
 function withEntryMetadata(
   entry: ExtractEntry,
   context: ParseContext,
 ): ExtractEntry {
+  const sourcePos = entry.metadata?.sourcePos;
+
   return {
     ...entry,
     metadata: {
       ...entry.metadata,
       filePath: entry.metadata?.filePath ?? context.filePath,
+      ...(sourcePos === undefined
+        ? {}
+        : { sourceLine: entry.metadata?.sourceLine ?? toLineNumber(context.source, sourcePos) }),
     },
   };
 }
@@ -1068,6 +1092,7 @@ function toCombinedEntries(
       kind: normalized.kind,
       lines: normalized.lines,
       pos: normalized.metadata?.sourcePos ?? FALLBACK_COMBINED_POS,
+      ...(normalized.metadata ? { metadata: normalized.metadata } : {}),
     };
   });
 }
@@ -1132,7 +1157,11 @@ export function mergeAndSortEntries(
 export function stripCombinedPositions(
   entries: CombinedExtractEntry[],
 ): ExtractEntry[] {
-  return entries.map(({ kind, lines }) => ({ kind, lines }));
+  return entries.map(({ kind, lines, metadata }) => ({
+    kind,
+    lines,
+    ...(metadata ? { metadata } : {}),
+  }));
 }
 
 // ============================================================================
@@ -1146,7 +1175,28 @@ export function toDisplayPath(filePath: string): string {
   return sanitizeForDisplay(normalized.split(path.sep).join("/"));
 }
 
-export function formatPlainOutput(sections: FileSection[]): string {
+function formatEntryLines(
+  entry: ExtractEntry,
+  includeLineNumbers: boolean,
+): string {
+  const content = entry.lines.map(sanitizeForDisplay).join("\n");
+
+  if (!includeLineNumbers) {
+    return content;
+  }
+
+  const sourceLine = entry.metadata?.sourceLine;
+  if (sourceLine === undefined) {
+    return content;
+  }
+
+  return `${String(sourceLine).padStart(4, " ")} ${content}`;
+}
+
+export function formatPlainOutput(
+  sections: FileSection[],
+  options: { includeLineNumbers?: boolean } = {},
+): string {
   const parts: string[] = [];
 
   for (const section of sections) {
@@ -1157,7 +1207,7 @@ export function formatPlainOutput(sections: FileSection[]): string {
     parts.push(`// ${toDisplayPath(section.filePath)}`);
 
     for (const entry of section.entries) {
-      parts.push(entry.lines.map(sanitizeForDisplay).join("\n"));
+      parts.push(formatEntryLines(entry, options.includeLineNumbers === true));
     }
 
     parts.push("");
@@ -1207,7 +1257,9 @@ export function isMarkdownOutputPath(outputPath: string | undefined): boolean {
 
 export function formatFinalOutput(options: FormatFinalOutputOptions): string {
   const { registry, sections, explicitLang, seenLangs } = options;
-  const plainOutput = formatPlainOutput(sections);
+  const plainOutput = formatPlainOutput(sections, {
+    ...(options.includeLineNumbers ? { includeLineNumbers: true } : {}),
+  });
 
   if (!plainOutput) {
     return "";

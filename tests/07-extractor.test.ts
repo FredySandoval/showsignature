@@ -127,7 +127,7 @@ describe("08-extractor — runExtractors", () => {
       expect(result.entries[1]?.lines).toEqual(["// first comment"]);
     });
 
-    test("strips positional metadata from combined output entries", () => {
+    test("keeps entry metadata on combined output entries", () => {
       const adapter = createTestAdapter([
         createStubExtractor("imports", ['import fs from "node:fs";'], {
           sourcePos: 0,
@@ -141,14 +141,16 @@ describe("08-extractor — runExtractors", () => {
         extractOrder: ["imports"],
       });
 
-      // After stripCombinedPositions, entries should not have metadata.sourcePos
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]).toEqual({
         kind: "imports",
         lines: ['import fs from "node:fs";'],
+        metadata: {
+          filePath: "/tmp/test.ts",
+          sourceLine: 1,
+          sourcePos: 0,
+        },
       });
-      // metadata should be completely absent after stripping
-      expect(result.entries[0]?.metadata).toBeUndefined();
     });
 
     test("uses FALLBACK position for entries without sourcePos", () => {
@@ -191,10 +193,42 @@ describe("08-extractor — runExtractors", () => {
       });
 
       expect(result.entries).toEqual([
-        { kind: "signatures", lines: ["function first(): void;"] },
-        { kind: "comments", lines: ["// second"] },
-        { kind: "signatures", lines: ["function third(): void;"] },
-        { kind: "comments", lines: ["// fourth"] },
+        {
+          kind: "signatures",
+          lines: ["function first(): void;"],
+          metadata: {
+            filePath: "/tmp/test.ts",
+            sourceLine: 1,
+            sourcePos: 10,
+          },
+        },
+        {
+          kind: "comments",
+          lines: ["// second"],
+          metadata: {
+            filePath: "/tmp/test.ts",
+            sourceLine: 1,
+            sourcePos: 20,
+          },
+        },
+        {
+          kind: "signatures",
+          lines: ["function third(): void;"],
+          metadata: {
+            filePath: "/tmp/test.ts",
+            sourceLine: 1,
+            sourcePos: 30,
+          },
+        },
+        {
+          kind: "comments",
+          lines: ["// fourth"],
+          metadata: {
+            filePath: "/tmp/test.ts",
+            sourceLine: 1,
+            sourcePos: 40,
+          },
+        },
       ]);
     });
   });
