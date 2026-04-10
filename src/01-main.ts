@@ -11,6 +11,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { Command, CommanderError } from "commander";
 import { globby } from "globby";
@@ -92,6 +93,16 @@ function isPathWithin(basePath: string, targetPath: string): boolean {
   );
 }
 
+async function canWriteOutputPath(targetPath: string): Promise<boolean> {
+  const cwdRealPath = await realpath(process.cwd());
+  if (isPathWithin(cwdRealPath, targetPath)) {
+    return true;
+  }
+
+  const tmpRealPath = await realpath(tmpdir());
+  return isPathWithin(tmpRealPath, targetPath);
+}
+
 async function resolveSafeInputPath(
   targetPath: string,
 ): Promise<string | null> {
@@ -115,9 +126,8 @@ async function resolveSafeOutputPath(
   targetPath: string,
 ): Promise<string | null> {
   const resolvedPath = path.resolve(targetPath);
-  const cwdRealPath = await realpath(process.cwd());
 
-  if (!isPathWithin(cwdRealPath, resolvedPath)) {
+  if (!(await canWriteOutputPath(resolvedPath))) {
     return null;
   }
 
@@ -125,7 +135,7 @@ async function resolveSafeOutputPath(
   await mkdir(parentDir, { recursive: true });
   const parentRealPath = await realpath(parentDir);
 
-  if (!isPathWithin(cwdRealPath, parentRealPath)) {
+  if (!(await canWriteOutputPath(parentRealPath))) {
     return null;
   }
 
@@ -136,7 +146,7 @@ async function resolveSafeOutputPath(
     }
 
     const realTargetPath = await realpath(resolvedPath);
-    return isPathWithin(cwdRealPath, realTargetPath) ? resolvedPath : null;
+    return (await canWriteOutputPath(realTargetPath)) ? resolvedPath : null;
   } catch {
     return resolvedPath;
   }
@@ -189,10 +199,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .name(CLI_NAME)
     .usage("[options]")
     .version(CLI_VERSION)
-    .option(
-      "--lang <lang>",
-      langOptionHelp,
-    )
+    .option("--lang <lang>", langOptionHelp)
     .option("--show-only <options>", showOnlyOptionHelp)
     .option("--file <file>", "process a single file")
     .option(
@@ -330,7 +337,9 @@ async function writeOutputFile(
 ): Promise<void> {
   const resolvedOutputPath = await resolveSafeOutputPath(outputPath);
   if (!resolvedOutputPath) {
-    return;
+    throw createCliError(
+      `Could not write output outside the current folder or ${tmpdir()}: ${outputPath}`,
+    );
   }
 
   await mkdir(path.dirname(resolvedOutputPath), { recursive: true });
@@ -1103,7 +1112,11 @@ function withEntryMetadata(
       filePath: entry.metadata?.filePath ?? context.filePath,
       ...(sourcePos === undefined
         ? {}
-        : { sourceLine: entry.metadata?.sourceLine ?? toLineNumber(context.source, sourcePos) }),
+        : {
+            sourceLine:
+              entry.metadata?.sourceLine ??
+              toLineNumber(context.source, sourcePos),
+          }),
     },
   };
 }
@@ -1221,9 +1234,7 @@ function formatEntryLines(
   const continuationPrefix = " ".repeat(prefix.length);
 
   return lines
-    .map((line, index) =>
-      `${index === 0 ? prefix : continuationPrefix}${line}`,
-    )
+    .map((line, index) => `${index === 0 ? prefix : continuationPrefix}${line}`)
     .join("\n");
 }
 

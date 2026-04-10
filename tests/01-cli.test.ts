@@ -165,11 +165,7 @@ describe("buildCli", () => {
     await writeFixtureFile(
       rootDir,
       "src/app.ts",
-      [
-        "const hidden = 1;",
-        "",
-        "function greet(): void {}",
-      ].join("\n"),
+      ["const hidden = 1;", "", "function greet(): void {}"].join("\n"),
     );
 
     process.chdir(rootDir);

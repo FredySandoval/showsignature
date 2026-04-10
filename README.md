@@ -130,6 +130,7 @@ This flag only affects recursive discovery. An explicit `--file` path is always 
 
 Write the final output to a file.
 
+- Output can be written inside the current working directory or inside the system temp directory such as `/tmp`.
 - If the output path ends in `.md` or `.mdx`, output is wrapped in a fenced code block.
 - Otherwise, output is written as plain text.
 

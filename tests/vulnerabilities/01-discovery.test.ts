@@ -30,6 +30,12 @@ async function createTempDir(prefix: string): Promise<string> {
   return dirPath;
 }
 
+async function createDirOutsideTmp(prefix: string): Promise<string> {
+  const dirPath = await mkdtemp(path.join(originalCwd, prefix));
+  tempDirs.push(dirPath);
+  return dirPath;
+}
+
 async function writeFixtureFile(
   rootDir: string,
   relativePath: string,
@@ -262,7 +268,7 @@ describe("vulnerability discovery", () => {
     ).not.toContain("export const traversed = 1;");
   });
 
-  test("fails if --output path traversal can write outside the current working directory", async () => {
+  test("allows --output path traversal when the target still stays inside the system temp directory", async () => {
     const projectDir = await createTempDir("showsignature-vuln-project-");
     const victimParentDir = await createTempDir("showsignature-vuln-victim-");
     const victimFile = path.join(victimParentDir, "owned.txt");
@@ -285,13 +291,15 @@ describe("vulnerability discovery", () => {
 
     await expect(
       readFile(victimFile, "utf8"),
-      "Security issue discovered: --output should not allow writing outside the current working directory.",
-    ).rejects.toThrow();
+      "Expected --output to allow writes that stay inside the system temp directory, even when the path uses traversal segments.",
+    ).resolves.toContain("function greet(name: string): string;");
   });
 
   test("fails if --output accepts absolute paths outside the current working directory", async () => {
     const projectDir = await createTempDir("showsignature-vuln-project-");
-    const victimDir = await createTempDir("showsignature-vuln-absolute-");
+    const victimDir = await createDirOutsideTmp(
+      ".showsignature-vuln-absolute-",
+    );
     const victimFile = path.join(victimDir, "absolute-owned.txt");
 
     await writeFixtureFile(
@@ -302,15 +310,18 @@ describe("vulnerability discovery", () => {
 
     process.chdir(projectDir);
 
-    await buildCli().run([
-      "showsignature",
-      "--file",
-      "src/app.ts",
-      "--show-only",
-      "variables",
-      "--output",
-      victimFile,
-    ]);
+    await expect(
+      buildCli().run([
+        "showsignature",
+        "--file",
+        "src/app.ts",
+        "--show-only",
+        "variables",
+        "--output",
+        victimFile,
+      ]),
+      "Security issue discovered: --output should reject absolute paths outside the current working directory unless they point into the allowed temp directory.",
+    ).rejects.toThrow();
 
     await expect(
       readFile(victimFile, "utf8"),
@@ -320,7 +331,7 @@ describe("vulnerability discovery", () => {
 
   test("fails if --output can follow a symlink inside the project and overwrite files outside the current working directory", async () => {
     const projectDir = await createTempDir("showsignature-vuln-project-");
-    const victimDir = await createTempDir("showsignature-vuln-symlink-");
+    const victimDir = await createDirOutsideTmp(".showsignature-vuln-symlink-");
     const victimFile = path.join(victimDir, "symlink-owned.txt");
     const symlinkPath = path.join(projectDir, "report.txt");
 
@@ -333,15 +344,18 @@ describe("vulnerability discovery", () => {
 
     process.chdir(projectDir);
 
-    await buildCli().run([
-      "showsignature",
-      "--file",
-      "src/app.ts",
-      "--show-only",
-      "variables",
-      "--output",
-      "report.txt",
-    ]);
+    await expect(
+      buildCli().run([
+        "showsignature",
+        "--file",
+        "src/app.ts",
+        "--show-only",
+        "variables",
+        "--output",
+        "report.txt",
+      ]),
+      "Security issue discovered: --output should reject symlinked output paths that resolve outside the current working directory and outside the allowed temp directory.",
+    ).rejects.toThrow();
 
     await expect(
       readFile(victimFile, "utf8"),
