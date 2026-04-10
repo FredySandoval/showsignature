@@ -44,6 +44,7 @@ import {
   type ResolvedInputTarget,
   type RunPipelineOptions,
 } from "./00-core-types.js";
+import { createPythonAdapter } from "./languages/python/00-adapter.js";
 import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
 export type { Extractor, LanguageAdapter } from "./00-core-types.js";
@@ -829,6 +830,14 @@ export function buildDefaultRegistry(): LanguageRegistry {
       id: "js",
       extensions: [".js", ".mjs", ".cjs"],
       fenceLang: "js",
+    }),
+  );
+
+  registry.register(
+    createPythonAdapter({
+      id: "py",
+      extensions: [".py"],
+      fenceLang: "python",
     }),
   );
 

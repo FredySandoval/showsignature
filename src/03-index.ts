@@ -40,6 +40,7 @@ export {
   type PipelineResult,
   type PluginExtractKind,
   type ProcessFileOptions,
+  type PyParseContext,
   type Range,
   type RunPipelineOptions,
   type SingleExtractResult,

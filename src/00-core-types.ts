@@ -102,9 +102,11 @@ export interface TsParseContext extends ParseContext {
   readonly sourceFile: ts.SourceFile;
   readonly scriptKind: ts.ScriptKind;
 }
-// Future: each language defines its own context
-// interface PyParseContext extends ParseContext { readonly ast: PythonAST; }
-// interface GoParseContext extends ParseContext { readonly ast: GoAST; }
+
+export interface PyParseContext extends ParseContext {
+  readonly lines: readonly string[];
+  readonly lineStarts: readonly number[];
+}
 
 export interface LanguageAdapterMetadata {
   id: string;

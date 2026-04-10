@@ -2,7 +2,7 @@
 
 Extract structure from source code and turn files into clean, readable artifacts.
 
-`showsignature` is a CLI and library for extracting high-signal code structure from TypeScript and JavaScript files. It can pull out signatures, interfaces, type aliases, variables, comments, and imports, then emit them in source order across one or many files.
+`showsignature` is a CLI and library for extracting high-signal code structure from TypeScript, JavaScript, and Python files. It can pull out signatures, interfaces, type aliases, variables, comments, and imports, then emit them in source order across one or many files.
 
 ## Features
 
@@ -13,7 +13,7 @@ Extract structure from source code and turn files into clean, readable artifacts
   - variable declarations
   - comments
   - import declarations
-- Supports TypeScript and JavaScript families
+- Supports TypeScript, JavaScript, and Python
 - Recursively scans folders
 - Excludes test files by default during discovery
 - Preserves source ordering when combining multiple extract kinds
@@ -27,6 +27,7 @@ Built-in language adapters:
 
 - `ts` → `.ts`, `.mts`, `.cts`
 - `js` → `.js`, `.mjs`, `.cjs`
+- `py` → `.py`
 
 If `--lang` is not provided, the language is inferred from the file extension.
 
@@ -75,6 +76,7 @@ Supported built-in values:
 
 - `ts`
 - `js`
+- `py`
 
 ### `--show-only <options>`
 
@@ -146,6 +148,12 @@ This is optional and off by default, so the default output stays clean and easy 
 
 ```bash
 showsignature --file src/main.ts
+```
+
+### Extract Python structure from one file
+
+```bash
+showsignature --file app.py --show-only signatures,imports,variables
 ```
 
 ### Extract comments and signatures from one file
@@ -389,6 +397,8 @@ pnpm clean
 
 ## Notes
 
-- Current built-in extraction support is for TypeScript/JavaScript source files.
+- Current built-in extraction support is for TypeScript, JavaScript, and Python source files.
+- Python support is intentionally minimal and focuses on functions, classes, methods, variables, comments, and imports.
+- Python `interfaces` and `types` are currently reported as unsupported extract kinds.
 - Folder scanning respects `.gitignore`.
 - If no supported files are found, the CLI exits with an error.
