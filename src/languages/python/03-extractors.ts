@@ -37,12 +37,18 @@ function renderClassSignature(
   return [header, ...methodSignatures.map((line) => `    ${line}`)];
 }
 
-function createTopLevelFunctionEntries(context: PyParseContext): ExtractEntry[] {
+function createTopLevelFunctionEntries(
+  context: PyParseContext,
+): ExtractEntry[] {
   const entries: ExtractEntry[] = [];
 
   for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
     const line = context.lines[lineIndex];
-    if (!line || PyHelpers.getIndent(line) !== 0 || !PyHelpers.startsFunction(line)) {
+    if (
+      !line ||
+      PyHelpers.getIndent(line) !== 0 ||
+      !PyHelpers.startsFunction(line)
+    ) {
       continue;
     }
 
@@ -71,7 +77,11 @@ function createClassEntries(context: PyParseContext): ExtractEntry[] {
 
   for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
     const line = context.lines[lineIndex];
-    if (!line || PyHelpers.getIndent(line) !== 0 || !PyHelpers.startsClass(line)) {
+    if (
+      !line ||
+      PyHelpers.getIndent(line) !== 0 ||
+      !PyHelpers.startsClass(line)
+    ) {
       continue;
     }
 
@@ -90,7 +100,10 @@ function createClassEntries(context: PyParseContext): ExtractEntry[] {
         break;
       }
 
-      if (PyHelpers.isBlank(memberLine) || PyHelpers.isCommentLine(memberLine)) {
+      if (
+        PyHelpers.isBlank(memberLine) ||
+        PyHelpers.isCommentLine(memberLine)
+      ) {
         memberLineIndex += 1;
         continue;
       }
@@ -152,7 +165,11 @@ export function createVariablesExtractor(): Extractor<PyParseContext> {
       const statementPattern =
         /^([A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*)(\s*:\s*[^=]+)?\s*=\s*(.+)$/u;
 
-      for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
+      for (
+        let lineIndex = 0;
+        lineIndex < context.lines.length;
+        lineIndex += 1
+      ) {
         const line = context.lines[lineIndex];
         if (!line || PyHelpers.getIndent(line) !== 0) {
           continue;
@@ -212,7 +229,11 @@ export function createCommentsExtractor(): Extractor<PyParseContext> {
       const entries: ExtractEntry[] = [];
       let blockQuote: string | null = null;
 
-      for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
+      for (
+        let lineIndex = 0;
+        lineIndex < context.lines.length;
+        lineIndex += 1
+      ) {
         const line = context.lines[lineIndex] ?? "";
         let quote: string | null = blockQuote;
         let commentIndex = -1;
@@ -281,7 +302,11 @@ export function createImportsExtractor(): Extractor<PyParseContext> {
     extract(context: PyParseContext): SingleExtractResult {
       const entries: ExtractEntry[] = [];
 
-      for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
+      for (
+        let lineIndex = 0;
+        lineIndex < context.lines.length;
+        lineIndex += 1
+      ) {
         const line = context.lines[lineIndex];
         if (!line || PyHelpers.getIndent(line) !== 0) {
           continue;

@@ -18,7 +18,10 @@ export interface CreatePythonAdapterOptions {
   fenceLang: string;
 }
 
-function buildExtractors(): ReadonlyMap<ExtractKind, Extractor<PyParseContext>> {
+function buildExtractors(): ReadonlyMap<
+  ExtractKind,
+  Extractor<PyParseContext>
+> {
   const extractors: Extractor<PyParseContext>[] = [
     createSignaturesExtractor(),
     createVariablesExtractor(),

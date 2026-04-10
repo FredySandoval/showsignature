@@ -110,7 +110,7 @@ export namespace PyHelpers {
         break;
       }
 
-      if (next3 === "\"\"\"" || next3 === "'''") {
+      if (next3 === '"""' || next3 === "'''") {
         inTripleQuote = next3;
         index += 2;
         continue;
@@ -230,7 +230,7 @@ export namespace PyHelpers {
         continue;
       }
 
-      if (next3 === "\"\"\"" || next3 === "'''") {
+      if (next3 === '"""' || next3 === "'''") {
         tripleQuote = next3;
         index += 2;
         continue;
