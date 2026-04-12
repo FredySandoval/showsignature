@@ -1,18 +1,4 @@
-export type Rule = {
-  kind: 'remove' | 'replace'
-  from: string | RegExp
-  to?: string
-  note: string
-}
-
-export type Options = {
-  ultra?: boolean
-}
-
-export type ProtectEntry = {
-  name: string
-  pattern: RegExp
-}
+import type { Rule, ProtectEntry } from './caveman.js'
 
 export const protectEntries: ProtectEntry[] = [
   { name: 'fenced code', pattern: /```[\s\S]*?```/g },

@@ -1,8 +1,68 @@
-import { baseRules, protectEntries, ruleTable, ultraRules, type Options } from './language-rules'
+import { baseRules, protectEntries, ruleTable, ultraRules } from './language-rules.js'
+
+export type Rule = {
+  kind: 'remove' | 'replace'
+  from: string | RegExp
+  to?: string
+  note: string
+}
+
+export type Options = {
+  ultra?: boolean
+}
+
+export type ProtectEntry = {
+  name: string
+  pattern: RegExp
+}
+
+const quotedErrorPattern = /\b(?:error|exception|failed|failure|cannot|can't|invalid|unexpected|undefined|timeout|timed out|denied|not found|syntaxerror|typeerror|referenceerror)\b/i
+const placeholderPattern = /\uE000(\d+)\uE001/g
+const markdownPrefixPattern = /^(\s*(?:(?:#{1,6}[ \t]+)|(?:>[ \t]?)+|(?:[-*+][ \t]+)|(?:\d+\.[ \t]+))*)(.*)$/
+const instructionPronounPattern = /\b(?:you|we)\b\s+(?=(?:need|must|can|should|run|use|fix|remove|keep|ensure)\b)/gi
+const systemPattern = /\bthe system\b/gi
+const punctuationSpacingPattern = /\s+([,.;:!?])/g
+const repeatedSentenceEndPattern = /([.?!]){2,}/g
+const quotedTextPattern = /"[^"]*"|'[^']*'/g
+const extraSpacesPattern = /\s{2,}/g
+const dotSpacingPattern = /\s*\.\s*/g
+const commaSpacingPattern = /\s*,\s*/g
+const edgePunctuationPattern = /^[,.;:!? ]+|[,.;:!? ]+$/g
+const extraBlankLinesPattern = /\n{3,}/g
+const lineTrailingSpacePattern = /[ \t]+\n/g
+const lineLeadingSpacePattern = /\n[ \t]+/g
+
+const standardRules = baseRules
+const ultraModeRules = baseRules.concat(ultraRules)
 
 function isQuotedError(text: string) {
   const inner = text.slice(1, -1)
-  return /\b(?:error|exception|failed|failure|cannot|can't|invalid|unexpected|undefined|timeout|timed out|denied|not found|syntaxerror|typeerror|referenceerror)\b/i.test(inner)
+  return quotedErrorPattern.test(inner)
+}
+
+function isProtectionRelevant(entry: ProtectEntry, text: string) {
+  switch (entry.name) {
+    case 'fenced code':
+      return text.includes('```')
+    case 'inline code':
+      return text.includes('`')
+    case 'markdown image':
+      return text.includes('![') && text.includes('](')
+    case 'markdown link':
+      return text.includes('[') && text.includes('](')
+    case 'markdown autolink':
+      return text.includes('<http://') || text.includes('<https://')
+    case 'markdown table row':
+      return text.includes('|')
+    case 'quoted error':
+      return text.includes('"') || text.includes("'")
+    case 'url':
+      return text.includes('http://') || text.includes('https://')
+    case 'file path':
+      return text.includes('/')
+    default:
+      return true
+  }
 }
 
 function protect(text: string) {
@@ -10,6 +70,10 @@ function protect(text: string) {
   let output = text
 
   for (const entry of protectEntries) {
+    if (!isProtectionRelevant(entry, output)) {
+      continue
+    }
+
     output = output.replace(entry.pattern, (match) => {
       if (entry.name === 'quoted error' && !isQuotedError(match)) {
         return match
@@ -24,13 +88,12 @@ function protect(text: string) {
   return {
     text: output,
     restore(input: string) {
-      return input.replace(/\uE000(\d+)\uE001/g, (_, index) => values[Number(index)] ?? '')
+      return input.replace(placeholderPattern, (_, index) => values[Number(index)] ?? '')
     },
   }
 }
 
-function applyRules(text: string, options: Options = {}) {
-  const rules = options.ultra ? [...baseRules, ...ultraRules] : baseRules
+function applyRules(text: string, rules: Rule[]) {
   let output = text
 
   for (const rule of rules) {
@@ -46,7 +109,7 @@ function applyRules(text: string, options: Options = {}) {
 }
 
 function getMarkdownPrefix(line: string) {
-  const match = line.match(/^(\s*(?:(?:#{1,6}[ \t]+)|(?:>[ \t]?)+|(?:[-*+][ \t]+)|(?:\d+\.[ \t]+))*)(.*)$/)
+  const match = markdownPrefixPattern.exec(line)
 
   return {
     prefix: match?.[1] ?? '',
@@ -55,39 +118,47 @@ function getMarkdownPrefix(line: string) {
 }
 
 function cleanupLine(text: string) {
-  return text
-    .replace(/\b(?:you|we)\b\s+(?=(?:need|must|can|should|run|use|fix|remove|keep|ensure)\b)/gi, '')
-    .replace(/\bthe system\b/gi, 'system')
-    .replace(/\s+([,.;:!?])/g, '$1')
-    .replace(/([.?!]){2,}/g, '$1')
-    .replace(/"[^"]*"|'[^']*'/g, (match) => `${match[0]}${match.slice(1, -1).trim()}${match.at(-1) ?? ''}`)
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s*\.\s*/g, '. ')
-    .replace(/\s*,\s*/g, ', ')
-    .replace(/^[,.;:!? ]+|[,.;:!? ]+$/g, '')
+  let output = text.replace(instructionPronounPattern, '')
+
+  output = output
+    .replace(systemPattern, 'system')
+    .replace(punctuationSpacingPattern, '$1')
+    .replace(repeatedSentenceEndPattern, '$1')
+
+  if (output.includes('"') || output.includes("'")) {
+    output = output.replace(quotedTextPattern, (match) => `${match[0]}${match.slice(1, -1).trim()}${match.at(-1) ?? ''}`)
+  }
+
+  return output
+    .replace(extraSpacesPattern, ' ')
+    .replace(dotSpacingPattern, '. ')
+    .replace(commaSpacingPattern, ', ')
+    .replace(edgePunctuationPattern, '')
     .trim()
 }
 
 function cleanupDocument(text: string) {
   return text
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n[ \t]+/g, '\n')
+    .replace(extraBlankLinesPattern, '\n\n')
+    .replace(lineTrailingSpacePattern, '\n')
+    .replace(lineLeadingSpacePattern, '\n')
     .trim()
 }
 
 export function toCaveman(input: string, options: Options = {}) {
+  const rules = options.ultra ? ultraModeRules : standardRules
   const { text, restore } = protect(input)
 
   const shortened = text
     .split('\n')
     .map((line) => {
-      if (!line.trim()) {
+      const trimmedLine = line.trim()
+      if (!trimmedLine) {
         return ''
       }
 
       const { prefix, content } = getMarkdownPrefix(line)
-      const rewritten = cleanupLine(applyRules(content, options))
+      const rewritten = cleanupLine(applyRules(content, rules))
       return rewritten ? `${prefix}${rewritten}` : prefix.trimEnd()
     })
     .join('\n')

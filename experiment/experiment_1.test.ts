@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { toCaveman } from './experiment_1'
+import { toCaveman } from './experiment_1.js'
 
 describe('toCaveman', () => {
   test('removes articles and filler', () => {
