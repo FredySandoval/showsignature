@@ -191,6 +191,22 @@ function buildLangOptionHelp(extensions: readonly string[]): string {
   ].join("\n");
 }
 
+function formatUnsupportedFileMessage(
+  filePath: string,
+  registry: LanguageRegistry,
+): string {
+  const extension = normalizeExtension(path.extname(filePath));
+  const supportedExtensions = formatSupportedExtensionsHelp(
+    registry.supportedExtensions(),
+  );
+
+  if (extension) {
+    return `File is not supported: extension "${extension}" is not supported. Supported extensions: ${supportedExtensions}`;
+  }
+
+  return `File is not supported: could not infer a language from the file name. Supported extensions: ${supportedExtensions}`;
+}
+
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   const showOnlyOptionHelp = buildShowOnlyOptionHelp(BUILT_IN_EXTRACT_KINDS);
   const registry = buildDefaultRegistry();
@@ -1007,7 +1023,7 @@ export async function processFile(
   const lang = explicitLang ?? registry.inferFromFile(filePath);
 
   if (!lang) {
-    throw new Error(`Could not infer language for file: ${filePath}`);
+    throw new Error(formatUnsupportedFileMessage(filePath, registry));
   }
 
   const adapter = await registry.getOrLoad(lang);

@@ -352,7 +352,9 @@ describe("processFile", () => {
         filePath,
         extractOrder: ["signatures"],
       }),
-    ).rejects.toThrow(`Could not infer language for file: ${filePath}`);
+    ).rejects.toThrow(
+      'File is not supported: extension ".txt" is not supported. Supported extensions: ',
+    );
   });
 
   test("throws when explicit language is unsupported", async () => {
@@ -476,7 +478,8 @@ describe("runPipeline", () => {
     ]);
     expect(result.diagnostics.errors).toEqual([
       {
-        message: `Could not infer language for file: ${badFile}`,
+        message:
+          'File is not supported: extension ".txt" is not supported. Supported extensions: .ts',
         filePath: badFile,
       },
     ]);

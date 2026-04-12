@@ -215,7 +215,30 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--file", "src/app.txt"]);
 
     expect(stdoutBuffer).toBe("");
-    expect(stderrBuffer).toContain("Could not infer language for file");
+    expect(stderrBuffer).toContain("File is not supported");
+    expect(stderrBuffer).toContain('extension ".txt" is not supported');
+    expect(process.exitCode).toBe(1);
+  });
+
+  test("prints a clear unsupported extension error for .tsx files", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "src/component.tsx",
+      "export const App = <div />;",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--file", "src/component.tsx"]);
+
+    expect(stdoutBuffer).toBe("");
+    expect(stderrBuffer).toContain("File is not supported");
+    expect(stderrBuffer).toContain('extension ".tsx" is not supported');
+    expect(stderrBuffer).toContain(
+      "Supported extensions: .cjs, .cts, .js, .mjs, .mts, .py, .ts",
+    );
     expect(process.exitCode).toBe(1);
   });
 

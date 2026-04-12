@@ -1,0 +1,11 @@
+ task: tell that the .file is not supported.
+ improve error log
+ $ showsignature --file src/cli/cmd/tui/component/dialog-model.tsx --show-only signatures,types,interfaces,variables (timeout 20s)
+
+ [error] /home/fredy/Documents/OpenSource/opencode/packages/opencode/src/cli/cmd/tui/component/dialog-model.tsx: Could not infer language for file:
+ /home/fredy/Documents/OpenSource/opencode/packages/opencode/src/cli/cmd/tui/component/dialog-model.tsx
+
+
+ Command exited with code 1
+
+ Took 0.3s
