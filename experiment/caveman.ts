@@ -16,6 +16,11 @@ export type ProtectEntry = {
   pattern: RegExp
 }
 
+type CompiledRule = {
+  pattern: string | RegExp
+  replacement: string
+}
+
 const quotedErrorPattern = /\b(?:error|exception|failed|failure|cannot|can't|invalid|unexpected|undefined|timeout|timed out|denied|not found|syntaxerror|typeerror|referenceerror)\b/i
 const placeholderPattern = /\uE000(\d+)\uE001/g
 const markdownPrefixPattern = /^(\s*(?:(?:#{1,6}[ \t]+)|(?:>[ \t]?)+|(?:[-*+][ \t]+)|(?:\d+\.[ \t]+))*)(.*)$/
@@ -31,9 +36,37 @@ const edgePunctuationPattern = /^[,.;:!? ]+|[,.;:!? ]+$/g
 const extraBlankLinesPattern = /\n{3,}/g
 const lineTrailingSpacePattern = /[ \t]+\n/g
 const lineLeadingSpacePattern = /\n[ \t]+/g
+const letterPattern = /[a-z]/i
 
-const standardRules = baseRules
-const ultraModeRules = baseRules.concat(ultraRules)
+const standardRules = compileRules(baseRules)
+const ultraModeRules = compileRules(baseRules.concat(ultraRules))
+
+function compileRules(rules: Rule[]) {
+  const compiledRules: CompiledRule[] = []
+
+  for (const rule of rules) {
+    const replacement = rule.kind === 'remove' ? ' ' : rule.to ?? ''
+    const previousRule = compiledRules[compiledRules.length - 1]
+
+    if (
+      previousRule &&
+      typeof previousRule.pattern !== 'string' &&
+      typeof rule.from !== 'string' &&
+      previousRule.replacement === replacement &&
+      previousRule.pattern.flags === rule.from.flags
+    ) {
+      previousRule.pattern = new RegExp(`(?:${previousRule.pattern.source})|(?:${rule.from.source})`, rule.from.flags)
+      continue
+    }
+
+    compiledRules.push({
+      pattern: rule.from,
+      replacement,
+    })
+  }
+
+  return compiledRules
+}
 
 function isQuotedError(text: string) {
   const inner = text.slice(1, -1)
@@ -93,16 +126,15 @@ function protect(text: string) {
   }
 }
 
-function applyRules(text: string, rules: Rule[]) {
+function applyRules(text: string, rules: CompiledRule[]) {
+  if (!letterPattern.test(text)) {
+    return text
+  }
+
   let output = text
 
   for (const rule of rules) {
-    if (rule.kind === 'remove') {
-      output = output.replace(rule.from, ' ')
-      continue
-    }
-
-    output = output.replace(rule.from, rule.to ?? '')
+    output = output.replace(rule.pattern, rule.replacement)
   }
 
   return output

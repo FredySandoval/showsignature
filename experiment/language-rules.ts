@@ -15,24 +15,6 @@ export const protectEntries: ProtectEntry[] = [
 ]
 
 export const baseRules: Rule[] = [
-  {
-    kind: 'replace',
-    from: /\bdue to the fact that\b/gi,
-    to: 'because',
-    note: 'shorter phrase',
-  },
-  {
-    kind: 'replace',
-    from: /\bin the event that\b/gi,
-    to: 'if',
-    note: 'shorter phrase',
-  },
-  {
-    kind: 'replace',
-    from: /\bhas the ability to\b/gi,
-    to: 'can',
-    note: 'shorter phrase',
-  },
   { kind: 'remove', from: /\b(?:a|an|the)\b/gi, note: 'articles' },
   {
     kind: 'remove',
@@ -86,19 +68,7 @@ export const baseRules: Rule[] = [
   },
   {
     kind: 'replace',
-    from: /\byou need to\b/gi,
-    to: 'must',
-    note: 'stronger instruction',
-  },
-  {
-    kind: 'replace',
-    from: /\byou have to\b/gi,
-    to: 'must',
-    note: 'stronger instruction',
-  },
-  {
-    kind: 'replace',
-    from: /\bit is necessary to\b/gi,
+    from: /\b(?:you need to|you have to|it is necessary to)\b/gi,
     to: 'must',
     note: 'stronger instruction',
   },
@@ -116,31 +86,19 @@ export const baseRules: Rule[] = [
   },
   {
     kind: 'replace',
-    from: /\bdue to (?:the )?fact that\b/gi,
+    from: /\bdue to(?:\s+the)?\s+fact that\b/gi,
     to: 'because',
     note: 'shorter phrase',
   },
   {
     kind: 'replace',
-    from: /\bin (?:the )?event that\b/gi,
+    from: /\bin(?:\s+the)?\s+event that\b/gi,
     to: 'if',
     note: 'shorter phrase',
   },
   {
     kind: 'replace',
-    from: /\bis able to\b/gi,
-    to: 'can',
-    note: 'shorter phrase',
-  },
-  {
-    kind: 'replace',
-    from: /\bhas (?:the )?ability to\b/gi,
-    to: 'can',
-    note: 'shorter phrase',
-  },
-  {
-    kind: 'replace',
-    from: /\bhas ability to\b/gi,
+    from: /\b(?:is able to|has(?:\s+the)?\s+ability to)\b/gi,
     to: 'can',
     note: 'shorter phrase',
   },
@@ -188,20 +146,8 @@ export const baseRules: Rule[] = [
   },
   {
     kind: 'replace',
-    from: /\bthis issue\b/gi,
-    to: 'issue',
-    note: 'drop determiner',
-  },
-  {
-    kind: 'replace',
-    from: /\bthis problem\b/gi,
-    to: 'problem',
-    note: 'drop determiner',
-  },
-  {
-    kind: 'replace',
-    from: /\bthis change\b/gi,
-    to: 'change',
+    from: /\bthis (issue|problem|change)\b/gi,
+    to: '$1',
     note: 'drop determiner',
   },
   {

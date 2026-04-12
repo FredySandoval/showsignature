@@ -78,6 +78,12 @@ describe('toCaveman', () => {
     )
   })
 
+  test('rewrites due-to-the-fact-that phrases', () => {
+    expect(toCaveman('Due to the fact that the cache is stale, reload data.')).toBe(
+      'cache is stale, reload data',
+    )
+  })
+
   test('rewrites ability phrases', () => {
     expect(toCaveman('Service is able to retry and has the ability to recover.')).toBe(
       'Service can retry and can recover',
@@ -86,6 +92,8 @@ describe('toCaveman', () => {
 
   test('drops weak determiners in common phrases', () => {
     expect(toCaveman('This issue happens after deploy.')).toBe('issue happens after deploy')
+    expect(toCaveman('This problem blocks deploy.')).toBe('problem blocks deploy')
+    expect(toCaveman('This change fixes build.')).toBe('change fixes build')
   })
 
   test('removes support-chat politeness fluff', () => {
