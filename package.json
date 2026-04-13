@@ -2,6 +2,11 @@
   "name": "showsignature",
   "version": "0.0.0",
   "type": "module",
+  "pi": {
+    "extensions": [
+      "./agents/pi/showsignature.ts"
+    ]
+  },
   "bin": {
     "showsignature": "./dist/02-cli.js"
   },
