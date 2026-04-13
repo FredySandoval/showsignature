@@ -171,6 +171,18 @@ function normalizeCommanderErrorMessage(message: string): string {
     : message;
 }
 
+function normalizeExtractKindToken(token: string): string {
+  return token === "md:rewrite" ? "md:caveman" : token;
+}
+
+function isMarkdownExtractKind(kind: ExtractKind): boolean {
+  return kind === "md" || kind.startsWith("md:");
+}
+
+function usesOnlyMarkdownExtractKinds(kinds: readonly ExtractKind[]): boolean {
+  return kinds.length > 0 && kinds.every((kind) => isMarkdownExtractKind(kind));
+}
+
 function formatExtractKindsHelp(kinds: readonly string[]): string {
   return [...new Set(kinds)].sort().join(", ");
 }
@@ -414,6 +426,7 @@ function toStdinVirtualFilePath(lang: string): string {
 async function resolveInputTarget(
   args: ParsedCliArgs,
   registry: LanguageRegistry,
+  extractOrder: readonly ExtractKind[],
 ): Promise<ResolvedInputTarget> {
   if (args.stdin) {
     return {
@@ -446,7 +459,13 @@ async function resolveInputTarget(
       : { registry, includeTests: args.includeTests },
   );
 
-  return { files };
+  if (!usesOnlyMarkdownExtractKinds(extractOrder)) {
+    return { files };
+  }
+
+  return {
+    files: files.filter((filePath) => registry.inferFromFile(filePath) === "md"),
+  };
 }
 
 async function resolveExecutionPlan(
@@ -466,7 +485,7 @@ async function resolveExecutionPlan(
     ? parseExtractOptions(args.showOnly, listSupportedExtractKinds(registry))
     : DEFAULT_EXTRACT_ORDER;
 
-  const input = await resolveInputTarget(args, registry);
+  const input = await resolveInputTarget(args, registry, extractOrder);
 
   return {
     registry,
@@ -633,7 +652,7 @@ export function parseExtractOptions(
 ): ExtractKind[] {
   const tokens = rawValue
     .split(",")
-    .map((token) => token.trim())
+    .map((token) => normalizeExtractKindToken(token.trim()))
     .filter((token) => token.length > 0);
 
   if (tokens.length === 0) {

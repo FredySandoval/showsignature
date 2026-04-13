@@ -3,9 +3,10 @@ import { describe, expect, test } from "bun:test";
 import { PluginExtractKind } from "@/src/00-core-types.js";
 import { createMarkdownAdapter } from "@/src/languages/markdown/00-adapter.js";
 import {
+  MARKDOWN_CAVEMAN_KIND,
   MARKDOWN_CODEBLOCKS_KIND,
+  MARKDOWN_DOCUMENT_KIND,
   MARKDOWN_HEADINGS_KIND,
-  MARKDOWN_REWRITE_KIND,
   MARKDOWN_TABLES_KIND,
 } from "@/src/languages/markdown/03-extractors.js";
 
@@ -25,10 +26,11 @@ describe("createMarkdownAdapter", () => {
     expect(adapter.extensions).toEqual([".md"]);
     expect(adapter.fenceLang).toBe("markdown");
     expect([...adapter.extractors.keys()]).toEqual([
+      MARKDOWN_DOCUMENT_KIND,
       MARKDOWN_HEADINGS_KIND,
       MARKDOWN_TABLES_KIND,
       MARKDOWN_CODEBLOCKS_KIND,
-      MARKDOWN_REWRITE_KIND,
+      MARKDOWN_CAVEMAN_KIND,
     ]);
   });
 

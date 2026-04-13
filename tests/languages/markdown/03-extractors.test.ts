@@ -8,13 +8,15 @@ import {
 
 import { createMarkdownParseContext } from "@/src/languages/markdown/01-context.js";
 import {
+  createCavemanExtractor,
   createCodeBlocksExtractor,
+  createDocumentExtractor,
   createHeadingsExtractor,
-  createRewriteExtractor,
   createTablesExtractor,
+  MARKDOWN_CAVEMAN_KIND,
   MARKDOWN_CODEBLOCKS_KIND,
+  MARKDOWN_DOCUMENT_KIND,
   MARKDOWN_HEADINGS_KIND,
-  MARKDOWN_REWRITE_KIND,
   MARKDOWN_TABLES_KIND,
 } from "@/src/languages/markdown/03-extractors.js";
 
@@ -30,6 +32,27 @@ afterEach(() => {
 });
 
 describe("markdown extractors", () => {
+  test("extracts full markdown documents", () => {
+    const context = createMarkdownParseContext({
+      source: ["# Title", "", "Paragraph", ""].join("\n"),
+      filePath: "/tmp/document.md",
+    });
+
+    const result = createDocumentExtractor().extract(context);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries).toEqual([
+      {
+        kind: MARKDOWN_DOCUMENT_KIND,
+        lines: ["# Title", "", "Paragraph", ""],
+        metadata: {
+          filePath: "/tmp/document.md",
+          sourcePos: 0,
+        },
+      },
+    ]);
+  });
+
   test("extracts markdown headings", () => {
     const context = createMarkdownParseContext({
       source: ["# Title", "text", "## Subtitle", ""].join("\n"),
@@ -110,7 +133,7 @@ describe("markdown extractors", () => {
     ]);
   });
 
-  test("rewrites full markdown in ultra mode", () => {
+  test("rewrites full markdown in caveman mode", () => {
     const context = createMarkdownParseContext({
       source: [
         "# The API Guide",
@@ -121,12 +144,12 @@ describe("markdown extractors", () => {
       filePath: "/tmp/example.md",
     });
 
-    const result = createRewriteExtractor().extract(context);
+    const result = createCavemanExtractor().extract(context);
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toEqual([
       {
-        kind: MARKDOWN_REWRITE_KIND,
+        kind: MARKDOWN_CAVEMAN_KIND,
         lines: [
           "# API Guide",
           "- guide is here: [The API Guide](https://example.com/docs)",
@@ -140,19 +163,19 @@ describe("markdown extractors", () => {
     ]);
   });
 
-  test("rewrite uses ultra caveman mode", () => {
+  test("caveman rewrite uses ultra caveman mode", () => {
     const context = createMarkdownParseContext({
       source:
         "State update leads to re-render and cache miss results in retry.\n",
       filePath: "/tmp/ultra.md",
     });
 
-    const result = createRewriteExtractor().extract(context);
+    const result = createCavemanExtractor().extract(context);
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toEqual([
       {
-        kind: MARKDOWN_REWRITE_KIND,
+        kind: MARKDOWN_CAVEMAN_KIND,
         lines: ["State update → re-render cache miss → retry"],
         metadata: {
           filePath: "/tmp/ultra.md",
@@ -162,7 +185,7 @@ describe("markdown extractors", () => {
     ]);
   });
 
-  test("rewrite re-enables cavemants usage tracking for markdown battle tests", () => {
+  test("caveman rewrite re-enables cavemants usage tracking for markdown battle tests", () => {
     disableUsageTracking();
     expect(isUsageTrackingEnabled()).toBe(false);
 
@@ -171,12 +194,12 @@ describe("markdown extractors", () => {
       filePath: "/tmp/tracking.md",
     });
 
-    const result = createRewriteExtractor().extract(context);
+    const result = createCavemanExtractor().extract(context);
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toEqual([
       {
-        kind: MARKDOWN_REWRITE_KIND,
+        kind: MARKDOWN_CAVEMAN_KIND,
         lines: ["API is slow. it renders everything"],
         metadata: {
           filePath: "/tmp/tracking.md",

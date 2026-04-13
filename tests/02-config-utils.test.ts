@@ -5,7 +5,10 @@ import {
   stringifyError,
   toPipelineError,
 } from "@/src/01-main.js";
-import { BUILT_IN_EXTRACT_KINDS } from "@/src/00-core-types.js";
+import {
+  BUILT_IN_EXTRACT_KINDS,
+  type PluginExtractKind,
+} from "@/src/00-core-types.js";
 
 describe("parseExtractOptions", () => {
   test("parses comma-separated kinds in order", () => {
@@ -30,6 +33,13 @@ describe("parseExtractOptions", () => {
     expect(() => parseExtractOptions(" ,  , ", BUILT_IN_EXTRACT_KINDS)).toThrow(
       "No extract options were provided",
     );
+  });
+
+  test("supports md:rewrite as an alias for md:caveman", () => {
+    const mdCaveman = "md:caveman" as PluginExtractKind;
+    const result = parseExtractOptions("md:rewrite", [mdCaveman]);
+
+    expect(result).toEqual([mdCaveman]);
   });
 
   test("throws for unsupported kind", () => {

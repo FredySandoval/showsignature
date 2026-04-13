@@ -368,7 +368,21 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("rewrites markdown files when md:rewrite is requested", async () => {
+  test("renders full markdown documents when md is requested", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "README.md", ["# Title", "", "Body"].join("\n"));
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--file", "README.md", "--show-only=md"]);
+
+    expect(stdoutBuffer).toBe(["// README.md", "# Title", "", "Body", ""].join("\n"));
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("rewrites markdown files when md:caveman is requested", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -383,7 +397,7 @@ describe("buildCli", () => {
       "showcode",
       "--file",
       "README.md",
-      "--show-only=md:rewrite",
+      "--show-only=md:caveman",
     ]);
 
     expect(stdoutBuffer).toBe(
@@ -391,6 +405,24 @@ describe("buildCli", () => {
         "\n",
       ),
     );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("scans only markdown files when only markdown extract kinds are requested", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "README.md", ["# Root", "", "Body"].join("\n"));
+    await writeFixtureFile(rootDir, "docs/guide.md", ["## Guide", "", "Text"].join("\n"));
+    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}\n");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--show-only=md"]);
+
+    expect(stdoutBuffer).toContain("// README.md");
+    expect(stdoutBuffer).toContain("// docs/guide.md");
+    expect(stdoutBuffer).not.toContain("// src/app.ts");
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
   });

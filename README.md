@@ -43,11 +43,14 @@ showsignature --folder src --show-only signatures,imports
 # Scan the current directory
 showsignature --show-only signatures
 
+# Extract a full Markdown file
+showsignature --file README.md --show-only md
+
 # Extract Markdown headings
 showsignature --file README.md --show-only md:headings
 
-# Rewrite a Markdown file
-showsignature --file README.md --show-only md:rewrite
+# Run the caveman Markdown rewrite
+showsignature --file README.md --show-only md:caveman
 
 # Include test fixtures during discovery
 showsignature --folder tests/fixtures --include-tests --show-only signatures
@@ -85,18 +88,19 @@ If `--lang` is omitted, `showsignature` infers the language from the file extens
 
 ### Markdown extract kinds
 
-| Kind            | Description                  |
-| --------------- | ---------------------------- |
-| `md:headings`   | Markdown headings            |
-| `md:tables`     | Markdown tables              |
-| `md:codeblocks` | Markdown fenced code blocks  |
-| `md:rewrite`    | Full-document rewrite output |
+| Kind            | Description                            |
+| --------------- | -------------------------------------- |
+| `md`            | Full Markdown document output          |
+| `md:headings`   | Markdown headings                      |
+| `md:tables`     | Markdown tables                        |
+| `md:codeblocks` | Markdown fenced code blocks            |
+| `md:caveman`    | Full-document caveman rewrite output   |
 
 `--show-only` accepts a comma-separated list of extract kinds.
 
 Default: `signatures`
 
-That default targets code structure. Markdown files only produce output when you request a markdown-specific kind such as `md:headings` or `md:rewrite`.
+That default targets code structure. Markdown files only produce output when you request a markdown extract kind such as `md`, `md:headings`, or `md:caveman`.
 
 When you select multiple kinds, the final output is merged in original source order.
 
@@ -111,6 +115,7 @@ When you select multiple kinds, the final output is merged in original source or
 - `--file`, `--folder`, and `--stdin` cannot be combined with each other.
 - `--stdin` requires `--lang <lang>`.
 - Recursive discovery respects `.gitignore` files.
+- When every requested extract kind is Markdown-only, discovery scans only `.md` files.
 - Test-like files are excluded during recursive discovery unless you pass `--include-tests`.
 - An explicit `--file` path is processed directly and is not filtered as a test file.
 
@@ -192,7 +197,7 @@ Output:
 | API  | ready |
 ```
 
-### Markdown rewrite
+### Markdown caveman rewrite
 
 Input:
 
@@ -408,6 +413,7 @@ pnpm clean
 - Built-in extraction support covers TypeScript, JavaScript, Python, and Markdown files.
 - Python currently focuses on functions, classes, methods, variables, comments, and imports.
 - Python does not currently implement `interfaces` or `types` extraction.
-- Markdown support uses the markdown-specific extract kinds `md:headings`, `md:tables`, `md:codeblocks`, and `md:rewrite`.
-- `md:rewrite` simplifies the full document through the `cavemants` rewriter in `ultra` mode.
+- Markdown support uses the markdown extract kinds `md`, `md:headings`, `md:tables`, `md:codeblocks`, and `md:caveman`.
+- `md:caveman` simplifies the full document through the `cavemants` rewriter in `ultra` mode.
+- `md:rewrite` is kept as a compatibility alias for `md:caveman`.
 - Folder scanning respects `.gitignore`.

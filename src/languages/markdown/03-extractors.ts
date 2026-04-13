@@ -12,7 +12,9 @@ import type {
   SingleExtractResult,
 } from "../../00-core-types.js";
 
-export const MARKDOWN_REWRITE_KIND = "md:rewrite" as ExtractKind;
+export const MARKDOWN_DOCUMENT_KIND = "md" as ExtractKind;
+export const MARKDOWN_CAVEMAN_KIND = "md:caveman" as ExtractKind;
+export const MARKDOWN_REWRITE_ALIAS = "md:rewrite" as ExtractKind;
 export const MARKDOWN_HEADINGS_KIND = "md:headings" as ExtractKind;
 export const MARKDOWN_TABLES_KIND = "md:tables" as ExtractKind;
 export const MARKDOWN_CODEBLOCKS_KIND = "md:codeblocks" as ExtractKind;
@@ -177,6 +179,21 @@ function createCodeBlockEntries(context: ParseContext): ExtractEntry[] {
   return entries;
 }
 
+export function createDocumentExtractor(): Extractor<ParseContext> {
+  return {
+    kind: MARKDOWN_DOCUMENT_KIND,
+    extract(context: ParseContext): SingleExtractResult {
+      if (context.source.length === 0) {
+        return toResult([]);
+      }
+
+      return toResult([
+        toEntry(MARKDOWN_DOCUMENT_KIND, context.source.split(/\r?\n/u), context.filePath, 0),
+      ]);
+    },
+  };
+}
+
 export function createHeadingsExtractor(): Extractor<ParseContext> {
   return {
     kind: MARKDOWN_HEADINGS_KIND,
@@ -206,9 +223,9 @@ export function createCodeBlocksExtractor(): Extractor<ParseContext> {
   };
 }
 
-export function createRewriteExtractor(): Extractor<ParseContext> {
+export function createCavemanExtractor(): Extractor<ParseContext> {
   return {
-    kind: MARKDOWN_REWRITE_KIND,
+    kind: MARKDOWN_CAVEMAN_KIND,
     extract(context: ParseContext): SingleExtractResult {
       const simplified = runCaveman(context.source, context.filePath);
       const output = simplified.output.trim();
@@ -220,7 +237,7 @@ export function createRewriteExtractor(): Extractor<ParseContext> {
       return toResult(
         [
           toEntry(
-            MARKDOWN_REWRITE_KIND,
+            MARKDOWN_CAVEMAN_KIND,
             simplified.output.split(/\r?\n/u),
             context.filePath,
             0,
