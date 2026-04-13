@@ -234,11 +234,11 @@ describe("08-extractor — runExtractors", () => {
   });
 
   // -----------------------------------------------------------------------
-  // Unsupported kind warnings
+  // Unsupported kinds
   // -----------------------------------------------------------------------
 
-  describe("unsupported kind warnings", () => {
-    test("emits a warning for unsupported extract kinds", () => {
+  describe("unsupported kinds", () => {
+    test("ignores unsupported extract kinds when at least one kind matches", () => {
       const adapter = createTestAdapter([
         createStubExtractor("signatures", ["function run(): void;"], {
           sourcePos: 0,
@@ -253,15 +253,7 @@ describe("08-extractor — runExtractors", () => {
       });
 
       expect(result.entries).toHaveLength(1);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toEqual({
-        message: 'Extractor not supported for kind "types"',
-        filePath: "/tmp/warn.ts",
-        level: "warning",
-        severity: "warning",
-        kind: "types",
-        code: "EXTRACTOR_UNSUPPORTED_KIND",
-      });
+      expect(result.warnings).toEqual([]);
     });
 
     test("skips files when none of the requested kinds are supported", () => {
@@ -278,7 +270,7 @@ describe("08-extractor — runExtractors", () => {
       expect(result.warnings).toEqual([]);
     });
 
-    test("mixes supported results with unsupported warnings", () => {
+    test("returns supported results without unsupported-kind warnings", () => {
       const adapter = createTestAdapter([
         createStubExtractor("imports", ['import x from "y";'], {
           sourcePos: 0,
@@ -292,14 +284,9 @@ describe("08-extractor — runExtractors", () => {
         extractOrder: ["variables", "imports", "types"],
       });
 
-      // 1 supported entry, 2 unsupported warnings
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.kind).toBe("imports");
-      expect(result.warnings).toHaveLength(2);
-      expect(result.warnings.map((w) => w.kind)).toEqual([
-        "variables",
-        "types",
-      ]);
+      expect(result.warnings).toEqual([]);
     });
   });
 
@@ -335,7 +322,7 @@ describe("08-extractor — runExtractors", () => {
       expect(result.warnings[0]).toEqual(extractorWarning);
     });
 
-    test("combines extractor warnings with unsupported-kind warnings", () => {
+    test("keeps extractor warnings while ignoring unsupported kinds", () => {
       const extractorWarning: ExtractWarning = {
         message: "Something odd",
         filePath: "/tmp/test.ts",
@@ -356,10 +343,7 @@ describe("08-extractor — runExtractors", () => {
         extractOrder: ["types", "imports"],
       });
 
-      // 'types' unsupported warning + 'imports' extractor warning
-      expect(result.warnings).toHaveLength(2);
-      expect(result.warnings[0]?.code).toBe("EXTRACTOR_UNSUPPORTED_KIND");
-      expect(result.warnings[1]).toEqual(extractorWarning);
+      expect(result.warnings).toEqual([extractorWarning]);
     });
   });
 

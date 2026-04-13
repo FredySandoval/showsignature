@@ -1221,20 +1221,6 @@ export interface RunExtractorsOptions<
 
 const FALLBACK_COMBINED_POS = Number.MAX_SAFE_INTEGER;
 
-function toUnsupportedKindWarning(
-  kind: ExtractKind,
-  context: ParseContext,
-): ExtractWarning {
-  return {
-    level: "warning",
-    severity: "warning",
-    message: `Extractor not supported for kind "${kind}"`,
-    filePath: context.filePath,
-    kind,
-    code: "EXTRACTOR_UNSUPPORTED_KIND",
-  };
-}
-
 function toLineNumber(source: string, position: number): number {
   let lineNumber = 1;
 
@@ -1298,10 +1284,9 @@ export function runExtractors<TContext extends ParseContext = ParseContext>(
     return { entries: [], warnings: [] };
   }
 
-  for (const kind of extractOrder) {
+  for (const kind of supportedKinds) {
     const extractor = adapter.extractors.get(kind);
     if (!extractor) {
-      warnings.push(toUnsupportedKindWarning(kind, context));
       continue;
     }
 
