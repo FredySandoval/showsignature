@@ -10,6 +10,7 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
+import { Buffer } from "node:buffer";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -238,6 +239,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "--folder <folder>",
       "process files from a folder (.gitignore files are respected)",
     )
+    .option("--stdin", "read source from standard input", false)
     .option("--output <name>", "write formatted output to a file")
     .option(
       "--include-tests",
@@ -274,6 +276,18 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
 function validateCliArgs(args: ParsedCliArgs): void {
   if (args.file && args.folder) {
     throw createCliError("Options --file and --folder cannot be used together");
+  }
+
+  if (args.stdin && args.file) {
+    throw createCliError("Options --stdin and --file cannot be used together");
+  }
+
+  if (args.stdin && args.folder) {
+    throw createCliError("Options --stdin and --folder cannot be used together");
+  }
+
+  if (args.stdin && !args.lang?.trim()) {
+    throw createCliError("Option --stdin requires --lang");
   }
 }
 
@@ -378,10 +392,37 @@ async function writeOutputFile(
   await writeFile(resolvedOutputPath, content, "utf8");
 }
 
+async function readStdin(): Promise<string> {
+  const chunks: Uint8Array[] = [];
+
+  for await (const chunk of process.stdin) {
+    if (typeof chunk === "string") {
+      chunks.push(Buffer.from(chunk));
+      continue;
+    }
+
+    chunks.push(chunk);
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+function toStdinVirtualFilePath(lang: string): string {
+  return `<stdin>.${lang}`;
+}
+
 async function resolveInputTarget(
   args: ParsedCliArgs,
   registry: LanguageRegistry,
 ): Promise<ResolvedInputTarget> {
+  if (args.stdin) {
+    return {
+      files: [],
+      stdinSource: await readStdin(),
+      stdinFilePath: toStdinVirtualFilePath(args.lang!.trim()),
+    };
+  }
+
   if (args.file) {
     const resolvedFilePath = await resolveSafeInputPath(args.file);
     return { files: resolvedFilePath ? [resolvedFilePath] : [] };
@@ -475,6 +516,42 @@ async function emitPipelineResult(
 async function runPlannedPipeline(
   plan: ExecutionPlan,
 ): Promise<PipelineResult> {
+  if (plan.input.stdinSource !== undefined) {
+    const lang = plan.explicitLang;
+    const filePath = plan.input.stdinFilePath ?? toStdinVirtualFilePath(lang!);
+    const adapter = await plan.registry.getOrLoad(lang!);
+
+    if (!adapter) {
+      throw new Error(`Language "${lang}" is not supported`);
+    }
+
+    const extracted = extractFromSource({
+      adapter,
+      filePath,
+      source: plan.input.stdinSource,
+      extractOrder: plan.extractOrder,
+    });
+
+    return {
+      success: true,
+      sections: [
+        {
+          filePath,
+          lang: lang!,
+          entries: extracted.entries,
+          warnings: extracted.warnings,
+        },
+      ],
+      diagnostics: {
+        warnings: extracted.warnings,
+        errors: [],
+      },
+      meta: {
+        seenLangs: [lang!],
+      },
+    };
+  }
+
   return runPipeline({
     registry: plan.registry,
     files: plan.input.files,

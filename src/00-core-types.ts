@@ -229,6 +229,7 @@ export interface CliProgram {
 export interface ParsedCliArgs {
   file?: string;
   folder?: string;
+  stdin: boolean;
   lang?: string;
   showOnly?: string;
   output?: string;
@@ -247,6 +248,8 @@ export interface PackageMetadata {
 
 export interface ResolvedInputTarget {
   files: string[];
+  stdinSource?: string;
+  stdinFilePath?: string;
 }
 
 export interface OutputTarget {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { Readable } from "node:stream";
 
 import { buildCli } from "@/src/01-main.js";
 
@@ -9,6 +10,7 @@ const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 const originalStdoutWrite = process.stdout.write;
 const originalStderrWrite = process.stderr.write;
+const originalStdin = process.stdin;
 
 let stdoutBuffer = "";
 let stderrBuffer = "";
@@ -41,6 +43,15 @@ async function createTempDir(): Promise<string> {
   return dirPath;
 }
 
+function installStdin(content: string): void {
+  const stdin = Readable.from([content]) as Readable & { isTTY?: boolean };
+  stdin.isTTY = false;
+  Object.defineProperty(process, "stdin", {
+    value: stdin,
+    configurable: true,
+  });
+}
+
 async function writeFixtureFile(
   rootDir: string,
   relativePath: string,
@@ -56,6 +67,10 @@ afterEach(async () => {
   process.chdir(originalCwd);
   process.stdout.write = originalStdoutWrite;
   process.stderr.write = originalStderrWrite;
+  Object.defineProperty(process, "stdin", {
+    value: originalStdin,
+    configurable: true,
+  });
   process.exitCode = 0;
 
   await Promise.all(
@@ -203,6 +218,39 @@ describe("buildCli", () => {
     await expect(
       buildCli().run(["showcode", "--file", "src/app.ts", "--folder", "src"]),
     ).rejects.toThrow("Options --file and --folder cannot be used together");
+  });
+
+  test("reads source from stdin when --stdin and --lang are provided", async () => {
+    installOutputCapture();
+    installStdin("function greet(name: string): string {\n  return name;\n}\n");
+
+    await buildCli().run(["showcode", "--stdin", "--lang", "ts"]);
+
+    expect(stdoutBuffer).toBe(
+      ["// <stdin>.ts", "function greet(name: string): string;", ""].join(
+        "\n",
+      ),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("throws when --stdin is used without --lang", async () => {
+    installOutputCapture();
+    installStdin("function greet(): void {}\n");
+
+    await expect(buildCli().run(["showcode", "--stdin"])).rejects.toThrow(
+      "Option --stdin requires --lang",
+    );
+  });
+
+  test("throws when --stdin and --file are both provided", async () => {
+    installOutputCapture();
+    installStdin("function greet(): void {}\n");
+
+    await expect(
+      buildCli().run(["showcode", "--stdin", "--file", "src/app.ts", "--lang", "ts"]),
+    ).rejects.toThrow("Options --stdin and --file cannot be used together");
   });
 
   test("sets exit code and prints pipeline errors for unsupported files", async () => {

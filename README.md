@@ -34,6 +34,9 @@ showsignature --file src/example.ts
 # Extract comments and signatures from one file
 showsignature --file src/example.ts --show-only comments,signatures
 
+# Read TypeScript from standard input
+cat src/example.ts | showsignature --stdin --lang ts
+
 # Scan a folder recursively
 showsignature --folder src --show-only signatures,imports
 
@@ -103,8 +106,10 @@ When you select multiple kinds, the final output is merged in original source or
 
 - Use `--file <file>` to process exactly one file.
 - Use `--folder <folder>` to process supported files under a directory recursively.
-- If you omit both `--file` and `--folder`, `showsignature` scans the current working directory recursively.
-- `--file` and `--folder` cannot be used together.
+- Use `--stdin` to read source from standard input.
+- If you omit `--file`, `--folder`, and `--stdin`, `showsignature` scans the current working directory recursively.
+- `--file`, `--folder`, and `--stdin` cannot be combined with each other.
+- `--stdin` requires `--lang <lang>`.
 - Recursive discovery respects `.gitignore` files.
 - Test-like files are excluded during recursive discovery unless you pass `--include-tests`.
 - An explicit `--file` path is processed directly and is not filtered as a test file.
@@ -117,6 +122,7 @@ When you select multiple kinds, the final output is merged in original source or
 | `--show-only <options>` | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
 | `--file <file>`         | Process a single file.                                                                                                                            |
 | `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
+| `--stdin`               | Read source from standard input. Requires `--lang <lang>`.                                                                                       |
 | `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
 | `--output <name>`       | Write the final output to a file.                                                                                                                 |
 | `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |
