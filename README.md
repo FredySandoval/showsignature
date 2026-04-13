@@ -88,13 +88,13 @@ If `--lang` is omitted, `showsignature` infers the language from the file extens
 
 ### Markdown extract kinds
 
-| Kind            | Description                            |
-| --------------- | -------------------------------------- |
-| `md`            | Full Markdown document output          |
-| `md:headings`   | Markdown headings                      |
-| `md:tables`     | Markdown tables                        |
-| `md:codeblocks` | Markdown fenced code blocks            |
-| `md:caveman`    | Full-document caveman rewrite output   |
+| Kind            | Description                          |
+| --------------- | ------------------------------------ |
+| `md`            | Full Markdown document output        |
+| `md:headings`   | Markdown headings                    |
+| `md:tables`     | Markdown tables                      |
+| `md:codeblocks` | Markdown fenced code blocks          |
+| `md:caveman`    | Full-document caveman rewrite output |
 
 `--show-only` accepts a comma-separated list of extract kinds.
 
@@ -127,7 +127,7 @@ When you select multiple kinds, the final output is merged in original source or
 | `--show-only <options>` | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
 | `--file <file>`         | Process a single file.                                                                                                                            |
 | `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
-| `--stdin`               | Read source from standard input. Requires `--lang <lang>`.                                                                                       |
+| `--stdin`               | Read source from standard input. Requires `--lang <lang>`.                                                                                        |
 | `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
 | `--output <name>`       | Write the final output to a file.                                                                                                                 |
 | `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |

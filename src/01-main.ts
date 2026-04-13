@@ -295,7 +295,9 @@ function validateCliArgs(args: ParsedCliArgs): void {
   }
 
   if (args.stdin && args.folder) {
-    throw createCliError("Options --stdin and --folder cannot be used together");
+    throw createCliError(
+      "Options --stdin and --folder cannot be used together",
+    );
   }
 
   if (args.stdin && !args.lang?.trim()) {
@@ -464,7 +466,9 @@ async function resolveInputTarget(
   }
 
   return {
-    files: files.filter((filePath) => registry.inferFromFile(filePath) === "md"),
+    files: files.filter(
+      (filePath) => registry.inferFromFile(filePath) === "md",
+    ),
   };
 }
 

@@ -227,9 +227,7 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--stdin", "--lang", "ts"]);
 
     expect(stdoutBuffer).toBe(
-      ["// <stdin>.ts", "function greet(name: string): string;", ""].join(
-        "\n",
-      ),
+      ["// <stdin>.ts", "function greet(name: string): string;", ""].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
@@ -249,7 +247,14 @@ describe("buildCli", () => {
     installStdin("function greet(): void {}\n");
 
     await expect(
-      buildCli().run(["showcode", "--stdin", "--file", "src/app.ts", "--lang", "ts"]),
+      buildCli().run([
+        "showcode",
+        "--stdin",
+        "--file",
+        "src/app.ts",
+        "--lang",
+        "ts",
+      ]),
     ).rejects.toThrow("Options --stdin and --file cannot be used together");
   });
 
@@ -372,12 +377,18 @@ describe("buildCli", () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
-    await writeFixtureFile(rootDir, "README.md", ["# Title", "", "Body"].join("\n"));
+    await writeFixtureFile(
+      rootDir,
+      "README.md",
+      ["# Title", "", "Body"].join("\n"),
+    );
     process.chdir(rootDir);
 
     await buildCli().run(["showcode", "--file", "README.md", "--show-only=md"]);
 
-    expect(stdoutBuffer).toBe(["// README.md", "# Title", "", "Body", ""].join("\n"));
+    expect(stdoutBuffer).toBe(
+      ["// README.md", "# Title", "", "Body", ""].join("\n"),
+    );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
   });
@@ -413,9 +424,21 @@ describe("buildCli", () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
-    await writeFixtureFile(rootDir, "README.md", ["# Root", "", "Body"].join("\n"));
-    await writeFixtureFile(rootDir, "docs/guide.md", ["## Guide", "", "Text"].join("\n"));
-    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "README.md",
+      ["# Root", "", "Body"].join("\n"),
+    );
+    await writeFixtureFile(
+      rootDir,
+      "docs/guide.md",
+      ["## Guide", "", "Text"].join("\n"),
+    );
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      "function greet(): void {}\n",
+    );
     process.chdir(rootDir);
 
     await buildCli().run(["showcode", "--show-only=md"]);

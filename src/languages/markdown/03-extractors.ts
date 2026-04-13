@@ -188,7 +188,12 @@ export function createDocumentExtractor(): Extractor<ParseContext> {
       }
 
       return toResult([
-        toEntry(MARKDOWN_DOCUMENT_KIND, context.source.split(/\r?\n/u), context.filePath, 0),
+        toEntry(
+          MARKDOWN_DOCUMENT_KIND,
+          context.source.split(/\r?\n/u),
+          context.filePath,
+          0,
+        ),
       ]);
     },
   };
