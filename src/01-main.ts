@@ -44,6 +44,7 @@ import {
   type ResolvedInputTarget,
   type RunPipelineOptions,
 } from "./00-core-types.js";
+import { createMarkdownAdapter } from "./languages/markdown/00-adapter.js";
 import { createPythonAdapter } from "./languages/python/00-adapter.js";
 import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
@@ -854,6 +855,14 @@ export function buildDefaultRegistry(): LanguageRegistry {
       id: "py",
       extensions: [".py"],
       fenceLang: "python",
+    }),
+  );
+
+  registry.register(
+    createMarkdownAdapter({
+      id: "md",
+      extensions: [".md"],
+      fenceLang: "markdown",
     }),
   );
 

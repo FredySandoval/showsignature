@@ -63,16 +63,18 @@ Input:
 
 ```md
 # The API Guide
+
 - The guide is basically here: [The API Guide](https://example.com/docs).
-> The API is basically slow because it renders everything.
+  > The API is basically slow because it renders everything.
 ```
 
 Output:
 
 ```md
 # API Guide
+
 - guide is here: [The API Guide](https://example.com/docs)
-> API is slow. it renders everything
+  > API is slow. it renders everything
 ```
 
 ## Protected content
@@ -133,23 +135,28 @@ bun ./caveman.ts --rules
 ## Library usage
 
 ```ts
-import { toCaveman } from './caveman'
+import { toCaveman } from "./caveman";
 
-const output = toCaveman('The API is basically slow because it renders everything.')
-console.log(output)
+const output = toCaveman(
+  "The API is basically slow because it renders everything.",
+);
+console.log(output);
 // API is slow. it renders everything
 ```
 
 Ultra mode:
 
 ```ts
-import { toCaveman } from './caveman'
+import { toCaveman } from "./caveman";
 
-const output = toCaveman('State update leads to re-render and cache miss results in retry.', {
-  ultra: true,
-})
+const output = toCaveman(
+  "State update leads to re-render and cache miss results in retry.",
+  {
+    ultra: true,
+  },
+);
 
-console.log(output)
+console.log(output);
 // State update → re-render cache miss → retry
 ```
 

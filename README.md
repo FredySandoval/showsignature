@@ -2,7 +2,7 @@
 
 Extract structure from source code and turn files into clean, readable artifacts.
 
-`showsignature` is a CLI and library for extracting high-signal code structure from TypeScript, JavaScript, and Python files. It can pull out signatures, interfaces, type aliases, variables, comments, and imports, then emit them in source order across one or many files.
+`showsignature` is a CLI and library for extracting high-signal structure from TypeScript, JavaScript, Python, and Markdown files. It can pull out signatures, interfaces, type aliases, variables, comments, and imports, then emit them in source order across one or many files.
 
 ## Features
 
@@ -13,7 +13,7 @@ Extract structure from source code and turn files into clean, readable artifacts
   - variable declarations
   - comments
   - import declarations
-- Supports TypeScript, JavaScript, and Python
+- Supports TypeScript, JavaScript, Python, and Markdown
 - Recursively scans folders
 - Excludes test files by default during discovery
 - Preserves source ordering when combining multiple extract kinds
@@ -28,6 +28,7 @@ Built-in language adapters:
 - `ts` → `.ts`, `.mts`, `.cts`
 - `js` → `.js`, `.mjs`, `.cjs`
 - `py` → `.py`
+- `md` → `.md`
 
 If `--lang` is not provided, the language is inferred from the file extension.
 
@@ -77,6 +78,7 @@ Supported built-in values:
 - `ts`
 - `js`
 - `py`
+- `md`
 
 ### `--show-only <options>`
 
@@ -397,8 +399,9 @@ pnpm clean
 
 ## Notes
 
-- Current built-in extraction support is for TypeScript, JavaScript, and Python source files.
+- Current built-in extraction support is for TypeScript, JavaScript, Python, and Markdown files.
 - Python support is intentionally minimal and focuses on functions, classes, methods, variables, comments, and imports.
+- Markdown support currently simplifies the full document through the bundled Caveman rewriter and emits it through the default `signatures` mode.
 - Python `interfaces` and `types` are currently reported as unsupported extract kinds.
 - Folder scanning respects `.gitignore`.
 - If no supported files are found, the CLI exits with an error.

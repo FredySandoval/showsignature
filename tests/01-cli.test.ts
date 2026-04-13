@@ -237,7 +237,7 @@ describe("buildCli", () => {
     expect(stderrBuffer).toContain("File is not supported");
     expect(stderrBuffer).toContain('extension ".tsx" is not supported');
     expect(stderrBuffer).toContain(
-      "Supported extensions: .cjs, .cts, .js, .mjs, .mts, .py, .ts",
+      "Supported extensions: .cjs, .cts, .js, .md, .mjs, .mts, .py, .ts",
     );
     expect(process.exitCode).toBe(1);
   });
@@ -290,6 +290,37 @@ describe("buildCli", () => {
       [
         "// tests/fixtures/example.ts",
         "function fixtureCase(): void;",
+        "",
+      ].join("\n"),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("simplifies markdown files with caveman", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "README.md",
+      [
+        "# The API Guide",
+        "- The guide is basically here: [The API Guide](https://example.com/docs).",
+        "> The API is basically slow because it renders everything.",
+        "",
+      ].join("\n"),
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--file", "README.md"]);
+
+    expect(stdoutBuffer).toBe(
+      [
+        "// README.md",
+        "# API Guide",
+        "- guide is here: [The API Guide](https://example.com/docs)",
+        "> API is slow. it renders everything",
         "",
       ].join("\n"),
     );
