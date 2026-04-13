@@ -13,6 +13,7 @@ const CAVEMAN_FILE_PATH = fileURLToPath(
 );
 const CAVEMAN_TIMEOUT_MS = 5_000;
 const CAVEMAN_MAX_BUFFER_BYTES = 10 * 1024 * 1024;
+const CAVEMAN_ARGS = [CAVEMAN_FILE_PATH, "--ultra"];
 
 function toResult(
   entries: ExtractEntry[],
@@ -48,7 +49,7 @@ function runCaveman(
   }
 
   const command = process.versions.bun ? process.execPath : "bun";
-  const result = spawnSync(command, [CAVEMAN_FILE_PATH], {
+  const result = spawnSync(command, CAVEMAN_ARGS, {
     input: source,
     encoding: "utf8",
     timeout: CAVEMAN_TIMEOUT_MS,

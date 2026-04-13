@@ -33,4 +33,25 @@ describe("markdown extractors", () => {
       },
     ]);
   });
+
+  test("uses ultra caveman mode by default", () => {
+    const context = createMarkdownParseContext({
+      source: "State update leads to re-render and cache miss results in retry.\n",
+      filePath: "/tmp/ultra.md",
+    });
+
+    const result = createSignaturesExtractor().extract(context);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries).toEqual([
+      {
+        kind: "signatures",
+        lines: ["State update → re-render cache miss → retry"],
+        metadata: {
+          filePath: "/tmp/ultra.md",
+          sourcePos: 0,
+        },
+      },
+    ]);
+  });
 });

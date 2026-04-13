@@ -327,4 +327,28 @@ describe("buildCli", () => {
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
   });
+
+  test("uses ultra caveman mode for markdown files", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "README.md",
+      "State update leads to re-render and cache miss results in retry.\n",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--file", "README.md"]);
+
+    expect(stdoutBuffer).toBe(
+      [
+        "// README.md",
+        "State update → re-render cache miss → retry",
+        "",
+      ].join("\n"),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
 });
