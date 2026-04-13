@@ -1,10 +1,29 @@
 {
   "name": "experiment",
+  "version": "0.0.0",
   "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
+  "type": "module",
+  "main": "./dist/experiment_1.js",
+  "types": "./dist/experiment_1.d.ts",
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/experiment_1.d.ts",
+      "import": "./dist/experiment_1.js"
+    },
+    "./package.json": "./package.json"
   },
-  "peerDependencies": {
-    "typescript": "^5"
+  "scripts": {
+    "clean": "rm -rf dist",
+    "test": "bun test",
+    "typecheck": "bunx --bun tsgo -p tsconfig.json --noEmit",
+    "build:js": "bun build --target=node --format=esm --no-bundle --outfile dist/experiment_1.js ./experiment_1.ts && bun build --target=node --format=esm --no-bundle --outfile dist/caveman.js ./caveman.ts && bun build --target=node --format=esm --no-bundle --outfile dist/language-rules.js ./language-rules.ts",
+    "build:types": "bunx --bun tsgo -p tsconfig.build.json",
+    "build": "bun run clean && bun run build:js && bun run build:types",
+    "prepack": "bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript/native-preview": "^7.0.0-dev.20260412.1"
   }
 }

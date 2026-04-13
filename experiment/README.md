@@ -187,7 +187,20 @@ Rules live in `language-rules.ts`.
 Run tests:
 
 ```bash
-bun test
+bun run test
+```
+
+Run a TypeScript check with `tsgo`:
+
+```bash
+bun run typecheck
+```
+
+Build the npm package output into `dist`:
+
+```bash
+bun run build
+npm pack --dry-run
 ```
 
 Run only the benchmark test:

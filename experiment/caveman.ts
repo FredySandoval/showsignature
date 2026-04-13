@@ -239,15 +239,12 @@ export function toCaveman(input: string, options: Options = {}) {
 }
 
 function printRuleTable() {
-  const rows = [
-    ['Category', 'Action', 'Rule'],
-    ...ruleTable.map((row) => [...row]),
-  ]
-
-  const widths = rows[0].map((_, index) => Math.max(...rows.map((row) => row[index].length)))
+  const header = ['Category', 'Action', 'Rule']
+  const rows = [header, ...ruleTable.map((row) => [...row])]
+  const widths = header.map((_, index) => Math.max(...rows.map((row) => row[index]?.length ?? 0)))
 
   for (const row of rows) {
-    console.log(row.map((cell, index) => cell.padEnd(widths[index])).join(' | '))
+    console.log(row.map((cell, index) => cell.padEnd(widths[index] ?? cell.length)).join(' | '))
   }
 }
 
@@ -272,6 +269,10 @@ function removeFlags(args: string[], flags: string[]) {
 
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index]
+
+    if (value === undefined) {
+      continue
+    }
 
     if (skip.has(value)) {
       index += 1
