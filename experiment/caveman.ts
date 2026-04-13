@@ -177,9 +177,39 @@ function cleanupDocument(text: string) {
     .trim()
 }
 
+function shouldCacheLines(text: string) {
+  const sampleLineLimit = 64
+  const seenLines = new Set<string>()
+  let lineStart = 0
+  let sampledLines = 0
+
+  for (let index = 0; index <= text.length && sampledLines < sampleLineLimit; index += 1) {
+    if (index < text.length && text[index] !== '\n') {
+      continue
+    }
+
+    const line = text.slice(lineStart, index)
+    lineStart = index + 1
+
+    if (!line.trim()) {
+      continue
+    }
+
+    if (seenLines.has(line)) {
+      return true
+    }
+
+    seenLines.add(line)
+    sampledLines += 1
+  }
+
+  return false
+}
+
 export function toCaveman(input: string, options: Options = {}) {
   const rules = options.ultra ? ultraModeRules : standardRules
   const { text, restore } = protect(input)
+  const lineCache = shouldCacheLines(text) ? new Map<string, string>() : null
 
   const shortened = text
     .split('\n')
@@ -189,9 +219,19 @@ export function toCaveman(input: string, options: Options = {}) {
         return ''
       }
 
+      if (lineCache) {
+        const cachedLine = lineCache.get(line)
+        if (cachedLine !== undefined) {
+          return cachedLine
+        }
+      }
+
       const { prefix, content } = getMarkdownPrefix(line)
       const rewritten = cleanupLine(applyRules(content, rules))
-      return rewritten ? `${prefix}${rewritten}` : prefix.trimEnd()
+      const outputLine = rewritten ? `${prefix}${rewritten}` : prefix.trimEnd()
+
+      lineCache?.set(line, outputLine)
+      return outputLine
     })
     .join('\n')
 

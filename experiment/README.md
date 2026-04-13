@@ -180,6 +180,7 @@ Rules live in `language-rules.ts`.
 - `experiment_1.ts` — re-export file
 - `experiment_1.test.ts` — behavior tests
 - `caveman.perf.test.ts` — benchmark-style performance test
+- `performance-baseline.json` — recorded benchmark baseline to beat
 
 ## Development
 
@@ -200,6 +201,20 @@ Increase benchmark iterations:
 ```bash
 CAVEMAN_BENCH_ITERATIONS=200 bun test caveman.perf.test.ts
 ```
+
+## Performance baseline
+
+The repo keeps a benchmark record in `performance-baseline.json`.
+
+Current recorded baseline:
+
+- command: `CAVEMAN_BENCH_ITERATIONS=80 bun test caveman.perf.test.ts`
+- default: `9.913ms` average
+- ultra: `9.898ms` average
+
+`caveman.perf.test.ts` reads this file and prints the delta from the baseline on each benchmark run.
+
+Use it as a local reference to beat, not as a strict pass/fail threshold. Timing depends on machine, load, and Bun version.
 
 ## Notes
 
