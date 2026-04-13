@@ -2,3 +2,4 @@ node_modules
 dist
 experiment/.webfetch
 cavemants/.webfetch
+.webfetch
