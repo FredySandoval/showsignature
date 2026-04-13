@@ -1,222 +1,134 @@
 # showsignature
 
-Extract structure from source code and turn files into clean, readable artifacts.
+Extract structure from source files and turn them into clean, readable artifacts.
 
-`showsignature` is a CLI and library for extracting high-signal structure from TypeScript, JavaScript, Python, and Markdown files. It can pull out signatures, interfaces, type aliases, variables, comments, and imports, then emit them in source order across one or many files.
+`showsignature` is a CLI and library for extracting high-signal structure from TypeScript, JavaScript, Python, and Markdown files. It can pull signatures, interfaces, type aliases, variables, comments, imports, and markdown-specific structure, then emit the result in source order across one file or many.
 
-## Features
+## Quick start
 
-- Extracts:
-  - function, method, constructor, and class signatures
-  - interface declarations
-  - type alias declarations
-  - variable declarations
-  - comments
-  - import declarations
-  - markdown headings, tables, code blocks, and full-document rewrite output
-- Supports TypeScript, JavaScript, Python, and Markdown
-- Recursively scans folders
-- Excludes test files by default during discovery
-- Preserves source ordering when combining multiple extract kinds
-- Can write plain text or Markdown-fenced output
-- Optional source line numbers in output
-- Also usable as a library
-
-## Supported languages
-
-Built-in language adapters:
-
-- `ts` → `.ts`, `.mts`, `.cts`
-- `js` → `.js`, `.mjs`, `.cjs`
-- `py` → `.py`
-- `md` → `.md`
-
-If `--lang` is not provided, the language is inferred from the file extension.
-
-## Installation
+Install dependencies and build the CLI:
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-Run locally with the built CLI:
+Run the built CLI locally:
 
 ```bash
-node dist/cli.js --help
+node dist/02-cli.js --help
 ```
 
-Or, when installed as a package, use:
+Or, if the package is installed in your environment:
 
 ```bash
 showsignature --help
 ```
 
-## CLI usage
+## Common commands
 
 ```bash
-showsignature [options]
-```
+# Extract default signatures from one file
+showsignature --file src/example.ts
 
-### Input behavior
+# Extract comments and signatures from one file
+showsignature --file src/example.ts --show-only comments,signatures
 
-- `--file <file>`: process exactly one file
-- `--folder <folder>`: recursively process supported files from a folder
-- no `--file` or `--folder`: recursively scan from the current working directory
-
-`--file` and `--folder` cannot be used together.
-
-## Options
-
-### `--lang <lang>`
-
-Explicitly select a language adapter.
-
-If omitted, `showsignature` infers the language from the input file extension.
-
-Supported built-in values:
-
-- `ts`
-- `js`
-- `py`
-- `md`
-
-### `--show-only <options>`
-
-Comma-separated extract kinds.
-
-Default: `signatures`.
-
-By default, the CLI extracts:
-
-```text
-signatures
-```
-
-That default targets code structure. Markdown files are skipped unless you request a markdown-specific kind such as `md:headings` or `md:rewrite`.
-
-Supported extract kinds:
-
-Built-in code kinds:
-
-- `signatures`
-- `interfaces`
-- `types`
-- `variables`
-- `comments`
-- `imports`
-
-Markdown-specific kinds:
-
-- `md:headings`
-- `md:tables`
-- `md:codeblocks`
-- `md:rewrite`
-
-When multiple kinds are selected, results are combined in original source order.
-
-Example:
-
-```bash
-showsignature --file src/main.ts --show-only comments,signatures
-```
-
-### `--file <file>`
-
-Process a single file.
-
-### `--folder <folder>`
-
-Process all supported files under a directory recursively.
-
-FYI: recursive discovery respects `.gitignore` files.
-
-### `--include-tests`
-
-Include files that would normally be excluded during recursive discovery.
-
-By default, test-like files are skipped when scanning folders or the current directory. This includes:
-
-- directories named `test`, `tests`, or `__tests__`
-- files matching `*.test.*`, `*.spec.*`, `*_test.*`, `*_spec.*`, `*-test.*`, or `*-spec.*`
-
-This flag only affects recursive discovery. An explicit `--file` path is always processed directly.
-
-### `--output <name>`
-
-Write the final output to a file.
-
-- Output can be written inside the current working directory or inside the system temp directory such as `/tmp`.
-- If the output path ends in `.md` or `.mdx`, output is wrapped in a fenced code block.
-- Otherwise, output is written as plain text.
-
-### `-n, --line-number`
-
-Prefix each extracted entry with its source line number.
-
-This is optional and off by default, so the default output stays clean and easy to scan.
-
-## Examples
-
-### Extract default signatures from one file
-
-```bash
-showsignature --file src/main.ts
-```
-
-### Extract Python structure from one file
-
-```bash
-showsignature --file app.py --show-only signatures,imports,variables
-```
-
-### Extract comments and signatures from one file
-
-```bash
-showsignature --file src/main.ts --show-only comments,signatures
-```
-
-### Scan a folder recursively
-
-```bash
+# Scan a folder recursively
 showsignature --folder src --show-only signatures,imports
-```
 
-### Extract Markdown headings
-
-```bash
-showsignature --file README.md --show-only md:headings
-```
-
-### Rewrite a Markdown file with cavemants
-
-```bash
-showsignature --file README.md --show-only md:rewrite
-```
-
-### Scan the current directory
-
-```bash
+# Scan the current directory
 showsignature --show-only signatures
-```
 
-### Include test fixtures during discovery
+# Extract Markdown headings
+showsignature --file README.md --show-only md:headings
 
-```bash
-showsignature --folder ./tests/fixtures --include-tests --show-only signatures
-```
+# Rewrite a Markdown file
+showsignature --file README.md --show-only md:rewrite
 
-### Write Markdown output
+# Include test fixtures during discovery
+showsignature --folder tests/fixtures --include-tests --show-only signatures
 
-```bash
+# Write Markdown output
 showsignature --folder src --show-only comments,signatures --output structure.md
-```
 
-### Include source line numbers
-
-```bash
+# Include source line numbers
 showsignature --folder src --show-only signatures --line-number
 ```
+
+## Supported languages
+
+If `--lang` is omitted, `showsignature` infers the language from the file extension.
+
+| `--lang` value | Extensions            |
+| -------------- | --------------------- |
+| `ts`           | `.ts`, `.mts`, `.cts` |
+| `js`           | `.js`, `.mjs`, `.cjs` |
+| `py`           | `.py`                 |
+| `md`           | `.md`                 |
+
+## Extract kinds
+
+### Code extract kinds
+
+| Kind         | Description                                         |
+| ------------ | --------------------------------------------------- |
+| `signatures` | Function, method, constructor, and class signatures |
+| `interfaces` | Interface declarations                              |
+| `types`      | Type alias declarations                             |
+| `variables`  | Variable declarations                               |
+| `comments`   | Comment blocks and line comments                    |
+| `imports`    | Import declarations                                 |
+
+### Markdown extract kinds
+
+| Kind            | Description                  |
+| --------------- | ---------------------------- |
+| `md:headings`   | Markdown headings            |
+| `md:tables`     | Markdown tables              |
+| `md:codeblocks` | Markdown fenced code blocks  |
+| `md:rewrite`    | Full-document rewrite output |
+
+`--show-only` accepts a comma-separated list of extract kinds.
+
+Default: `signatures`
+
+That default targets code structure. Markdown files only produce output when you request a markdown-specific kind such as `md:headings` or `md:rewrite`.
+
+When you select multiple kinds, the final output is merged in original source order.
+
+## CLI reference
+
+### Input rules
+
+- Use `--file <file>` to process exactly one file.
+- Use `--folder <folder>` to process supported files under a directory recursively.
+- If you omit both `--file` and `--folder`, `showsignature` scans the current working directory recursively.
+- `--file` and `--folder` cannot be used together.
+- Recursive discovery respects `.gitignore` files.
+- Test-like files are excluded during recursive discovery unless you pass `--include-tests`.
+- An explicit `--file` path is processed directly and is not filtered as a test file.
+
+### Options
+
+| Option                  | Description                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--lang <lang>`         | Explicitly select a language adapter. If omitted, the adapter is inferred from the file extension.                                                |
+| `--show-only <options>` | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
+| `--file <file>`         | Process a single file.                                                                                                                            |
+| `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
+| `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
+| `--output <name>`       | Write the final output to a file.                                                                                                                 |
+| `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |
+
+### Output behavior
+
+- Plain output is grouped by file and prefixed with a file header comment.
+- If `--line-number` is enabled, each extracted entry is prefixed with its source line number.
+- If the output path ends in `.md` or `.mdx`, the final result is wrapped in a fenced code block.
+- When all processed files resolve to the same language, or when `--lang` is provided, the Markdown fence is annotated with that language.
+- Output files can be written inside the current working directory or inside the system temp directory, such as `/tmp`.
+- If discovery finds no supported files, or if the selected extract kinds produce no entries, the CLI prints nothing.
 
 ## Output format
 
@@ -252,6 +164,7 @@ Output:
 
 ```md
 # API Guide
+
 ## Install
 ```
 
@@ -261,22 +174,23 @@ Input:
 
 ```md
 | Name | Value |
-| --- | --- |
-| API | ready |
+| ---- | ----- |
+| API  | ready |
 ```
 
 Output:
 
 ```md
 | Name | Value |
-| --- | --- |
-| API | ready |
+| ---- | ----- |
+| API  | ready |
 ```
 
 ### Markdown rewrite
 
 Input:
 
+<!-- prettier-ignore -->
 ```md
 # The API Guide
 
@@ -286,8 +200,10 @@ Input:
 
 Output:
 
+<!-- prettier-ignore -->
 ```md
 # API Guide
+
 - guide is here: [The API Guide](https://example.com/docs)
 > API is slow. it renders everything
 ```
@@ -427,15 +343,15 @@ The package also exports the core pipeline utilities.
 ```ts
 import {
   buildDefaultRegistry,
-  runPipeline,
   formatFinalOutput,
+  runPipeline,
 } from "showsignature";
 
 const registry = buildDefaultRegistry();
 
 const result = await runPipeline({
   registry,
-  files: ["src/main.ts"],
+  files: ["src/example.ts"],
   extractOrder: ["signatures", "comments"],
 });
 
@@ -446,18 +362,24 @@ const output = formatFinalOutput({
 });
 ```
 
-Notable exports include:
+## Public API
+
+Core exports include:
 
 - `buildCli`
 - `runCli`
 - `createLanguageRegistry`
 - `buildDefaultRegistry`
 - `discoverFiles`
+- `getSupportedGlobs`
+- `isTestFile`
 - `extractFromSource`
 - `processFile`
 - `runPipeline`
+- `detectFenceLanguage`
 - `formatPlainOutput`
 - `formatFinalOutput`
+- `toDisplayPath`
 - `toMarkdownCodeBlock`
 - `BUILT_IN_EXTRACT_KINDS`
 - related public types from `src/00-core-types.ts`
@@ -477,10 +399,9 @@ pnpm clean
 
 ## Notes
 
-- Current built-in extraction support is for TypeScript, JavaScript, Python, and Markdown files.
-- Python support is intentionally minimal and focuses on functions, classes, methods, variables, comments, and imports.
-- Markdown support uses markdown-specific extract kinds: `md:headings`, `md:tables`, `md:codeblocks`, and `md:rewrite`.
+- Built-in extraction support covers TypeScript, JavaScript, Python, and Markdown files.
+- Python currently focuses on functions, classes, methods, variables, comments, and imports.
+- Python does not currently implement `interfaces` or `types` extraction.
+- Markdown support uses the markdown-specific extract kinds `md:headings`, `md:tables`, `md:codeblocks`, and `md:rewrite`.
 - `md:rewrite` simplifies the full document through the `cavemants` rewriter in `ultra` mode.
-- Python `interfaces` and `types` are currently reported as unsupported extract kinds.
 - Folder scanning respects `.gitignore`.
-- If no supported files are found, the CLI exits with an error.
