@@ -1,5 +1,4 @@
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { toCaveman } from "cavemants";
 
 import type {
   ExtractEntry,
@@ -7,13 +6,6 @@ import type {
   ParseContext,
   SingleExtractResult,
 } from "../../00-core-types.js";
-
-const CAVEMAN_FILE_PATH = fileURLToPath(
-  new URL("../../../cavemants/caveman.ts", import.meta.url),
-);
-const CAVEMAN_TIMEOUT_MS = 5_000;
-const CAVEMAN_MAX_BUFFER_BYTES = 10 * 1024 * 1024;
-const CAVEMAN_ARGS = [CAVEMAN_FILE_PATH, "--ultra"];
 
 function toResult(
   entries: ExtractEntry[],
@@ -48,16 +40,12 @@ function runCaveman(
     return { output: "" };
   }
 
-  const command = process.versions.bun ? process.execPath : "bun";
-  const result = spawnSync(command, CAVEMAN_ARGS, {
-    input: source,
-    encoding: "utf8",
-    timeout: CAVEMAN_TIMEOUT_MS,
-    maxBuffer: CAVEMAN_MAX_BUFFER_BYTES,
-  });
-
-  if (result.error || result.status !== 0) {
-    const detail = result.error?.message ?? result.stderr.trim() ?? "unknown";
+  try {
+    return {
+      output: toCaveman(source, { ultra: true }),
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
 
     return {
       output: source,
@@ -69,10 +57,6 @@ function runCaveman(
       },
     };
   }
-
-  return {
-    output: result.stdout.trimEnd(),
-  };
 }
 
 export function createSignaturesExtractor(): Extractor<ParseContext> {

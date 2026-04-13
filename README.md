@@ -401,7 +401,7 @@ pnpm clean
 
 - Current built-in extraction support is for TypeScript, JavaScript, Python, and Markdown files.
 - Python support is intentionally minimal and focuses on functions, classes, methods, variables, comments, and imports.
-- Markdown support currently simplifies the full document through the bundled Caveman rewriter in `ultra` mode and emits it through the default `signatures` mode.
+- Markdown support currently simplifies the full document through the `cavemants` rewriter in `ultra` mode and emits it through the default `signatures` mode.
 - Python `interfaces` and `types` are currently reported as unsupported extract kinds.
 - Folder scanning respects `.gitignore`.
 - If no supported files are found, the CLI exits with an error.
