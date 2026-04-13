@@ -19,6 +19,7 @@ import { globby } from "globby";
 import {
   BUILT_IN_EXTRACT_KINDS,
   type AggregatedExtractResult,
+  type BuiltInExtractKind,
   type CliProgram,
   type CombinedExtractEntry,
   type DetectFenceLanguageOptions,
@@ -183,10 +184,6 @@ function usesOnlyMarkdownExtractKinds(kinds: readonly ExtractKind[]): boolean {
   return kinds.length > 0 && kinds.every((kind) => isMarkdownExtractKind(kind));
 }
 
-function formatExtractKindsHelp(kinds: readonly string[]): string {
-  return [...new Set(kinds)].sort().join(", ");
-}
-
 function listSupportedExtractKinds(registry: LanguageRegistry): ExtractKind[] {
   const kinds = new Set<ExtractKind>(BUILT_IN_EXTRACT_KINDS);
 
@@ -200,10 +197,35 @@ function listSupportedExtractKinds(registry: LanguageRegistry): ExtractKind[] {
 }
 
 function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
-  return [
-    "comma-separated extract kinds to include",
-    `available: ${formatExtractKindsHelp(kinds)} (default: signatures)`,
-  ].join("\n");
+  const uniqueKinds = [...new Set(kinds)];
+  const codeKinds = BUILT_IN_EXTRACT_KINDS.filter((kind) =>
+    uniqueKinds.includes(kind),
+  );
+  const markdownKinds = uniqueKinds.filter((kind) => kind === "md" || kind.startsWith("md:"));
+  const otherPluginKinds = uniqueKinds
+    .filter(
+      (kind) =>
+        !BUILT_IN_EXTRACT_KINDS.includes(kind as BuiltInExtractKind) &&
+        !markdownKinds.includes(kind),
+    )
+    .sort();
+
+  const sections = ["comma-separated extract kinds to include"];
+
+  if (codeKinds.length > 0) {
+    sections.push(`code: ${codeKinds.join(", ")}`);
+  }
+
+  if (otherPluginKinds.length > 0) {
+    sections.push(`plugins: ${otherPluginKinds.join(", ")}`);
+  }
+
+  if (markdownKinds.length > 0) {
+    sections.push(`markdown: ${markdownKinds.sort().join(", ")}`);
+  }
+
+  sections.push("default: signatures");
+  return sections.join("\n");
 }
 
 function formatSupportedExtensionsHelp(extensions: readonly string[]): string {
