@@ -1,4 +1,8 @@
-import { toCaveman } from "cavemants";
+import {
+  enableUsageTracking,
+  isUsageTrackingEnabled,
+  toCaveman,
+} from "cavemants";
 
 import type {
   ExtractEntry,
@@ -29,6 +33,12 @@ function toEntry(
   };
 }
 
+function ensureBattleTestLogging(): void {
+  if (!isUsageTrackingEnabled()) {
+    enableUsageTracking();
+  }
+}
+
 function runCaveman(
   source: string,
   filePath: string,
@@ -41,6 +51,8 @@ function runCaveman(
   }
 
   try {
+    ensureBattleTestLogging();
+
     return {
       output: toCaveman(source, { ultra: true }),
     };
