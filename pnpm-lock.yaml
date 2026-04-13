@@ -4,13 +4,16 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  cavemants: link:../../../.local/share/pnpm/global/5/node_modules/cavemants
+
 importers:
 
   .:
     dependencies:
       cavemants:
-        specifier: link:../../MyProjects/03_cavemants
-        version: link:../../MyProjects/03_cavemants
+        specifier: link:../../../.local/share/pnpm/global/5/node_modules/cavemants
+        version: link:../../../.local/share/pnpm/global/5/node_modules/cavemants
       commander:
         specifier: 10.0.0
         version: 10.0.0

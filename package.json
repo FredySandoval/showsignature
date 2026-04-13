@@ -26,7 +26,7 @@
   "license": "ISC",
   "description": "Extract structure from code. Turn source files into clean, readable artifacts.",
   "dependencies": {
-    "cavemants": "link:../../MyProjects/03_cavemants",
+    "cavemants": "cavemants",
     "commander": "10.0.0",
     "globby": "^16.2.0"
   },
