@@ -264,7 +264,7 @@ describe("08-extractor — runExtractors", () => {
       });
     });
 
-    test("emits warnings for all unsupported kinds in order", () => {
+    test("skips files when none of the requested kinds are supported", () => {
       const adapter = createTestAdapter([]);
       const context = createTestContext({ filePath: "/tmp/empty.ts" });
 
@@ -275,10 +275,7 @@ describe("08-extractor — runExtractors", () => {
       });
 
       expect(result.entries).toEqual([]);
-      expect(result.warnings).toHaveLength(3);
-      expect(result.warnings[0]?.kind).toBe("signatures");
-      expect(result.warnings[1]?.kind).toBe("interfaces");
-      expect(result.warnings[2]?.kind).toBe("types");
+      expect(result.warnings).toEqual([]);
     });
 
     test("mixes supported results with unsupported warnings", () => {

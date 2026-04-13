@@ -2,6 +2,12 @@ import { describe, expect, test } from "bun:test";
 
 import { PluginExtractKind } from "@/src/00-core-types.js";
 import { createMarkdownAdapter } from "@/src/languages/markdown/00-adapter.js";
+import {
+  MARKDOWN_CODEBLOCKS_KIND,
+  MARKDOWN_HEADINGS_KIND,
+  MARKDOWN_REWRITE_KIND,
+  MARKDOWN_TABLES_KIND,
+} from "@/src/languages/markdown/03-extractors.js";
 
 function toPluginExtractKind(kind: string): PluginExtractKind {
   return kind as PluginExtractKind;
@@ -18,7 +24,12 @@ describe("createMarkdownAdapter", () => {
     expect(adapter.id).toBe("md");
     expect(adapter.extensions).toEqual([".md"]);
     expect(adapter.fenceLang).toBe("markdown");
-    expect([...adapter.extractors.keys()]).toEqual(["signatures"]);
+    expect([...adapter.extractors.keys()]).toEqual([
+      MARKDOWN_HEADINGS_KIND,
+      MARKDOWN_TABLES_KIND,
+      MARKDOWN_CODEBLOCKS_KIND,
+      MARKDOWN_REWRITE_KIND,
+    ]);
   });
 
   test("buildContext returns a base parse context", () => {
@@ -43,7 +54,7 @@ describe("createMarkdownAdapter", () => {
       fenceLang: "markdown",
     });
 
-    expect(adapter.supportsKind("signatures")).toBe(true);
+    expect(adapter.supportsKind("md:headings" as PluginExtractKind)).toBe(true);
     expect(adapter.supportsKind("comments")).toBe(false);
     expect(adapter.supportsKind(toPluginExtractKind("custom-kind"))).toBe(
       false,

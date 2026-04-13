@@ -13,6 +13,7 @@ Extract structure from source code and turn files into clean, readable artifacts
   - variable declarations
   - comments
   - import declarations
+  - markdown headings, tables, code blocks, and full-document rewrite output
 - Supports TypeScript, JavaScript, Python, and Markdown
 - Recursively scans folders
 - Excludes test files by default during discovery
@@ -92,7 +93,11 @@ By default, the CLI extracts:
 signatures
 ```
 
+That default targets code structure. Markdown files are skipped unless you request a markdown-specific kind such as `md:headings` or `md:rewrite`.
+
 Supported extract kinds:
+
+Built-in code kinds:
 
 - `signatures`
 - `interfaces`
@@ -100,6 +105,13 @@ Supported extract kinds:
 - `variables`
 - `comments`
 - `imports`
+
+Markdown-specific kinds:
+
+- `md:headings`
+- `md:tables`
+- `md:codeblocks`
+- `md:rewrite`
 
 When multiple kinds are selected, results are combined in original source order.
 
@@ -170,6 +182,18 @@ showsignature --file src/main.ts --show-only comments,signatures
 showsignature --folder src --show-only signatures,imports
 ```
 
+### Extract Markdown headings
+
+```bash
+showsignature --file README.md --show-only md:headings
+```
+
+### Rewrite a Markdown file with cavemants
+
+```bash
+showsignature --file README.md --show-only md:rewrite
+```
+
 ### Scan the current directory
 
 ```bash
@@ -213,6 +237,60 @@ When `--line-number` is enabled, each extracted entry is prefixed with its sourc
 If the output file ends in `.md` or `.mdx`, the result is wrapped in a fenced code block. When all processed files resolve to the same language, the fence is annotated accordingly.
 
 ## Extraction examples
+
+### Markdown headings
+
+Input:
+
+```md
+# API Guide
+
+## Install
+```
+
+Output:
+
+```md
+# API Guide
+## Install
+```
+
+### Markdown tables
+
+Input:
+
+```md
+| Name | Value |
+| --- | --- |
+| API | ready |
+```
+
+Output:
+
+```md
+| Name | Value |
+| --- | --- |
+| API | ready |
+```
+
+### Markdown rewrite
+
+Input:
+
+```md
+# The API Guide
+
+- The guide is basically here: [The API Guide](https://example.com/docs).
+> The API is basically slow because it renders everything.
+```
+
+Output:
+
+```md
+# API Guide
+- guide is here: [The API Guide](https://example.com/docs)
+> API is slow. it renders everything
+```
 
 ### Function signatures
 
@@ -401,7 +479,8 @@ pnpm clean
 
 - Current built-in extraction support is for TypeScript, JavaScript, Python, and Markdown files.
 - Python support is intentionally minimal and focuses on functions, classes, methods, variables, comments, and imports.
-- Markdown support currently simplifies the full document through the `cavemants` rewriter in `ultra` mode and emits it through the default `signatures` mode.
+- Markdown support uses markdown-specific extract kinds: `md:headings`, `md:tables`, `md:codeblocks`, and `md:rewrite`.
+- `md:rewrite` simplifies the full document through the `cavemants` rewriter in `ultra` mode.
 - Python `interfaces` and `types` are currently reported as unsupported extract kinds.
 - Folder scanning respects `.gitignore`.
 - If no supported files are found, the CLI exits with an error.

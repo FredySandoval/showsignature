@@ -7,7 +7,16 @@ import {
 } from "cavemants";
 
 import { createMarkdownParseContext } from "@/src/languages/markdown/01-context.js";
-import { createSignaturesExtractor } from "@/src/languages/markdown/03-extractors.js";
+import {
+  createCodeBlocksExtractor,
+  createHeadingsExtractor,
+  createRewriteExtractor,
+  createTablesExtractor,
+  MARKDOWN_CODEBLOCKS_KIND,
+  MARKDOWN_HEADINGS_KIND,
+  MARKDOWN_REWRITE_KIND,
+  MARKDOWN_TABLES_KIND,
+} from "@/src/languages/markdown/03-extractors.js";
 
 const initialUsageTrackingState = isUsageTrackingEnabled();
 
@@ -21,7 +30,87 @@ afterEach(() => {
 });
 
 describe("markdown extractors", () => {
-  test("simplifies markdown with caveman and keeps markdown syntax", () => {
+  test("extracts markdown headings", () => {
+    const context = createMarkdownParseContext({
+      source: ["# Title", "text", "## Subtitle", ""].join("\n"),
+      filePath: "/tmp/headings.md",
+    });
+
+    const result = createHeadingsExtractor().extract(context);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries).toEqual([
+      {
+        kind: MARKDOWN_HEADINGS_KIND,
+        lines: ["# Title"],
+        metadata: {
+          filePath: "/tmp/headings.md",
+          sourcePos: 0,
+        },
+      },
+      {
+        kind: MARKDOWN_HEADINGS_KIND,
+        lines: ["## Subtitle"],
+        metadata: {
+          filePath: "/tmp/headings.md",
+          sourcePos: 13,
+        },
+      },
+    ]);
+  });
+
+  test("extracts markdown tables as blocks", () => {
+    const context = createMarkdownParseContext({
+      source: [
+        "# Title",
+        "",
+        "| Name | Value |",
+        "| --- | --- |",
+        "| API | ready |",
+        "",
+      ].join("\n"),
+      filePath: "/tmp/tables.md",
+    });
+
+    const result = createTablesExtractor().extract(context);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries).toEqual([
+      {
+        kind: MARKDOWN_TABLES_KIND,
+        lines: ["| Name | Value |", "| --- | --- |", "| API | ready |"],
+        metadata: {
+          filePath: "/tmp/tables.md",
+          sourcePos: 9,
+        },
+      },
+    ]);
+  });
+
+  test("extracts fenced code blocks", () => {
+    const context = createMarkdownParseContext({
+      source: ["Before", "```ts", "const value = 1;", "```", "After", ""].join(
+        "\n",
+      ),
+      filePath: "/tmp/codeblocks.md",
+    });
+
+    const result = createCodeBlocksExtractor().extract(context);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries).toEqual([
+      {
+        kind: MARKDOWN_CODEBLOCKS_KIND,
+        lines: ["```ts", "const value = 1;", "```"],
+        metadata: {
+          filePath: "/tmp/codeblocks.md",
+          sourcePos: 7,
+        },
+      },
+    ]);
+  });
+
+  test("rewrites full markdown in ultra mode", () => {
     const context = createMarkdownParseContext({
       source: [
         "# The API Guide",
@@ -32,12 +121,12 @@ describe("markdown extractors", () => {
       filePath: "/tmp/example.md",
     });
 
-    const result = createSignaturesExtractor().extract(context);
+    const result = createRewriteExtractor().extract(context);
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toEqual([
       {
-        kind: "signatures",
+        kind: MARKDOWN_REWRITE_KIND,
         lines: [
           "# API Guide",
           "- guide is here: [The API Guide](https://example.com/docs)",
@@ -51,18 +140,19 @@ describe("markdown extractors", () => {
     ]);
   });
 
-  test("uses ultra caveman mode by default", () => {
+  test("rewrite uses ultra caveman mode", () => {
     const context = createMarkdownParseContext({
-      source: "State update leads to re-render and cache miss results in retry.\n",
+      source:
+        "State update leads to re-render and cache miss results in retry.\n",
       filePath: "/tmp/ultra.md",
     });
 
-    const result = createSignaturesExtractor().extract(context);
+    const result = createRewriteExtractor().extract(context);
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toEqual([
       {
-        kind: "signatures",
+        kind: MARKDOWN_REWRITE_KIND,
         lines: ["State update → re-render cache miss → retry"],
         metadata: {
           filePath: "/tmp/ultra.md",
@@ -72,7 +162,7 @@ describe("markdown extractors", () => {
     ]);
   });
 
-  test("re-enables cavemants usage tracking for markdown battle tests", () => {
+  test("rewrite re-enables cavemants usage tracking for markdown battle tests", () => {
     disableUsageTracking();
     expect(isUsageTrackingEnabled()).toBe(false);
 
@@ -81,12 +171,12 @@ describe("markdown extractors", () => {
       filePath: "/tmp/tracking.md",
     });
 
-    const result = createSignaturesExtractor().extract(context);
+    const result = createRewriteExtractor().extract(context);
 
     expect(result.warnings).toEqual([]);
     expect(result.entries).toEqual([
       {
-        kind: "signatures",
+        kind: MARKDOWN_REWRITE_KIND,
         lines: ["API is slow. it renders everything"],
         metadata: {
           filePath: "/tmp/tracking.md",

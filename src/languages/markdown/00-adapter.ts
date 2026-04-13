@@ -5,7 +5,12 @@ import type {
   ParseContext,
 } from "../../00-core-types.js";
 import { createMarkdownParseContext } from "./01-context.js";
-import { createSignaturesExtractor } from "./03-extractors.js";
+import {
+  createCodeBlocksExtractor,
+  createHeadingsExtractor,
+  createRewriteExtractor,
+  createTablesExtractor,
+} from "./03-extractors.js";
 
 export interface CreateMarkdownAdapterOptions {
   id: string;
@@ -14,7 +19,13 @@ export interface CreateMarkdownAdapterOptions {
 }
 
 function buildExtractors(): ReadonlyMap<ExtractKind, Extractor<ParseContext>> {
-  const extractors: Extractor<ParseContext>[] = [createSignaturesExtractor()];
+  const extractors: Extractor<ParseContext>[] = [
+    createHeadingsExtractor(),
+    createTablesExtractor(),
+    createCodeBlocksExtractor(),
+    createRewriteExtractor(),
+  ];
+
   return new Map(extractors.map((extractor) => [extractor.kind, extractor]));
 }
 

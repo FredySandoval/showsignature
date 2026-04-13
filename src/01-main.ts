@@ -171,7 +171,19 @@ function normalizeCommanderErrorMessage(message: string): string {
 }
 
 function formatExtractKindsHelp(kinds: readonly string[]): string {
-  return kinds.join(", ");
+  return [...new Set(kinds)].sort().join(", ");
+}
+
+function listSupportedExtractKinds(registry: LanguageRegistry): ExtractKind[] {
+  const kinds = new Set<ExtractKind>(BUILT_IN_EXTRACT_KINDS);
+
+  for (const adapter of registry.listAdapters()) {
+    for (const kind of adapter.extractors.keys()) {
+      kinds.add(kind);
+    }
+  }
+
+  return [...kinds];
 }
 
 function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
@@ -209,8 +221,10 @@ function formatUnsupportedFileMessage(
 }
 
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
-  const showOnlyOptionHelp = buildShowOnlyOptionHelp(BUILT_IN_EXTRACT_KINDS);
   const registry = buildDefaultRegistry();
+  const showOnlyOptionHelp = buildShowOnlyOptionHelp(
+    listSupportedExtractKinds(registry),
+  );
   const langOptionHelp = buildLangOptionHelp(registry.supportedExtensions());
 
   const program = new Command()
@@ -408,7 +422,7 @@ async function resolveExecutionPlan(
   }
 
   const extractOrder = args.showOnly
-    ? parseExtractOptions(args.showOnly, BUILT_IN_EXTRACT_KINDS)
+    ? parseExtractOptions(args.showOnly, listSupportedExtractKinds(registry))
     : DEFAULT_EXTRACT_ORDER;
 
   const input = await resolveInputTarget(args, registry);
@@ -1176,6 +1190,13 @@ export function runExtractors<TContext extends ParseContext = ParseContext>(
   const { adapter, context, extractOrder } = options;
   const combinedGroups: CombinedExtractEntry[][] = [];
   const warnings: ExtractWarning[] = [];
+  const supportedKinds = extractOrder.filter((kind) =>
+    adapter.extractors.has(kind),
+  );
+
+  if (supportedKinds.length === 0) {
+    return { entries: [], warnings: [] };
+  }
 
   for (const kind of extractOrder) {
     const extractor = adapter.extractors.get(kind);

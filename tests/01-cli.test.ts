@@ -297,7 +297,7 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("simplifies markdown files with caveman", async () => {
+  test("skips markdown files when default signatures are requested", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -315,20 +315,12 @@ describe("buildCli", () => {
 
     await buildCli().run(["showcode", "--file", "README.md"]);
 
-    expect(stdoutBuffer).toBe(
-      [
-        "// README.md",
-        "# API Guide",
-        "- guide is here: [The API Guide](https://example.com/docs)",
-        "> API is slow. it renders everything",
-        "",
-      ].join("\n"),
-    );
+    expect(stdoutBuffer).toBe("");
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
   });
 
-  test("uses ultra caveman mode for markdown files", async () => {
+  test("rewrites markdown files when md:rewrite is requested", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -339,14 +331,17 @@ describe("buildCli", () => {
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--file", "README.md"]);
+    await buildCli().run([
+      "showcode",
+      "--file",
+      "README.md",
+      "--show-only=md:rewrite",
+    ]);
 
     expect(stdoutBuffer).toBe(
-      [
-        "// README.md",
-        "State update → re-render cache miss → retry",
-        "",
-      ].join("\n"),
+      ["// README.md", "State update → re-render cache miss → retry", ""].join(
+        "\n",
+      ),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
