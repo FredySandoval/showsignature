@@ -12,7 +12,7 @@ import type {
   SingleExtractResult,
 } from "../../00-core-types.js";
 
-export const MARKDOWN_DOCUMENT_KIND = "md" as ExtractKind;
+export const MARKDOWN_DOCUMENT_KIND = "md:all" as ExtractKind;
 export const MARKDOWN_CAVEMAN_KIND = "md:caveman" as ExtractKind;
 export const MARKDOWN_REWRITE_ALIAS = "md:rewrite" as ExtractKind;
 export const MARKDOWN_HEADINGS_KIND = "md:headings" as ExtractKind;

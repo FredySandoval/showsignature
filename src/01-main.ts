@@ -173,6 +173,10 @@ function normalizeCommanderErrorMessage(message: string): string {
 }
 
 function normalizeExtractKindToken(token: string): string {
+  if (token === "md") {
+    return "md:all";
+  }
+
   return token === "md:rewrite" ? "md:caveman" : token;
 }
 
@@ -221,10 +225,12 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   }
 
   if (markdownKinds.length > 0) {
-    sections.push(`markdown: ${markdownKinds.sort().join(", ")}`);
+    sections.push(
+      `markdown: ${markdownKinds.sort().join(", ")} (legacy alias: md -> md:all)`,
+    );
   }
 
-  sections.push("default: signatures");
+  sections.push("default: signatures --line-number");
   return sections.join("\n");
 }
 
@@ -283,7 +289,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .option(
       "-n, --line-number",
       "prefix each extracted entry with its source line number",
-      false,
+      true,
     )
     .exitOverride();
 
@@ -508,10 +514,13 @@ async function resolveExecutionPlan(
   await validateInputPaths(args);
 
   const registry = buildDefaultRegistry();
-  const explicitLang = args.lang?.trim();
+  const rawLang = args.lang?.trim();
+  const explicitLang = rawLang
+    ? resolveLanguageId(registry, rawLang)
+    : undefined;
 
-  if (explicitLang && !registry.has(explicitLang)) {
-    throw createCliError(`${explicitLang} not supported`);
+  if (rawLang && !explicitLang) {
+    throw createCliError(`${rawLang} not supported`);
   }
 
   const extractOrder = args.showOnly
@@ -690,7 +699,7 @@ export function parseExtractOptions(
 ): ExtractKind[] {
   const tokens = rawValue
     .split(",")
-    .map((token) => normalizeExtractKindToken(token.trim()))
+    .map((token) => normalizeExtractKindToken(token.trim().toLowerCase()))
     .filter((token) => token.length > 0);
 
   if (tokens.length === 0) {
@@ -846,6 +855,34 @@ function getRegistryMetadata(
   return registry
     .listAdapterMetadata()
     .find((metadata) => metadata.id === langId);
+}
+
+function resolveLanguageId(
+  registry: LanguageRegistry,
+  rawLang: string,
+): string | undefined {
+  const normalized = rawLang.trim().toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (registry.has(normalized)) {
+    return normalized;
+  }
+
+  const extension = normalizeExtension(normalized);
+
+  for (const metadata of registry.listAdapterMetadata()) {
+    if (
+      metadata.extensions.some(
+        (candidate) => normalizeExtension(candidate) === extension,
+      )
+    ) {
+      return metadata.id;
+    }
+  }
+
+  return undefined;
 }
 
 export function createLanguageRegistry(): LanguageRegistry {

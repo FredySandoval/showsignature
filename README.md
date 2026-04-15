@@ -44,7 +44,7 @@ showsignature --folder src --show-only signatures,imports
 showsignature --show-only signatures
 
 # Extract a full Markdown file
-showsignature --file README.md --show-only md
+showsignature --file README.md --show-only md:all
 
 # Extract Markdown headings
 showsignature --file README.md --show-only md:headings
@@ -90,7 +90,7 @@ If `--lang` is omitted, `showsignature` infers the language from the file extens
 
 | Kind            | Description                          |
 | --------------- | ------------------------------------ |
-| `md`            | Full Markdown document output        |
+| `md:all`        | Full Markdown document output        |
 | `md:headings`   | Markdown headings                    |
 | `md:tables`     | Markdown tables                      |
 | `md:codeblocks` | Markdown fenced code blocks          |
@@ -100,7 +100,7 @@ If `--lang` is omitted, `showsignature` infers the language from the file extens
 
 Default: `signatures`
 
-That default targets code structure. Markdown files only produce output when you request a markdown extract kind such as `md`, `md:headings`, or `md:caveman`.
+That default targets code structure. Markdown files only produce output when you request a markdown extract kind such as `md:all`, `md:headings`, or `md:caveman`.
 
 When you select multiple kinds, the final output is merged in original source order.
 
@@ -413,7 +413,8 @@ pnpm clean
 - Built-in extraction support covers TypeScript, JavaScript, Python, and Markdown files.
 - Python currently focuses on functions, classes, methods, variables, comments, and imports.
 - Python does not currently implement `interfaces` or `types` extraction.
-- Markdown support uses the markdown extract kinds `md`, `md:headings`, `md:tables`, `md:codeblocks`, and `md:caveman`.
+- Markdown support uses the markdown extract kinds `md:all`, `md:headings`, `md:tables`, `md:codeblocks`, and `md:caveman`.
 - `md:caveman` simplifies the full document through the `cavemants` rewriter in `ultra` mode.
+- `md` is kept as a compatibility alias for `md:all`.
 - `md:rewrite` is kept as a compatibility alias for `md:caveman`.
 - Folder scanning respects `.gitignore`.
