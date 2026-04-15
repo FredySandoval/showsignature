@@ -451,6 +451,7 @@ async function resolveInputTarget(
   args: ParsedCliArgs,
   registry: LanguageRegistry,
   extractOrder: readonly ExtractKind[],
+  explicitLang?: string,
 ): Promise<ResolvedInputTarget> {
   if (args.stdin) {
     return {
@@ -473,7 +474,7 @@ async function resolveInputTarget(
     }
   }
 
-  const files = await discoverFiles(
+  const discoveredFiles = await discoverFiles(
     args.folder
       ? {
           registry,
@@ -482,6 +483,12 @@ async function resolveInputTarget(
         }
       : { registry, includeTests: args.includeTests },
   );
+
+  const files = explicitLang
+    ? discoveredFiles.filter(
+        (filePath) => registry.inferFromFile(filePath) === explicitLang,
+      )
+    : discoveredFiles;
 
   if (!usesOnlyMarkdownExtractKinds(extractOrder)) {
     return { files };
@@ -511,7 +518,12 @@ async function resolveExecutionPlan(
     ? parseExtractOptions(args.showOnly, listSupportedExtractKinds(registry))
     : DEFAULT_EXTRACT_ORDER;
 
-  const input = await resolveInputTarget(args, registry, extractOrder);
+  const input = await resolveInputTarget(
+    args,
+    registry,
+    extractOrder,
+    explicitLang,
+  );
 
   return {
     registry,

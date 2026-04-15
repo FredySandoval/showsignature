@@ -350,6 +350,28 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("filters recursive discovery by explicit language", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "export function greet(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "README.md",
+      ["# Title", "", "Body"].join("\n"),
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--lang", "ts"]);
+
+    expect(stdoutBuffer).toBe(
+      ["// src/app.ts", "export function greet(): void;", ""].join("\n"),
+    );
+    expect(stdoutBuffer).not.toContain("// README.md");
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("skips markdown files when default signatures are requested", async () => {
     installOutputCapture();
 
