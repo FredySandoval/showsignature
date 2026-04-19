@@ -233,19 +233,6 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("reads source from piped stdin when --lang-only is provided", async () => {
-    installOutputCapture();
-    installStdin("# Hello\n\n## World\n");
-
-    await buildCli().run(["showcode", "--lang-only", ".md", "--show-only", "md:headings"]);
-
-    expect(stdoutBuffer).toBe(
-      ["// <stdin>.md", "   1 # Hello", "   3 ## World", ""].join("\n"),
-    );
-    expect(stderrBuffer).toBe("");
-    expect(process.exitCode).toBe(0);
-  });
-
   test("throws when --stdin is used without --lang-only", async () => {
     installOutputCapture();
     installStdin("function greet(): void {}\n");
@@ -269,6 +256,47 @@ describe("buildCli", () => {
         "ts",
       ]),
     ).rejects.toThrow("Options --stdin and --file cannot be used together");
+  });
+
+  test("reads piped markdown input without --stdin when extract kinds are markdown-only", async () => {
+    installOutputCapture();
+    installStdin("# Hello\n\n## World\n");
+
+    await buildCli().run(["showcode", "--show-only", "md:headings"]);
+
+    expect(stdoutBuffer).toBe(
+      ["// <stdin>.md", "   1 # Hello", "   3 ## World", ""].join("\n"),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("falls back to cwd discovery when implicit stdin is empty", async () => {
+    installOutputCapture();
+    installStdin("");
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "README.md", "# Title\n\n## Install\n");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--show-only", "md:headings"]);
+
+    expect(stdoutBuffer).toBe(
+      ["// README.md", "   1 # Title", "   3 ## Install", ""].join("\n"),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("throws when implicit stdin has content but its language is ambiguous", async () => {
+    installOutputCapture();
+    installStdin("function greet(): void {}\n");
+
+    await expect(
+      buildCli().run(["showcode", "--show-only", "signatures"]),
+    ).rejects.toThrow(
+      "Could not infer stdin language. Please use --lang-only. Example: --lang-only .ts",
+    );
   });
 
   test("sets exit code and prints pipeline errors for unsupported files", async () => {

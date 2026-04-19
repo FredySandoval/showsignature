@@ -456,14 +456,23 @@ function toStdinVirtualFilePath(lang: string): string {
   return `<stdin>.${normalizeExtension(lang).slice(1)}`;
 }
 
-function shouldReadImplicitStdin(args: ParsedCliArgs): boolean {
-  return (
-    !args.stdin &&
-    !args.file &&
-    !args.folder &&
-    Boolean(args.langOnly?.trim()) &&
-    process.stdin.isTTY !== true
-  );
+function shouldTryImplicitStdin(args: ParsedCliArgs): boolean {
+  return !args.stdin && !args.file && !args.folder && process.stdin.isTTY !== true;
+}
+
+function inferImplicitStdinLanguage(
+  extractOrder: readonly ExtractKind[],
+  explicitLang?: string,
+): string | undefined {
+  if (explicitLang) {
+    return explicitLang;
+  }
+
+  if (usesOnlyMarkdownExtractKinds(extractOrder)) {
+    return "md";
+  }
+
+  return undefined;
 }
 
 async function resolveInputTarget(
@@ -472,7 +481,7 @@ async function resolveInputTarget(
   extractOrder: readonly ExtractKind[],
   explicitLang?: string,
 ): Promise<ResolvedInputTarget> {
-  if (args.stdin || shouldReadImplicitStdin(args)) {
+  if (args.stdin) {
     const stdinLang = explicitLang ?? args.langOnly!.trim();
 
     return {
@@ -480,6 +489,25 @@ async function resolveInputTarget(
       stdinSource: await readStdin(),
       stdinFilePath: toStdinVirtualFilePath(stdinLang),
     };
+  }
+
+  if (shouldTryImplicitStdin(args)) {
+    const stdinSource = await readStdin();
+
+    if (stdinSource.length > 0) {
+      const stdinLang = inferImplicitStdinLanguage(extractOrder, explicitLang);
+      if (!stdinLang) {
+        throw createCliError(
+          "Could not infer stdin language. Please use --lang-only. Example: --lang-only .ts",
+        );
+      }
+
+      return {
+        files: [],
+        stdinSource,
+        stdinFilePath: toStdinVirtualFilePath(stdinLang),
+      };
+    }
   }
 
   if (args.file) {
@@ -598,11 +626,12 @@ async function runPlannedPipeline(
   plan: ExecutionPlan,
 ): Promise<PipelineResult> {
   if (plan.input.stdinSource !== undefined) {
-    const lang = plan.explicitLang;
-    const filePath = plan.input.stdinFilePath ?? toStdinVirtualFilePath(lang!);
-    const adapter = await plan.registry.getOrLoad(lang!);
+    const filePath =
+      plan.input.stdinFilePath ?? toStdinVirtualFilePath(plan.explicitLang!);
+    const lang = plan.explicitLang ?? plan.registry.inferFromFile(filePath);
+    const adapter = lang ? await plan.registry.getOrLoad(lang) : undefined;
 
-    if (!adapter) {
+    if (!adapter || !lang) {
       throw new Error(`Language "${lang}" is not supported`);
     }
 

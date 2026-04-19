@@ -37,8 +37,8 @@ showsignature --file src/example.ts --show-only comments,signatures
 # Read TypeScript from standard input
 cat src/example.ts | showsignature --stdin --lang-only ts
 
-# Or let piped input be picked up automatically when --lang-only is present
-cat src/example.ts | showsignature --lang-only ts
+# Piped Markdown is picked up automatically for markdown-only extract kinds
+cat README.md | showsignature --show-only md:headings
 
 # Scan a folder recursively
 showsignature --folder src --show-only signatures,imports
@@ -114,8 +114,11 @@ When you select multiple kinds, the final output is merged in original source or
 - Use `--file <file>` to process exactly one file.
 - Use `--folder <folder>` to process supported files under a directory recursively.
 - Use `--stdin` to read source from standard input.
-- If standard input is piped in and you provide `--lang-only <lang>`, `showsignature` reads from standard input automatically.
-- If you omit `--file`, `--folder`, and `--stdin`, `showsignature` scans the current working directory recursively.
+- If `--file`, `--folder`, and `--stdin` are omitted, `showsignature` first checks for piped standard input.
+- If piped standard input has content and the language is unambiguous, `showsignature` reads from standard input.
+- Markdown-only extract kinds such as `md:headings` imply Markdown for piped standard input.
+- If piped standard input is empty, `showsignature` scans the current working directory recursively.
+- If piped standard input has content but the language is ambiguous, pass `--lang-only <lang>`.
 - `--file`, `--folder`, and `--stdin` cannot be combined with each other.
 - `--stdin` requires `--lang-only <lang>`.
 - Recursive discovery respects `.gitignore` files.
@@ -131,7 +134,7 @@ When you select multiple kinds, the final output is merged in original source or
 | `--show-only <options>` | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
 | `--file <file>`         | Process a single file.                                                                                                                            |
 | `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
-| `--stdin`               | Read source from standard input. Requires `--lang-only <lang>`. Piped input is also detected automatically when `--lang-only <lang>` is present. |
+| `--stdin`               | Read source from standard input. Requires `--lang-only <lang>`. Use it to force stdin mode even when discovery would otherwise run.              |
 | `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
 | `--output <name>`       | Write the final output to a file.                                                                                                                 |
 | `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |
