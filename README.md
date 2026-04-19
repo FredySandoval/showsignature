@@ -35,7 +35,7 @@ showsignature --file src/example.ts
 showsignature --file src/example.ts --show-only comments,signatures
 
 # Read TypeScript from standard input
-cat src/example.ts | showsignature --stdin --lang ts
+cat src/example.ts | showsignature --stdin --lang-only ts
 
 # Scan a folder recursively
 showsignature --folder src --show-only signatures,imports
@@ -64,9 +64,9 @@ showsignature --folder src --show-only signatures --line-number
 
 ## Supported languages
 
-If `--lang` is omitted, `showsignature` infers the language from the file extension.
+If `--lang-only` is omitted, `showsignature` infers the language from the file extension.
 
-| `--lang` value | Extensions            |
+| `--lang-only` value | Extensions            |
 | -------------- | --------------------- |
 | `ts`           | `.ts`, `.mts`, `.cts` |
 | `js`           | `.js`, `.mjs`, `.cjs` |
@@ -113,7 +113,7 @@ When you select multiple kinds, the final output is merged in original source or
 - Use `--stdin` to read source from standard input.
 - If you omit `--file`, `--folder`, and `--stdin`, `showsignature` scans the current working directory recursively.
 - `--file`, `--folder`, and `--stdin` cannot be combined with each other.
-- `--stdin` requires `--lang <lang>`.
+- `--stdin` requires `--lang-only <lang>`.
 - Recursive discovery respects `.gitignore` files.
 - When every requested extract kind is Markdown-only, discovery scans only `.md` files.
 - Test-like files are excluded during recursive discovery unless you pass `--include-tests`.
@@ -123,11 +123,11 @@ When you select multiple kinds, the final output is merged in original source or
 
 | Option                  | Description                                                                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--lang <lang>`         | Explicitly select a language adapter. If omitted, the adapter is inferred from the file extension.                                                |
+| `--lang-only <lang>`    | Only process files for the provided language. If omitted, the adapter is inferred from the file extension.                                         |
 | `--show-only <options>` | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
 | `--file <file>`         | Process a single file.                                                                                                                            |
 | `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
-| `--stdin`               | Read source from standard input. Requires `--lang <lang>`.                                                                                        |
+| `--stdin`               | Read source from standard input. Requires `--lang-only <lang>`.                                                                                   |
 | `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
 | `--output <name>`       | Write the final output to a file.                                                                                                                 |
 | `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |
@@ -137,7 +137,7 @@ When you select multiple kinds, the final output is merged in original source or
 - Plain output is grouped by file and prefixed with a file header comment.
 - If `--line-number` is enabled, each extracted entry is prefixed with its source line number.
 - If the output path ends in `.md` or `.mdx`, the final result is wrapped in a fenced code block.
-- When all processed files resolve to the same language, or when `--lang` is provided, the Markdown fence is annotated with that language.
+- When all processed files resolve to the same language, or when `--lang-only` is provided, the Markdown fence is annotated with that language.
 - Output files can be written inside the current working directory or inside the system temp directory, such as `/tmp`.
 - If discovery finds no supported files, or if the selected extract kinds produce no entries, the CLI prints nothing.
 

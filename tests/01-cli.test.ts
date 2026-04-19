@@ -208,7 +208,7 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await expect(
-      buildCli().run(["showcode", "--file", "src/app.ts", "--lang", "go"]),
+      buildCli().run(["showcode", "--file", "src/app.ts", "--lang-only", "go"]),
     ).rejects.toThrow("go not supported");
   });
 
@@ -220,11 +220,11 @@ describe("buildCli", () => {
     ).rejects.toThrow("Options --file and --folder cannot be used together");
   });
 
-  test("reads source from stdin when --stdin and --lang are provided", async () => {
+  test("reads source from stdin when --stdin and --lang-only are provided", async () => {
     installOutputCapture();
     installStdin("function greet(name: string): string {\n  return name;\n}\n");
 
-    await buildCli().run(["showcode", "--stdin", "--lang", "ts"]);
+    await buildCli().run(["showcode", "--stdin", "--lang-only", "ts"]);
 
     expect(stdoutBuffer).toBe(
       ["// <stdin>.ts", "function greet(name: string): string;", ""].join("\n"),
@@ -233,12 +233,12 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("throws when --stdin is used without --lang", async () => {
+  test("throws when --stdin is used without --lang-only", async () => {
     installOutputCapture();
     installStdin("function greet(): void {}\n");
 
     await expect(buildCli().run(["showcode", "--stdin"])).rejects.toThrow(
-      "Option --stdin requires --lang",
+      "Option --stdin requires --lang-only",
     );
   });
 
@@ -252,7 +252,7 @@ describe("buildCli", () => {
         "--stdin",
         "--file",
         "src/app.ts",
-        "--lang",
+        "--lang-only",
         "ts",
       ]),
     ).rejects.toThrow("Options --stdin and --file cannot be used together");
@@ -362,7 +362,7 @@ describe("buildCli", () => {
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--lang", "ts"]);
+    await buildCli().run(["showcode", "--lang-only", "ts"]);
 
     expect(stdoutBuffer).toBe(
       ["// src/app.ts", "export function greet(): void;", ""].join("\n"),

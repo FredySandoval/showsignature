@@ -238,8 +238,9 @@ function formatSupportedExtensionsHelp(extensions: readonly string[]): string {
   return [...extensions].sort().join(", ");
 }
 
-function buildLangOptionHelp(extensions: readonly string[]): string {
+function buildLangOnlyOptionHelp(extensions: readonly string[]): string {
   return [
+    "only process files for the provided language",
     "(optional) inferred from file extension if not provided",
     `supported extensions: ${formatSupportedExtensionsHelp(extensions)}`,
   ].join("\n");
@@ -266,13 +267,15 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   const showOnlyOptionHelp = buildShowOnlyOptionHelp(
     listSupportedExtractKinds(registry),
   );
-  const langOptionHelp = buildLangOptionHelp(registry.supportedExtensions());
+  const langOnlyOptionHelp = buildLangOnlyOptionHelp(
+    registry.supportedExtensions(),
+  );
 
   const program = new Command()
     .name(CLI_NAME)
     .usage("[options]")
     .version(CLI_VERSION)
-    .option("--lang <lang>", langOptionHelp)
+    .option("--lang-only <lang>", langOnlyOptionHelp)
     .option("--show-only <options>", showOnlyOptionHelp)
     .option("--file <file>", "process a single file")
     .option(
@@ -328,8 +331,8 @@ function validateCliArgs(args: ParsedCliArgs): void {
     );
   }
 
-  if (args.stdin && !args.lang?.trim()) {
-    throw createCliError("Option --stdin requires --lang");
+  if (args.stdin && !args.langOnly?.trim()) {
+    throw createCliError("Option --stdin requires --lang-only");
   }
 }
 
@@ -463,7 +466,7 @@ async function resolveInputTarget(
     return {
       files: [],
       stdinSource: await readStdin(),
-      stdinFilePath: toStdinVirtualFilePath(args.lang!.trim()),
+      stdinFilePath: toStdinVirtualFilePath(args.langOnly!.trim()),
     };
   }
 
@@ -514,7 +517,7 @@ async function resolveExecutionPlan(
   await validateInputPaths(args);
 
   const registry = buildDefaultRegistry();
-  const rawLang = args.lang?.trim();
+  const rawLang = args.langOnly?.trim();
   const explicitLang = rawLang
     ? resolveLanguageId(registry, rawLang)
     : undefined;

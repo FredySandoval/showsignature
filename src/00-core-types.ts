@@ -230,7 +230,7 @@ export interface ParsedCliArgs {
   file?: string;
   folder?: string;
   stdin: boolean;
-  lang?: string;
+  langOnly?: string;
   showOnly?: string;
   output?: string;
   includeTests: boolean;
