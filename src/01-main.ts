@@ -453,7 +453,17 @@ async function readStdin(): Promise<string> {
 }
 
 function toStdinVirtualFilePath(lang: string): string {
-  return `<stdin>.${lang}`;
+  return `<stdin>.${normalizeExtension(lang).slice(1)}`;
+}
+
+function shouldReadImplicitStdin(args: ParsedCliArgs): boolean {
+  return (
+    !args.stdin &&
+    !args.file &&
+    !args.folder &&
+    Boolean(args.langOnly?.trim()) &&
+    process.stdin.isTTY !== true
+  );
 }
 
 async function resolveInputTarget(
@@ -462,11 +472,13 @@ async function resolveInputTarget(
   extractOrder: readonly ExtractKind[],
   explicitLang?: string,
 ): Promise<ResolvedInputTarget> {
-  if (args.stdin) {
+  if (args.stdin || shouldReadImplicitStdin(args)) {
+    const stdinLang = explicitLang ?? args.langOnly!.trim();
+
     return {
       files: [],
       stdinSource: await readStdin(),
-      stdinFilePath: toStdinVirtualFilePath(args.langOnly!.trim()),
+      stdinFilePath: toStdinVirtualFilePath(stdinLang),
     };
   }
 

@@ -233,6 +233,19 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("reads source from piped stdin when --lang-only is provided", async () => {
+    installOutputCapture();
+    installStdin("# Hello\n\n## World\n");
+
+    await buildCli().run(["showcode", "--lang-only", ".md", "--show-only", "md:headings"]);
+
+    expect(stdoutBuffer).toBe(
+      ["// <stdin>.md", "   1 # Hello", "   3 ## World", ""].join("\n"),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("throws when --stdin is used without --lang-only", async () => {
     installOutputCapture();
     installStdin("function greet(): void {}\n");
