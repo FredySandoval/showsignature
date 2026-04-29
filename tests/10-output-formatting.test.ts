@@ -178,7 +178,7 @@ describe("formatPlainOutput", () => {
     const result = formatPlainOutput([section], { includeLineNumbers: true });
 
     expect(result).toBe(
-      ["// src/app.ts", "  12 function greet(): void;"].join("\n"),
+      ["// src/app.ts", "12 function greet(): void;"].join("\n"),
     );
   });
 
@@ -199,9 +199,9 @@ describe("formatPlainOutput", () => {
     expect(result).toBe(
       [
         "// src/app.ts",
-        "  15 class Command {",
-        "       constructor();",
-        "     }",
+        "15 class Command {",
+        "     constructor();",
+        "   }",
       ].join("\n"),
     );
   });

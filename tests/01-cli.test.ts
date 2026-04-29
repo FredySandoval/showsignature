@@ -96,7 +96,9 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--file", "src/app.ts"]);
 
     expect(stdoutBuffer).toBe(
-      ["// src/app.ts", "function greet(name: string): string;", ""].join("\n"),
+      ["// src/app.ts", "1 function greet(name: string): string;", ""].join(
+        "\n",
+      ),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
@@ -132,8 +134,8 @@ describe("buildCli", () => {
       [
         "```ts",
         "// src/app.ts",
-        "// before",
-        "function greet(): void;",
+        "1 // before",
+        "2 function greet(): void;",
         "```",
       ].join("\n"),
     );
@@ -167,7 +169,7 @@ describe("buildCli", () => {
     );
 
     expect(output).toBe(
-      ["// src/app.ts", "function greet(): void;"].join("\n"),
+      ["// src/app.ts", "1 function greet(): void;"].join("\n"),
     );
     expect(stdoutBuffer).toBe("");
     expect(stderrBuffer).toBe("");
@@ -194,7 +196,7 @@ describe("buildCli", () => {
     ]);
 
     expect(stdoutBuffer).toBe(
-      ["// src/app.ts", "   3 function greet(): void;", ""].join("\n"),
+      ["// src/app.ts", "3 function greet(): void;", ""].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
@@ -227,7 +229,9 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--stdin", "--lang-only", "ts"]);
 
     expect(stdoutBuffer).toBe(
-      ["// <stdin>.ts", "function greet(name: string): string;", ""].join("\n"),
+      ["// <stdin>.ts", "1 function greet(name: string): string;", ""].join(
+        "\n",
+      ),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
@@ -265,7 +269,7 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--show-only", "md:headings"]);
 
     expect(stdoutBuffer).toBe(
-      ["// <stdin>.md", "   1 # Hello", "   3 ## World", ""].join("\n"),
+      ["// <stdin>.md", "1 # Hello", "3 ## World", ""].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
@@ -282,7 +286,7 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--show-only", "md:headings"]);
 
     expect(stdoutBuffer).toBe(
-      ["// README.md", "   1 # Title", "   3 ## Install", ""].join("\n"),
+      ["// README.md", "1 # Title", "3 ## Install", ""].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
@@ -383,7 +387,7 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toBe(
       [
         "// tests/fixtures/example.ts",
-        "function fixtureCase(): void;",
+        "1 function fixtureCase(): void;",
         "",
       ].join("\n"),
     );
@@ -395,7 +399,11 @@ describe("buildCli", () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
-    await writeFixtureFile(rootDir, "src/app.ts", "export function greet(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      "export function greet(): void {}\n",
+    );
     await writeFixtureFile(
       rootDir,
       "README.md",
@@ -406,7 +414,7 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--lang-only", "ts"]);
 
     expect(stdoutBuffer).toBe(
-      ["// src/app.ts", "export function greet(): void;", ""].join("\n"),
+      ["// src/app.ts", "1 export function greet(): void;", ""].join("\n"),
     );
     expect(stdoutBuffer).not.toContain("// README.md");
     expect(stderrBuffer).toBe("");
@@ -450,7 +458,7 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "--file", "README.md", "--show-only=md"]);
 
     expect(stdoutBuffer).toBe(
-      ["// README.md", "# Title", "", "Body", ""].join("\n"),
+      ["// README.md", "1 # Title", "  ", "  Body", ""].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
@@ -475,9 +483,11 @@ describe("buildCli", () => {
     ]);
 
     expect(stdoutBuffer).toBe(
-      ["// README.md", "State update → re-render cache miss → retry", ""].join(
-        "\n",
-      ),
+      [
+        "// README.md",
+        "1 State update → re-render cache miss → retry",
+        "",
+      ].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);

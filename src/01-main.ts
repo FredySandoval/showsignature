@@ -1485,7 +1485,7 @@ function formatEntryLines(
     return content;
   }
 
-  const prefix = `${String(sourceLine).padStart(4, " ")} `;
+  const prefix = `${String(sourceLine)} `;
   const continuationPrefix = " ".repeat(prefix.length);
 
   return lines
