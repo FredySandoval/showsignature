@@ -129,6 +129,42 @@ describe("discoverFiles", () => {
     expect(files).toEqual([topLevel, oneLevel]);
   });
 
+  test("ignores folders by folder name during recursive discovery", async () => {
+    const rootDir = await createTempDir();
+    const registry = createLanguageRegistry();
+    registry.register(createMockAdapter({ id: "ts", extensions: [".ts"] }));
+
+    const kept = await writeFixtureFile(rootDir, "src/keep.ts");
+    await writeFixtureFile(rootDir, "src/generated/drop.ts");
+    await writeFixtureFile(rootDir, "vendor/generated/drop.ts");
+
+    const files = await discoverFiles({
+      registry,
+      folder: rootDir,
+      ignoreFolders: ["generated"],
+    });
+
+    expect(files).toEqual([kept]);
+  });
+
+  test("ignores folders by relative folder path during recursive discovery", async () => {
+    const rootDir = await createTempDir();
+    const registry = createLanguageRegistry();
+    registry.register(createMockAdapter({ id: "ts", extensions: [".ts"] }));
+
+    const keptNested = await writeFixtureFile(rootDir, "src/generated/keep.ts");
+    const keptOther = await writeFixtureFile(rootDir, "src/keep.ts");
+    await writeFixtureFile(rootDir, "vendor/generated/drop.ts");
+
+    const files = await discoverFiles({
+      registry,
+      folder: rootDir,
+      ignoreFolders: ["vendor/generated"],
+    });
+
+    expect(files).toEqual([keptOther, keptNested]);
+  });
+
   test("can include test files when explicitly requested", async () => {
     const rootDir = await createTempDir();
     const registry = createLanguageRegistry();

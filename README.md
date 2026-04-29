@@ -46,6 +46,10 @@ showsignature --folder src --show-only signatures,imports
 # Limit recursive folder scanning depth
 showsignature --folder src --max-depth 2 --show-only signatures
 
+# Ignore a folder by path or name during recursive scanning
+showsignature --folder src --ignore-folder generated --show-only signatures
+showsignature --folder src --ignore-folder vendor/generated --show-only signatures
+
 # Scan the current directory
 showsignature --show-only signatures
 
@@ -126,6 +130,7 @@ When you select multiple kinds, the final output is merged in original source or
 - `--stdin` requires `--lang-only <lang>`.
 - Recursive discovery respects `.gitignore` files.
 - Use `--max-depth <number>` to limit recursive discovery depth for folder scans.
+- Use `--ignore-folder <folder>` to ignore a folder path or folder name during recursive discovery. Repeat the option to ignore multiple folders.
 - When every requested extract kind is Markdown-only, discovery scans only `.md` files.
 - Test-like files are excluded during recursive discovery unless you pass `--include-tests`.
 - An explicit `--file` path is processed directly and is not filtered as a test file.
@@ -140,6 +145,7 @@ When you select multiple kinds, the final output is merged in original source or
 | `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
 | `--stdin`               | Read source from standard input. Requires `--lang-only <lang>`. Use it to force stdin mode even when discovery would otherwise run.               |
 | `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
+| `--ignore-folder <folder>` | Ignore a folder path or folder name during recursive discovery. Repeat to ignore multiple folders.                                             |
 | `--max-depth <number>`  | Limit recursive discovery to the provided non-negative folder depth.                                                                              |
 | `--output <name>`       | Write the final output to a file.                                                                                                                 |
 | `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |

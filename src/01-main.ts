@@ -264,6 +264,10 @@ function formatUnsupportedFileMessage(
   return `File is not supported: could not infer a language from the file name. Supported extensions: ${supportedExtensions}`;
 }
 
+function collectOptionValue(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   const registry = buildDefaultRegistry();
   const showOnlyOptionHelp = buildShowOnlyOptionHelp(
@@ -295,6 +299,12 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "--include-tests",
       "include files under test directories during discovery",
       false,
+    )
+    .option(
+      "--ignore-folder <folder>",
+      "ignore a folder path or folder name during recursive discovery (repeatable)",
+      collectOptionValue,
+      [],
     )
     .option(
       "-n, --line-number",
@@ -545,11 +555,13 @@ async function resolveInputTarget(
           registry,
           folder: args.folder,
           includeTests: args.includeTests,
+          ignoreFolders: args.ignoreFolder ?? [],
           ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
         }
       : {
           registry,
           includeTests: args.includeTests,
+          ignoreFolders: args.ignoreFolder ?? [],
           ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
         },
   );
@@ -1189,6 +1201,37 @@ function inferDirectory(options: DiscoverFilesOptions): string {
   return process.cwd();
 }
 
+function toIgnoredFolderGlobs(
+  ignoredFolders: readonly string[] | undefined,
+  cwd: string,
+): string[] {
+  const globs: string[] = [];
+
+  for (const ignoredFolder of ignoredFolders ?? []) {
+    const trimmed = ignoredFolder.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const normalized = trimmed.replace(/\\/g, "/").replace(/\/+$/u, "");
+    const relative = path.isAbsolute(normalized)
+      ? path.relative(cwd, normalized).replace(/\\/g, "/")
+      : normalized.replace(/^\.\//u, "");
+
+    if (!relative || relative.startsWith("../") || path.isAbsolute(relative)) {
+      continue;
+    }
+
+    globs.push(`${relative}/**`);
+
+    if (!relative.includes("/")) {
+      globs.push(`**/${relative}/**`);
+    }
+  }
+
+  return globs;
+}
+
 export async function discoverFiles(
   options: DiscoverFilesOptions,
 ): Promise<string[]> {
@@ -1211,6 +1254,7 @@ export async function discoverFiles(
     onlyFiles: true,
     followSymbolicLinks: false,
     gitignore: true,
+    ignore: toIgnoredFolderGlobs(options.ignoreFolders, cwd),
     ...(options.maxDepth !== undefined ? { deep: options.maxDepth } : {}),
   });
 
