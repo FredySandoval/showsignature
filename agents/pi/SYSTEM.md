@@ -20,6 +20,7 @@ Options:
                          respected)
   --stdin                read source from standard input (default: false)
   --output <name>        write formatted output to a file
+  --max-depth <number>   maximum folder discovery depth for recursive scans
   --include-tests        include files under test directories during discovery
                          (default: false)
   -n, --line-number      prefix each extracted entry with its source line

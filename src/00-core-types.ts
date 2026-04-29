@@ -158,18 +158,21 @@ export type DiscoverFilesOptions =
       file: string;
       folder?: never;
       includeTests?: boolean;
+      maxDepth?: number;
     }
   | {
       registry: LanguageRegistry;
       folder: string;
       file?: never;
       includeTests?: boolean;
+      maxDepth?: number;
     }
   | {
       registry: LanguageRegistry;
       file?: never;
       folder?: never;
       includeTests?: boolean;
+      maxDepth?: number;
     };
 
 export interface RunPipelineOptions {
@@ -234,6 +237,7 @@ export interface ParsedCliArgs {
   showOnly?: string;
   output?: string;
   includeTests: boolean;
+  maxDepth?: number;
   lineNumber: boolean;
 }
 

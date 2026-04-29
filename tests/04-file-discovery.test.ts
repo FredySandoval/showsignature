@@ -111,6 +111,24 @@ describe("discoverFiles", () => {
     expect(files).toEqual([keepA, keepB].sort());
   });
 
+  test("limits recursive folder discovery with maxDepth", async () => {
+    const rootDir = await createTempDir();
+    const registry = createLanguageRegistry();
+    registry.register(createMockAdapter({ id: "ts", extensions: [".ts"] }));
+
+    const topLevel = await writeFixtureFile(rootDir, "top.ts");
+    const oneLevel = await writeFixtureFile(rootDir, "src/one.ts");
+    await writeFixtureFile(rootDir, "src/nested/two.ts");
+
+    const files = await discoverFiles({
+      registry,
+      folder: rootDir,
+      maxDepth: 2,
+    });
+
+    expect(files).toEqual([topLevel, oneLevel]);
+  });
+
   test("can include test files when explicitly requested", async () => {
     const rootDir = await createTempDir();
     const registry = createLanguageRegistry();

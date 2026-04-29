@@ -43,6 +43,9 @@ cat README.md | showsignature --show-only md:headings
 # Scan a folder recursively
 showsignature --folder src --show-only signatures,imports
 
+# Limit recursive folder scanning depth
+showsignature --folder src --max-depth 2 --show-only signatures
+
 # Scan the current directory
 showsignature --show-only signatures
 
@@ -70,11 +73,11 @@ showsignature --folder src --show-only signatures --line-number
 If `--lang-only` is omitted, `showsignature` infers the language from the file extension.
 
 | `--lang-only` value | Extensions            |
-| -------------- | --------------------- |
-| `ts`           | `.ts`, `.mts`, `.cts` |
-| `js`           | `.js`, `.mjs`, `.cjs` |
-| `py`           | `.py`                 |
-| `md`           | `.md`                 |
+| ------------------- | --------------------- |
+| `ts`                | `.ts`, `.mts`, `.cts` |
+| `js`                | `.js`, `.mjs`, `.cjs` |
+| `py`                | `.py`                 |
+| `md`                | `.md`                 |
 
 ## Extract kinds
 
@@ -122,6 +125,7 @@ When you select multiple kinds, the final output is merged in original source or
 - `--file`, `--folder`, and `--stdin` cannot be combined with each other.
 - `--stdin` requires `--lang-only <lang>`.
 - Recursive discovery respects `.gitignore` files.
+- Use `--max-depth <number>` to limit recursive discovery depth for folder scans.
 - When every requested extract kind is Markdown-only, discovery scans only `.md` files.
 - Test-like files are excluded during recursive discovery unless you pass `--include-tests`.
 - An explicit `--file` path is processed directly and is not filtered as a test file.
@@ -130,12 +134,13 @@ When you select multiple kinds, the final output is merged in original source or
 
 | Option                  | Description                                                                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--lang-only <lang>`    | Only process files for the provided language. If omitted, the adapter is inferred from the file extension.                                         |
+| `--lang-only <lang>`    | Only process files for the provided language. If omitted, the adapter is inferred from the file extension.                                        |
 | `--show-only <options>` | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
 | `--file <file>`         | Process a single file.                                                                                                                            |
 | `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
-| `--stdin`               | Read source from standard input. Requires `--lang-only <lang>`. Use it to force stdin mode even when discovery would otherwise run.              |
+| `--stdin`               | Read source from standard input. Requires `--lang-only <lang>`. Use it to force stdin mode even when discovery would otherwise run.               |
 | `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
+| `--max-depth <number>`  | Limit recursive discovery to the provided non-negative folder depth.                                                                              |
 | `--output <name>`       | Write the final output to a file.                                                                                                                 |
 | `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |
 

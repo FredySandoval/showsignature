@@ -395,6 +395,37 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("limits recursive discovery with --max-depth", async () => {
+    installOutputCapture();
+    installStdin("");
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "top.ts", "function top(): void {}\n");
+    await writeFixtureFile(rootDir, "src/one.ts", "function one(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "src/nested/two.ts",
+      "function two(): void {}\n",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "--max-depth", "2"]);
+
+    expect(stdoutBuffer).toContain("// top.ts");
+    expect(stdoutBuffer).toContain("// src/one.ts");
+    expect(stdoutBuffer).not.toContain("// src/nested/two.ts");
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("throws when --max-depth is not a non-negative integer", async () => {
+    installOutputCapture();
+
+    await expect(
+      buildCli().run(["showcode", "--max-depth", "-1"]),
+    ).rejects.toThrow("Option --max-depth must be a non-negative integer");
+  });
+
   test("filters recursive discovery by explicit language", async () => {
     installOutputCapture();
 
@@ -495,6 +526,7 @@ describe("buildCli", () => {
 
   test("scans only markdown files when only markdown extract kinds are requested", async () => {
     installOutputCapture();
+    installStdin("");
 
     const rootDir = await createTempDir();
     await writeFixtureFile(

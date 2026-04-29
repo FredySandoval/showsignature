@@ -205,7 +205,9 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   const codeKinds = BUILT_IN_EXTRACT_KINDS.filter((kind) =>
     uniqueKinds.includes(kind),
   );
-  const markdownKinds = uniqueKinds.filter((kind) => kind === "md" || kind.startsWith("md:"));
+  const markdownKinds = uniqueKinds.filter(
+    (kind) => kind === "md" || kind.startsWith("md:"),
+  );
   const otherPluginKinds = uniqueKinds
     .filter(
       (kind) =>
@@ -285,6 +287,11 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .option("--stdin", "read source from standard input", false)
     .option("--output <name>", "write formatted output to a file")
     .option(
+      "--max-depth <number>",
+      "maximum folder discovery depth for recursive scans",
+      Number,
+    )
+    .option(
       "--include-tests",
       "include files under test directories during discovery",
       false,
@@ -317,6 +324,13 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
 }
 
 function validateCliArgs(args: ParsedCliArgs): void {
+  if (
+    args.maxDepth !== undefined &&
+    (!Number.isInteger(args.maxDepth) || args.maxDepth < 0)
+  ) {
+    throw createCliError("Option --max-depth must be a non-negative integer");
+  }
+
   if (args.file && args.folder) {
     throw createCliError("Options --file and --folder cannot be used together");
   }
@@ -457,7 +471,9 @@ function toStdinVirtualFilePath(lang: string): string {
 }
 
 function shouldTryImplicitStdin(args: ParsedCliArgs): boolean {
-  return !args.stdin && !args.file && !args.folder && process.stdin.isTTY !== true;
+  return (
+    !args.stdin && !args.file && !args.folder && process.stdin.isTTY !== true
+  );
 }
 
 function inferImplicitStdinLanguage(
@@ -529,8 +545,13 @@ async function resolveInputTarget(
           registry,
           folder: args.folder,
           includeTests: args.includeTests,
+          ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
         }
-      : { registry, includeTests: args.includeTests },
+      : {
+          registry,
+          includeTests: args.includeTests,
+          ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+        },
   );
 
   const files = explicitLang
@@ -1190,6 +1211,7 @@ export async function discoverFiles(
     onlyFiles: true,
     followSymbolicLinks: false,
     gitignore: true,
+    ...(options.maxDepth !== undefined ? { deep: options.maxDepth } : {}),
   });
 
   return (

@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { createBashTool } from "@mariozechner/pi-coding-agent";
 
 const extensionFilePath = fileURLToPath(import.meta.url);
 const extensionFolderPath = path.dirname(extensionFilePath);
