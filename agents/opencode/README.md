@@ -11,6 +11,7 @@ Copy into your project root:
 
 Result:
 Add the plugin to your opencode.json:
+
 ```text
 your-project/
 ├─ opencode.json
@@ -34,8 +35,10 @@ Result:
 ├─ opencode.json
 └─ SYSTEM.md
 ```
+
 ```
 
 ## What this does
 
 `opencode.json` tells OpenCode to load `SYSTEM.md` through the `instructions` setting.
+```

@@ -5,7 +5,10 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 const extensionFilePath = fileURLToPath(import.meta.url);
 const extensionFolderPath = path.dirname(extensionFilePath);
-const webfetchHelp = fs.readFileSync(path.join(extensionFolderPath, "SYSTEM.md"), "utf8");
+const webfetchHelp = fs.readFileSync(
+  path.join(extensionFolderPath, "SYSTEM.md"),
+  "utf8",
+);
 
 export default function ddgExtension(pi: ExtensionAPI) {
   pi.on("before_agent_start", async (event) => {
