@@ -6,7 +6,7 @@ import type {
   ParseContext,
   SingleExtractResult,
 } from "@/src/00-core-types.js";
-import { createLanguageRegistry } from "@/src/01-main.js";
+import { buildDefaultRegistry, createLanguageRegistry } from "@/src/01-main.js";
 
 function createNoopExtractor(kind: ExtractKind) {
   return {
@@ -107,5 +107,13 @@ describe("createLanguageRegistry", () => {
   test("returns undefined from getOrLoad when adapter is unknown", async () => {
     const registry = createLanguageRegistry();
     await expect(registry.getOrLoad("missing")).resolves.toBeUndefined();
+  });
+
+  test("default registry includes Go support", () => {
+    const registry = buildDefaultRegistry();
+
+    expect(registry.has("go")).toBe(true);
+    expect(registry.inferFromFile("/tmp/main.go")).toBe("go");
+    expect(registry.supportedExtensions()).toContain(".go");
   });
 });

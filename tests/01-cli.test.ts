@@ -210,8 +210,8 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await expect(
-      buildCli().run(["showcode", "--file", "src/app.ts", "--lang-only", "go"]),
-    ).rejects.toThrow("go not supported");
+      buildCli().run(["showcode", "--file", "src/app.ts", "--lang-only", "rb"]),
+    ).rejects.toThrow("rb not supported");
   });
 
   test("throws when file and folder are both provided", async () => {
@@ -335,7 +335,7 @@ describe("buildCli", () => {
     expect(stderrBuffer).toContain("File is not supported");
     expect(stderrBuffer).toContain('extension ".tsx" is not supported');
     expect(stderrBuffer).toContain(
-      "Supported extensions: .cjs, .cts, .js, .md, .mjs, .mts, .py, .ts",
+      "Supported extensions: .cjs, .cts, .go, .js, .md, .mjs, .mts, .py, .ts",
     );
     expect(process.exitCode).toBe(1);
   });

@@ -30,6 +30,7 @@ export {
   type ExtractWarning,
   type FileSection,
   type FormatFinalOutputOptions,
+  type GoParseContext,
   type LanguageAdapter,
   type LanguageAdapterMetadata,
   type LanguageRegistry,

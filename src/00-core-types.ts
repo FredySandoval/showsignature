@@ -108,6 +108,11 @@ export interface PyParseContext extends ParseContext {
   readonly lineStarts: readonly number[];
 }
 
+export interface GoParseContext extends ParseContext {
+  readonly lines: readonly string[];
+  readonly lineStarts: readonly number[];
+}
+
 export interface LanguageAdapterMetadata {
   id: string;
   extensions: readonly string[];
