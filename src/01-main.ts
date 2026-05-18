@@ -173,11 +173,7 @@ function normalizeCommanderErrorMessage(message: string): string {
 }
 
 function normalizeExtractKindToken(token: string): string {
-  if (token === "md") {
-    return "md:all";
-  }
-
-  return token === "md:rewrite" ? "md:caveman" : token;
+  return token === "md" ? "md:all" : token;
 }
 
 function isMarkdownExtractKind(kind: ExtractKind): boolean {

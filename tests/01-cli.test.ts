@@ -516,35 +516,6 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("rewrites markdown files when md:caveman is requested", async () => {
-    installOutputCapture();
-
-    const rootDir = await createTempDir();
-    await writeFixtureFile(
-      rootDir,
-      "README.md",
-      "State update leads to re-render and cache miss results in retry.\n",
-    );
-    process.chdir(rootDir);
-
-    await buildCli().run([
-      "showcode",
-      "--file",
-      "README.md",
-      "--show-only=md:caveman",
-    ]);
-
-    expect(stdoutBuffer).toBe(
-      [
-        "// README.md",
-        "1 State update → re-render cache miss → retry",
-        "",
-      ].join("\n"),
-    );
-    expect(stderrBuffer).toBe("");
-    expect(process.exitCode).toBe(0);
-  });
-
   test("scans only markdown files when only markdown extract kinds are requested", async () => {
     installOutputCapture();
     installStdin("");

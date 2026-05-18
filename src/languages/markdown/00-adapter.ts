@@ -6,7 +6,6 @@ import type {
 } from "../../00-core-types.js";
 import { createMarkdownParseContext } from "./01-context.js";
 import {
-  createCavemanExtractor,
   createCodeBlocksExtractor,
   createDocumentExtractor,
   createHeadingsExtractor,
@@ -25,7 +24,6 @@ function buildExtractors(): ReadonlyMap<ExtractKind, Extractor<ParseContext>> {
     createHeadingsExtractor(),
     createTablesExtractor(),
     createCodeBlocksExtractor(),
-    createCavemanExtractor(),
   ];
 
   return new Map(extractors.map((extractor) => [extractor.kind, extractor]));

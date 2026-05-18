@@ -59,9 +59,6 @@ showsignature --file README.md --show-only md:all
 # Extract Markdown headings
 showsignature --file README.md --show-only md:headings
 
-# Run the caveman Markdown rewrite
-showsignature --file README.md --show-only md:caveman
-
 # Include test fixtures during discovery
 showsignature --folder tests/fixtures --include-tests --show-only signatures
 
@@ -98,19 +95,18 @@ If `--lang-only` is omitted, `showsignature` infers the language from the file e
 
 ### Markdown extract kinds
 
-| Kind            | Description                          |
-| --------------- | ------------------------------------ |
-| `md:all`        | Full Markdown document output        |
-| `md:headings`   | Markdown headings                    |
-| `md:tables`     | Markdown tables                      |
-| `md:codeblocks` | Markdown fenced code blocks          |
-| `md:caveman`    | Full-document caveman rewrite output |
+| Kind            | Description                   |
+| --------------- | ----------------------------- |
+| `md:all`        | Full Markdown document output |
+| `md:headings`   | Markdown headings             |
+| `md:tables`     | Markdown tables               |
+| `md:codeblocks` | Markdown fenced code blocks   |
 
 `--show-only` accepts a comma-separated list of extract kinds.
 
 Default: `signatures`
 
-That default targets code structure. Markdown files only produce output when you request a markdown extract kind such as `md:all`, `md:headings`, or `md:caveman`.
+That default targets code structure. Markdown files only produce output when you request a markdown extract kind such as `md:all`, `md:headings`, or `md:tables`.
 
 When you select multiple kinds, the final output is merged in original source order.
 
@@ -137,18 +133,18 @@ When you select multiple kinds, the final output is merged in original source or
 
 ### Options
 
-| Option                  | Description                                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--lang-only <lang>`    | Only process files for the provided language. If omitted, the adapter is inferred from the file extension.                                        |
-| `--show-only <options>` | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
-| `--file <file>`         | Process a single file.                                                                                                                            |
-| `--folder <folder>`     | Process supported files from a folder recursively.                                                                                                |
-| `--stdin`               | Read source from standard input. Requires `--lang-only <lang>`. Use it to force stdin mode even when discovery would otherwise run.               |
-| `--include-tests`       | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
-| `--ignore-folder <folder>` | Ignore a folder path or folder name during recursive discovery. Repeat to ignore multiple folders.                                             |
-| `--max-depth <number>`  | Limit recursive discovery to the provided non-negative folder depth.                                                                              |
-| `--output <name>`       | Write the final output to a file.                                                                                                                 |
-| `-n, --line-number`     | Prefix each extracted entry with its source line number.                                                                                          |
+| Option                     | Description                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--lang-only <lang>`       | Only process files for the provided language. If omitted, the adapter is inferred from the file extension.                                        |
+| `--show-only <options>`    | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
+| `--file <file>`            | Process a single file.                                                                                                                            |
+| `--folder <folder>`        | Process supported files from a folder recursively.                                                                                                |
+| `--stdin`                  | Read source from standard input. Requires `--lang-only <lang>`. Use it to force stdin mode even when discovery would otherwise run.               |
+| `--include-tests`          | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
+| `--ignore-folder <folder>` | Ignore a folder path or folder name during recursive discovery. Repeat to ignore multiple folders.                                                |
+| `--max-depth <number>`     | Limit recursive discovery to the provided non-negative folder depth.                                                                              |
+| `--output <name>`          | Write the final output to a file.                                                                                                                 |
+| `-n, --line-number`        | Prefix each extracted entry with its source line number.                                                                                          |
 
 ### Output behavior
 
@@ -213,28 +209,6 @@ Output:
 | Name | Value |
 | ---- | ----- |
 | API  | ready |
-```
-
-### Markdown caveman rewrite
-
-Input:
-
-<!-- prettier-ignore -->
-```md
-# The API Guide
-
-- The guide is basically here: [The API Guide](https://example.com/docs).
-> The API is basically slow because it renders everything.
-```
-
-Output:
-
-<!-- prettier-ignore -->
-```md
-# API Guide
-
-- guide is here: [The API Guide](https://example.com/docs)
-> API is slow. it renders everything
 ```
 
 ### Function signatures
@@ -431,8 +405,6 @@ pnpm clean
 - Built-in extraction support covers TypeScript, JavaScript, Python, and Markdown files.
 - Python currently focuses on functions, classes, methods, variables, comments, and imports.
 - Python does not currently implement `interfaces` or `types` extraction.
-- Markdown support uses the markdown extract kinds `md:all`, `md:headings`, `md:tables`, `md:codeblocks`, and `md:caveman`.
-- `md:caveman` simplifies the full document through the `cavemants` rewriter in `ultra` mode.
+- Markdown support uses the markdown extract kinds `md:all`, `md:headings`, `md:tables`, and `md:codeblocks`.
 - `md` is kept as a compatibility alias for `md:all`.
-- `md:rewrite` is kept as a compatibility alias for `md:caveman`.
 - Folder scanning respects `.gitignore`.

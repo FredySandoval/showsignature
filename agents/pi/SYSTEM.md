@@ -1,4 +1,5 @@
 To quickly explore a project use the bash command `showsignature`
+
 ```sh
 $ showsignature --help
 Usage: showsignature [options]
@@ -10,7 +11,7 @@ Options:
                             supported extensions: .cjs, .cts, .js, .md, .mjs, .mts, .py, .ts
   --show-only <options>     comma-separated extract kinds to include
                             code: signatures, interfaces, types, variables, comments, imports
-                            markdown: md:all, md:caveman, md:codeblocks, md:headings, md:tables (legacy alias: md -> md:all)
+                            markdown: md:all, md:codeblocks, md:headings, md:tables (legacy alias: md -> md:all)
                             default: signatures --line-number
   --file <file>             process a single file
   --folder <folder>         process files from a folder (.gitignore files are respected)

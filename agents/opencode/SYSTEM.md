@@ -1,4 +1,5 @@
 To quickly explore a project use the bash command `showsignature`
+
 ```sh
 $ showsignature --help
 Usage: showsignature [options]
@@ -6,7 +7,7 @@ Usage: showsignature [options]
 Options:
   --show-only <options>  comma-separated extract kinds to include
                          code: signatures, interfaces, types, variables, comments, imports
-                         markdown: md:all, md:caveman, md:codeblocks, md:headings, md:tables
+                         markdown: md:all, md:codeblocks, md:headings, md:tables
                          default: signatures
   --file <file>          process a single file
   --folder <folder>      process files from a folder (.gitignore files are respected)

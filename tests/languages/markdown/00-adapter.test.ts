@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test";
 import { PluginExtractKind } from "@/src/00-core-types.js";
 import { createMarkdownAdapter } from "@/src/languages/markdown/00-adapter.js";
 import {
-  MARKDOWN_CAVEMAN_KIND,
   MARKDOWN_CODEBLOCKS_KIND,
   MARKDOWN_DOCUMENT_KIND,
   MARKDOWN_HEADINGS_KIND,
@@ -30,7 +29,6 @@ describe("createMarkdownAdapter", () => {
       MARKDOWN_HEADINGS_KIND,
       MARKDOWN_TABLES_KIND,
       MARKDOWN_CODEBLOCKS_KIND,
-      MARKDOWN_CAVEMAN_KIND,
     ]);
   });
 
