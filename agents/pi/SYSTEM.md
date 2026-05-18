@@ -22,3 +22,19 @@ Options:
   -n, --line-number         prefix each extracted entry with its source line number (default: true)
   -h, --help                display help for command
 ```
+
+```sh
+showsignature --file src/utils/parser.ts
+showsignature --folder ./src
+cat src/index.ts | showsignature --stdin --lang-only ts
+showsignature --folder . --show-only imports
+showsignature --folder ./src --show-only interfaces,types
+showsignature --file src/config.ts --show-only variables
+showsignature --folder ./src --show-only signatures,interfaces,types,variables,comments,imports
+showsignature --folder ./docs --show-only md:headings
+showsignature --file README.md --show-only md:codeblocks
+showsignature --folder ./docs --show-only md:tables
+showsignature --folder . --lang-only py
+showsignature --folder . --max-depth 2
+showsignature --folder ./src --include-tests
+```
