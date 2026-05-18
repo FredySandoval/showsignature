@@ -2,7 +2,7 @@
 
 Extract structure from source files and turn them into clean, readable artifacts.
 
-`showsignature` is a CLI and library for extracting high-signal structure from TypeScript, JavaScript, Python, and Markdown files. It can pull signatures, interfaces, type aliases, variables, comments, imports, and markdown-specific structure, then emit the result in source order across one file or many.
+`showsignature` is a CLI and library for extracting high-signal structure from TypeScript, JavaScript, Go, Python, and Markdown files. It can pull signatures, interfaces, type aliases, variables, comments, imports, and markdown-specific structure, then emit the result in source order across one file or many.
 
 ## Quick start
 
@@ -36,6 +36,9 @@ showsignature --file src/example.ts --show-only comments,signatures
 
 # Read TypeScript from standard input
 cat src/example.ts | showsignature --stdin --lang-only ts
+
+# Extract Go signatures and imports
+showsignature --file cmd/server/main.go --show-only signatures,imports
 
 # Piped Markdown is picked up automatically for markdown-only extract kinds
 cat README.md | showsignature --show-only md:headings
@@ -77,6 +80,7 @@ If `--lang-only` is omitted, `showsignature` infers the language from the file e
 | ------------------- | --------------------- |
 | `ts`                | `.ts`, `.mts`, `.cts` |
 | `js`                | `.js`, `.mjs`, `.cjs` |
+| `go`                | `.go`                 |
 | `py`                | `.py`                 |
 | `md`                | `.md`                 |
 
@@ -402,7 +406,8 @@ pnpm clean
 
 ## Notes
 
-- Built-in extraction support covers TypeScript, JavaScript, Python, and Markdown files.
+- Built-in extraction support covers TypeScript, JavaScript, Go, Python, and Markdown files.
+- Go support covers functions, methods, interfaces, type declarations, variables/constants, comments, and imports.
 - Python currently focuses on functions, classes, methods, variables, comments, and imports.
 - Python does not currently implement `interfaces` or `types` extraction.
 - Markdown support uses the markdown extract kinds `md:all`, `md:headings`, `md:tables`, and `md:codeblocks`.
