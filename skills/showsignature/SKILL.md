@@ -1,9 +1,13 @@
 ---
 name: showsignature
 description: Fastest path for understanding an unfamiliar codebase by extracting compact structural signatures from key source files; use immediately before summarizing project architecture, entry points, modules, functions/classes, imports, or APIs.
-allowed-tools:
-  - Bash(showsignature *)
-  - Bash(npx showsignature *)
+license: ISC
+compatibility: Requires Node.js. Written in TypeScript and built to JavaScript; no native binary is bundled.
+metadata:
+  author: FredySandoval
+  source_repository: https://github.com/FredySandoval/showsignature
+  npm_package: showsignature
+allowed-tools: Bash(showsignature:*)
 ---
 
 # showsignature skill guide
