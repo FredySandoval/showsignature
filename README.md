@@ -1,8 +1,39 @@
 # showsignature
 
-Extract structure from source files and turn them into clean, readable artifacts.
+`showsignature` is a small command-line tool that reads code and shows only the important structure.
 
-`showsignature` is a CLI and library for extracting high-signal structure from TypeScript, JavaScript, Go, Python, and Markdown files. It can pull signatures, interfaces, type aliases, variables, comments, imports, and markdown-specific structure, then emit the result in source order across one file or many.
+Instead of opening a huge file and scrolling through all the implementation details, you can ask `showsignature` to show things like:
+
+- function and class signatures
+- imports
+- types and interfaces
+- variables
+- comments
+- Markdown headings, tables, or code blocks
+
+It is useful when you want to quickly understand a project, review a file, or give an AI assistant a clean summary of your code.
+
+## Why use it?
+
+Large files are noisy. Most of the time, you first want to know:
+
+- What functions exist?
+- What classes exist?
+- What does this file export?
+- What does this folder contain?
+- What are the main headings in this Markdown file?
+
+`showsignature` extracts that high-level shape for you.
+
+## Supported files
+
+`showsignature` works with:
+
+- TypeScript: `.ts`, `.mts`, `.cts`
+- JavaScript: `.js`, `.mjs`, `.cjs`
+- Go: `.go`
+- Python: `.py`
+- Markdown: `.md`
 
 ## Quick start
 
@@ -13,403 +44,195 @@ pnpm install
 pnpm build
 ```
 
-Run the built CLI locally:
+Run it locally:
 
 ```bash
 node dist/02-cli.js --help
 ```
 
-Or, if the package is installed in your environment:
+If `showsignature` is already installed in your environment, you can run:
 
 ```bash
 showsignature --help
 ```
 
-## Common commands
+## Most useful commands
+
+### See the structure of one file
 
 ```bash
-# Extract default signatures from one file
 showsignature --file src/example.ts
+```
 
-# Extract comments and signatures from one file
-showsignature --file src/example.ts --show-only comments,signatures
+By default, this shows function, class, method, and constructor signatures.
 
-# Read TypeScript from standard input
-cat src/example.ts | showsignature --stdin --lang-only ts
+### See the structure of a whole folder
 
-# Extract Go signatures and imports
-showsignature --file cmd/server/main.go --show-only signatures,imports
+```bash
+showsignature --folder src
+```
 
-# Piped Markdown is picked up automatically for markdown-only extract kinds
-cat README.md | showsignature --show-only md:headings
+This scans supported files under `src` and prints their structure.
 
-# Scan a folder recursively
+### Show imports too
+
+```bash
 showsignature --folder src --show-only signatures,imports
+```
 
-# Limit recursive folder scanning depth
-showsignature --folder src --max-depth 2 --show-only signatures
+Useful when you want to understand what files depend on.
 
-# Ignore a folder by path or name during recursive scanning
-showsignature --folder src --ignore-folder generated --show-only signatures
-showsignature --folder src --ignore-folder vendor/generated --show-only signatures
+### Show types and interfaces
 
-# Scan the current directory
-showsignature --show-only signatures
+```bash
+showsignature --folder src --show-only interfaces,types
+```
 
-# Extract a full Markdown file
-showsignature --file README.md --show-only md:all
+Useful in TypeScript projects when you want to understand the data shapes.
 
-# Extract Markdown headings
+### Show comments and signatures
+
+```bash
+showsignature --file src/example.ts --show-only comments,signatures
+```
+
+Useful when comments explain the intent of the code.
+
+### Save the result to a file
+
+```bash
+showsignature --folder src --show-only signatures,imports --output structure.md
+```
+
+This creates a readable summary file that you can share, review, or paste into an AI tool.
+
+### Read from standard input
+
+```bash
+cat src/example.ts | showsignature --stdin --lang-only ts
+```
+
+Use this when you want to pipe content directly into `showsignature`.
+
+## Markdown examples
+
+### Show only Markdown headings
+
+```bash
 showsignature --file README.md --show-only md:headings
-
-# Include test fixtures during discovery
-showsignature --folder tests/fixtures --include-tests --show-only signatures
-
-# Write Markdown output
-showsignature --folder src --show-only comments,signatures --output structure.md
-
-# Include source line numbers
-showsignature --folder src --show-only signatures --line-number
 ```
 
-## Supported languages
+### Show Markdown code blocks
 
-If `--lang-only` is omitted, `showsignature` infers the language from the file extension.
+```bash
+showsignature --file README.md --show-only md:codeblocks
+```
 
-| `--lang-only` value | Extensions            |
-| ------------------- | --------------------- |
-| `ts`                | `.ts`, `.mts`, `.cts` |
-| `js`                | `.js`, `.mjs`, `.cjs` |
-| `go`                | `.go`                 |
-| `py`                | `.py`                 |
-| `md`                | `.md`                 |
+### Show the full Markdown file
 
-## Extract kinds
+```bash
+showsignature --file README.md --show-only md:all
+```
 
-### Code extract kinds
+## What can `--show-only` extract?
 
-| Kind         | Description                                         |
-| ------------ | --------------------------------------------------- |
-| `signatures` | Function, method, constructor, and class signatures |
-| `interfaces` | Interface declarations                              |
-| `types`      | Type alias declarations                             |
-| `variables`  | Variable declarations                               |
-| `comments`   | Comment blocks and line comments                    |
-| `imports`    | Import declarations                                 |
+For code files:
 
-### Markdown extract kinds
+| Option       | What it shows                                 |
+| ------------ | --------------------------------------------- |
+| `signatures` | Functions, methods, constructors, and classes |
+| `imports`    | Import statements                             |
+| `interfaces` | TypeScript or Go interfaces                   |
+| `types`      | Type aliases or type declarations             |
+| `variables`  | Variables and constants                       |
+| `comments`   | Code comments                                 |
 
-| Kind            | Description                   |
-| --------------- | ----------------------------- |
-| `md:all`        | Full Markdown document output |
-| `md:headings`   | Markdown headings             |
-| `md:tables`     | Markdown tables               |
-| `md:codeblocks` | Markdown fenced code blocks   |
+For Markdown files:
 
-`--show-only` accepts a comma-separated list of extract kinds.
+| Option          | What it shows                            |
+| --------------- | ---------------------------------------- |
+| `md:headings`   | Headings like `# Title` and `## Section` |
+| `md:tables`     | Markdown tables                          |
+| `md:codeblocks` | Fenced code blocks                       |
+| `md:all`        | The full Markdown document               |
 
-Default: `signatures`
+You can combine multiple options with commas:
 
-That default targets code structure. Markdown files only produce output when you request a markdown extract kind such as `md:all`, `md:headings`, or `md:tables`.
+```bash
+showsignature --folder src --show-only signatures,imports,comments
+```
 
-When you select multiple kinds, the final output is merged in original source order.
+## Example
 
-## CLI reference
-
-### Input rules
-
-- Use `--file <file>` to process exactly one file.
-- Use `--folder <folder>` to process supported files under a directory recursively.
-- Use `--stdin` to read source from standard input.
-- If `--file`, `--folder`, and `--stdin` are omitted, `showsignature` first checks for piped standard input.
-- If piped standard input has content and the language is unambiguous, `showsignature` reads from standard input.
-- Markdown-only extract kinds such as `md:headings` imply Markdown for piped standard input.
-- If piped standard input is empty, `showsignature` scans the current working directory recursively.
-- If piped standard input has content but the language is ambiguous, pass `--lang-only <lang>`.
-- `--file`, `--folder`, and `--stdin` cannot be combined with each other.
-- `--stdin` requires `--lang-only <lang>`.
-- Recursive discovery respects `.gitignore` files.
-- Use `--max-depth <number>` to limit recursive discovery depth for folder scans.
-- Use `--ignore-folder <folder>` to ignore a folder path or folder name during recursive discovery. Repeat the option to ignore multiple folders.
-- When every requested extract kind is Markdown-only, discovery scans only `.md` files.
-- Test-like files are excluded during recursive discovery unless you pass `--include-tests`.
-- An explicit `--file` path is processed directly and is not filtered as a test file.
-
-### Options
-
-| Option                     | Description                                                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--lang-only <lang>`       | Only process files for the provided language. If omitted, the adapter is inferred from the file extension.                                        |
-| `--show-only <options>`    | Comma-separated extract kinds to include. Default: `signatures`.                                                                                  |
-| `--file <file>`            | Process a single file.                                                                                                                            |
-| `--folder <folder>`        | Process supported files from a folder recursively.                                                                                                |
-| `--stdin`                  | Read source from standard input. Requires `--lang-only <lang>`. Use it to force stdin mode even when discovery would otherwise run.               |
-| `--include-tests`          | Include files from `test`, `tests`, and `__tests__` directories, plus common `*.test.*` and `*.spec.*` file patterns, during recursive discovery. |
-| `--ignore-folder <folder>` | Ignore a folder path or folder name during recursive discovery. Repeat to ignore multiple folders.                                                |
-| `--max-depth <number>`     | Limit recursive discovery to the provided non-negative folder depth.                                                                              |
-| `--output <name>`          | Write the final output to a file.                                                                                                                 |
-| `-n, --line-number`        | Prefix each extracted entry with its source line number.                                                                                          |
-
-### Output behavior
-
-- Plain output is grouped by file and prefixed with a file header comment.
-- If `--line-number` is enabled, each extracted entry is prefixed with its source line number.
-- If the output path ends in `.md` or `.mdx`, the final result is wrapped in a fenced code block.
-- When all processed files resolve to the same language, or when `--lang-only` is provided, the Markdown fence is annotated with that language.
-- Output files can be written inside the current working directory or inside the system temp directory, such as `/tmp`.
-- If discovery finds no supported files, or if the selected extract kinds produce no entries, the CLI prints nothing.
-
-## Output format
-
-Plain output is grouped by file and prefixed with a file header comment:
+Given this TypeScript file:
 
 ```ts
-// src/example.ts
-export function greet(name: string): string;
-```
+import fs from "node:fs";
 
-When `--line-number` is enabled, each extracted entry is prefixed with its source line number:
+export class UserService {
+  constructor(private db: Database) {}
 
-```ts
-// src/example.ts
-  12 export function greet(name: string): string;
-```
-
-If the output file ends in `.md` or `.mdx`, the result is wrapped in a fenced code block. When all processed files resolve to the same language, the fence is annotated accordingly.
-
-## Extraction examples
-
-### Markdown headings
-
-Input:
-
-```md
-# API Guide
-
-## Install
-```
-
-Output:
-
-```md
-# API Guide
-
-## Install
-```
-
-### Markdown tables
-
-Input:
-
-```md
-| Name | Value |
-| ---- | ----- |
-| API  | ready |
-```
-
-Output:
-
-```md
-| Name | Value |
-| ---- | ----- |
-| API  | ready |
-```
-
-### Function signatures
-
-Input:
-
-```ts
-function printUserInfo<T extends User>(user: T): void {
-  console.log(user);
-}
-```
-
-Output:
-
-```ts
-function printUserInfo<T extends User>(user: T): void;
-```
-
-### Method signatures
-
-Input:
-
-```ts
-getProfile(): string {
-  return "something";
-}
-```
-
-Output:
-
-```ts
-getProfile(): string;
-```
-
-### Constructor signatures
-
-Input:
-
-```ts
-constructor(public id: number) {}
-```
-
-Output:
-
-```ts
-constructor(public id: number);
-```
-
-### Class signatures
-
-Input:
-
-```ts
-export class UserAccount implements User {
-  constructor(public id: number) {}
-
-  getProfile(): string {
-    return "ok";
+  async findUser(id: string): Promise<User> {
+    return this.db.users.find(id);
   }
 }
 ```
 
-Output:
+`showsignature` outputs the important shape:
 
 ```ts
-export class UserAccount implements User {
-  constructor(public id: number);
-  getProfile(): string;
+import fs from "node:fs";
+
+export class UserService {
+  constructor(private db: Database);
+  async findUser(id: string): Promise<User>;
 }
 ```
 
-### Variables
+You see what exists without reading all the implementation code.
 
-Input:
+## Common workflow
 
-```ts
-export const API_URL = "https://example.com";
-let cache: Map<string, User> = new Map();
-const settings = { theme: "dark", compact: true };
+A simple way to use this tool when exploring a project:
+
+```bash
+# 1. Look at the main source folder
+showsignature --folder src
+
+# 2. Include imports to understand dependencies
+showsignature --folder src --show-only signatures,imports
+
+# 3. Save a summary
+showsignature --folder src --show-only signatures,imports --output structure.md
 ```
 
-Output:
+## Helpful options
 
-```ts
-export const API_URL = "https://example.com";
-let cache: Map<string, User> = ...;
-const settings = {...};
-```
-
-### Comments
-
-Input:
-
-```ts
-// Env setup
-const api = createApi();
-
-/*
-  Retry settings
-*/
-api.connect();
-```
-
-Output:
-
-```ts
-// Env setup
-/*
-  Retry settings
-*/
-```
-
-### Imports
-
-Input:
-
-```ts
-import fs from "node:fs";
-import { readFile } from "node:fs/promises";
-import type { User } from "./types";
-```
-
-Output:
-
-```ts
-import fs from "node:fs";
-import { readFile } from "node:fs/promises";
-import type { User } from "./types";
-```
-
-## Library usage
-
-The package also exports the core pipeline utilities.
-
-```ts
-import {
-  buildDefaultRegistry,
-  formatFinalOutput,
-  runPipeline,
-} from "showsignature";
-
-const registry = buildDefaultRegistry();
-
-const result = await runPipeline({
-  registry,
-  files: ["src/example.ts"],
-  extractOrder: ["signatures", "comments"],
-});
-
-const output = formatFinalOutput({
-  registry,
-  sections: result.sections,
-  seenLangs: result.meta.seenLangs,
-});
-```
-
-## Public API
-
-Core exports include:
-
-- `buildCli`
-- `runCli`
-- `createLanguageRegistry`
-- `buildDefaultRegistry`
-- `discoverFiles`
-- `getSupportedGlobs`
-- `isTestFile`
-- `extractFromSource`
-- `processFile`
-- `runPipeline`
-- `detectFenceLanguage`
-- `formatPlainOutput`
-- `formatFinalOutput`
-- `toDisplayPath`
-- `toMarkdownCodeBlock`
-- `BUILT_IN_EXTRACT_KINDS`
-- related public types from `src/00-core-types.ts`
+| Option                     | Use it when...                                         |
+| -------------------------- | ------------------------------------------------------ |
+| `--file <file>`            | You want to inspect one file                           |
+| `--folder <folder>`        | You want to inspect a folder                           |
+| `--show-only <items>`      | You want specific information                          |
+| `--output <file>`          | You want to save the result                            |
+| `--lang-only <lang>`       | You are reading from stdin or want to force a language |
+| `--max-depth <number>`     | You want to limit folder scanning depth                |
+| `--ignore-folder <folder>` | You want to skip a folder                              |
+| `--include-tests`          | You want to include test files                         |
 
 ## Development
 
-Scripts from `package.json`:
+Useful commands for contributors:
 
 ```bash
 pnpm build
-pnpm typecheck
 pnpm test
+pnpm typecheck
 pnpm format
-pnpm dedupe
-pnpm clean
 ```
 
 ## Notes
 
-- Built-in extraction support covers TypeScript, JavaScript, Go, Python, and Markdown files.
-- Go support covers functions, methods, interfaces, type declarations, variables/constants, comments, and imports.
-- Python currently focuses on functions, classes, methods, variables, comments, and imports.
-- Python does not currently implement `interfaces` or `types` extraction.
-- Markdown support uses the markdown extract kinds `md:all`, `md:headings`, `md:tables`, and `md:codeblocks`.
-- `md` is kept as a compatibility alias for `md:all`.
-- Folder scanning respects `.gitignore`.
+- Folder scans respect `.gitignore`.
+- Test files are skipped by default during folder scans. Use `--include-tests` to include them.
+- If no input is provided, `showsignature` scans the current directory.
+- The default extraction mode is `signatures`.
