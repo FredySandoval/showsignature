@@ -8,14 +8,47 @@ A CLI that extracts the useful structure from source files: signatures, imports,
 
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
-## Quickstart
+## Quickstart installation
 
 ```bash
-pnpm install
-pnpm build
-node dist/02-cli.js --folder src --show-only signatures,imports
+# Add as skill for all agents
+npx skills add https://github.com/FredySandoval/showsignature --skill showsignature
 ```
 
+```bash
+# use without installing it
+npx showsignature --help
+```
+
+```bash
+# global install
+npm install -g showsignature
+```
+
+Pi package install from npm:
+
+```bash
+pi install npm:showsignature
+```
+
+Pi package install from GitHub:
+
+```bash
+pi install git:github.com/FredySandoval/showsignature
+pi install https://github.com/FredySandoval/showsignature
+```
+
+From source:
+
+```bash
+git clone https://github.com/FredySandoval/showsignature.git
+cd showsignature
+pnpm install
+pnpm build
+pnpm add -g .
+```
+
+Requires Node.js 18+.
 
 ## Why?
 
@@ -30,37 +63,7 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 
 Global npm install:
 
-```bash
-npm install -g showsignature
-showsignature --help
-```
 
-Pi package install from npm:
-
-```bash
-pi install npm:showsignature
-# or pin a version
-pi install npm:showsignature@0.1.0
-```
-
-Pi package install from GitHub:
-
-```bash
-pi install git:github.com/FredySandoval/showsignature@v0.1.0
-pi install https://github.com/FredySandoval/showsignature
-```
-
-From source:
-
-```bash
-git clone https://github.com/FredySandoval/showsignature.git
-cd showsignature
-pnpm install
-pnpm build
-node dist/02-cli.js --help
-```
-
-Requires Node.js 18+.
 
 ## Usage
 
