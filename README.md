@@ -38,14 +38,14 @@ pi install git:github.com/FredySandoval/showsignature
 pi install https://github.com/FredySandoval/showsignature
 ```
 
-From source:
+From source development:
 
 ```bash
 git clone https://github.com/FredySandoval/showsignature.git
 cd showsignature
 pnpm install
 pnpm build
-pnpm add -g .
+pnpm link --global
 ```
 
 Requires Node.js 18+.
