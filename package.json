@@ -7,14 +7,14 @@
     "skills": [
       "./skills"
     ],
-    "image": "https://github.com/FredySandoval/showsignature/raw/refs/heads/main/skills/showsignature/showsignature-screenshot-1.png"
+    "image": "https://github.com/FredySandoval/showsignature/raw/refs/heads/main/demo.png"
   },
   "bin": {
     "showsignature": "./dist/02-cli.js"
   },
   "files": [
     "dist",
-    "skills",
+    "skills/showsignature/SKILL.md",
     "LICENSE",
     "README.md"
   ],

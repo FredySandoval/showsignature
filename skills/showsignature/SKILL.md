@@ -1,6 +1,9 @@
 ---
 name: showsignature
 description: Fastest path for understanding an unfamiliar codebase by extracting compact structural signatures from key source files; use immediately before summarizing project architecture, entry points, modules, functions/classes, imports, or APIs.
+allowed-tools:
+  - Bash(showsignature *)
+  - Bash(npx showsignature *)
 ---
 
 # showsignature skill guide
