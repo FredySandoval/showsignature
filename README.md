@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/showsignature-screenshot-1.png" alt="showsignature terminal demo" />
+  <img src="skills/showsignature/showsignature-screenshot-1.png" alt="showsignature terminal demo" />
 </p>
 
 # showsignature
