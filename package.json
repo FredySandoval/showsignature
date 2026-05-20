@@ -57,6 +57,7 @@
     "url": "https://github.com/FredySandoval/showsignature/issues"
   },
   "dependencies": {
+    "typescript": "6.0.2",
     "commander": "10.0.0",
     "globby": "^16.2.0"
   },
@@ -64,8 +65,7 @@
     "@mariozechner/pi-coding-agent": "^0.70.6",
     "@types/bun": "1.3.10",
     "@typescript/native-preview": "7.0.0-dev.20260331.1",
-    "prettier": "3.8.1",
-    "typescript": "6.0.2"
+    "prettier": "3.8.1"
   },
   "packageManager": "pnpm@10.31.0",
   "engines": {
