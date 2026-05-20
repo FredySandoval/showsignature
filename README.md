@@ -9,36 +9,24 @@ A CLI that extracts the useful structure from source files: signatures, imports,
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
 ## Installation
-
+### Step 1 Add the skill
 ```bash
-# Add as skill for all agents
+# install in pi
+pi install npm:showsignature
+pi install git:github.com/FredySandoval/showsignature
+pi install https://github.com/FredySandoval/showsignature
+
+# All agents
 npx skills add https://github.com/FredySandoval/showsignature --skill showsignature
 ```
 
-```bash
-# use without installing it
-npx showsignature --help
-```
-
+### Step 2. Install the bash script
 ```bash
 # global install
 npm install -g showsignature
 ```
 
-Pi package install from npm:
-
-```bash
-pi install npm:showsignature
-```
-
-Pi package install from GitHub:
-
-```bash
-pi install git:github.com/FredySandoval/showsignature
-pi install https://github.com/FredySandoval/showsignature
-```
-
-From source development:
+From source for development:
 
 ```bash
 git clone https://github.com/FredySandoval/showsignature.git
@@ -46,6 +34,11 @@ cd showsignature
 pnpm install
 pnpm build
 pnpm link --global
+```
+
+```bash
+# use without installing it
+npx showsignature --help
 ```
 
 Requires Node.js 18+.
