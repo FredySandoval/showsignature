@@ -28,6 +28,28 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 
 ## Install
 
+Global npm install:
+
+```bash
+npm install -g showsignature
+showsignature --help
+```
+
+Pi package install from npm:
+
+```bash
+pi install npm:showsignature
+# or pin a version
+pi install npm:showsignature@0.1.0
+```
+
+Pi package install from GitHub:
+
+```bash
+pi install git:github.com/FredySandoval/showsignature@v0.1.0
+pi install https://github.com/FredySandoval/showsignature
+```
+
 From source:
 
 ```bash
@@ -36,13 +58,6 @@ cd showsignature
 pnpm install
 pnpm build
 node dist/02-cli.js --help
-```
-
-Global npm install, when published/available:
-
-```bash
-npm install -g showsignature
-showsignature --help
 ```
 
 Requires Node.js 18+.
@@ -133,4 +148,4 @@ pnpm format
 
 ## License
 
-ISC. See `package.json`.
+ISC. See [LICENSE](LICENSE).

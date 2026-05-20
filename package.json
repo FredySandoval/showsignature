@@ -1,6 +1,7 @@
 {
   "name": "showsignature",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Extract structure from code. Turn source files into clean, readable artifacts.",
   "type": "module",
   "pi": {
     "skills": [
@@ -12,12 +13,18 @@
     "showsignature": "./dist/02-cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills",
+    "LICENSE",
+    "README.md"
   ],
   "main": "./dist/03-index.js",
   "types": "./dist/03-index.d.ts",
   "exports": {
-    ".": "./dist/03-index.js"
+    ".": {
+      "types": "./dist/03-index.d.ts",
+      "import": "./dist/03-index.js"
+    }
   },
   "scripts": {
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
@@ -25,12 +32,31 @@
     "test": "bun test",
     "clean": "git clean -xdf node_modules dist",
     "typecheck": "tsgo --noEmit",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "prepublishOnly": "pnpm typecheck && pnpm test"
   },
-  "keywords": [],
-  "author": "Fredy Sandoval <me@fredy.dev>",
+  "keywords": [
+    "pi",
+    "pi-skill",
+    "pi-package",
+    "cli",
+    "code-analysis",
+    "developer-tools",
+    "signatures",
+    "typescript",
+    "markdown"
+  ],
+  "author": "Fredy Sandoval <spamfromshowsignature@fredy.dev>",
   "license": "ISC",
-  "description": "Extract structure from code. Turn source files into clean, readable artifacts.",
+  "homepage": "https://github.com/FredySandoval/showsignature#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FredySandoval/showsignature.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FredySandoval/showsignature/issues"
+  },
   "dependencies": {
     "commander": "10.0.0",
     "globby": "^16.2.0"
@@ -45,5 +71,8 @@
   "packageManager": "pnpm@10.31.0",
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

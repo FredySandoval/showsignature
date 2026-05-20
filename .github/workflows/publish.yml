@@ -1,0 +1,75 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.31.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify npm package contents
+        run: |
+          npm pack --dry-run --json --silent > pack.json
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const pack = JSON.parse(fs.readFileSync('pack.json', 'utf8'))[0];
+          const files = new Set(pack.files.map((file) => file.path));
+          const required = [
+            'dist/02-cli.js',
+            'dist/03-index.js',
+            'dist/03-index.d.ts',
+            'skills/showsignature/SKILL.md',
+            'package.json',
+            'README.md',
+            'LICENSE'
+          ];
+          const missing = required.filter((file) => !files.has(file));
+          if (missing.length > 0) {
+            console.error(`Missing required package files: ${missing.join(', ')}`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
