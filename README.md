@@ -8,7 +8,7 @@ A CLI that extracts the useful structure from source files: signatures, imports,
 
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
-## Quickstart installation
+## Installation
 
 ```bash
 # Add as skill for all agents
@@ -59,17 +59,7 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 - What types and interfaces define the data?
 - What headings/tables/code blocks exist in Markdown?
 
-## Install
-
-Global npm install:
-
-
-
 ## Usage
-
-```bash
-showsignature [--file <file> | --folder <folder> | --stdin] [options]
-```
 
 | Option | Description |
 | --- | --- |
@@ -82,18 +72,6 @@ showsignature [--file <file> | --folder <folder> | --stdin] [options]
 | `--include-tests` | Include test files in folder scans. |
 | `--max-depth <n>` | Limit folder scan depth. |
 | `--ignore-folder <name>` | Skip folders. |
-
-## Examples
-
-```bash
-showsignature --file src/01-main.ts
-showsignature --folder src
-showsignature --folder src --show-only signatures,imports
-showsignature --folder src --show-only interfaces,types
-showsignature --folder src --show-only signatures,imports --output structure.md
-cat src/01-main.ts | showsignature --stdin --lang-only ts
-showsignature --file README.md --show-only md:headings
-```
 
 ## Extractors
 
@@ -133,6 +111,47 @@ showsignature --folder src --show-only signatures,imports,comments
 | Python | `.py` |
 | Markdown | `.md` |
 
+## Basic usage examples
+
+```bash
+showsignature [--file <file> | --folder <folder> | --stdin] [options]
+```
+
+```sh
+showsignature --help                                        # Show available options
+showsignature --file src/01-main.ts                         # Inspect one file
+showsignature --folder ./src                                # Inspect a folder
+showsignature --folder .                                    # Inspect the current directory
+cat src/01-main.ts | showsignature --stdin --lang-only ts   # Read TypeScript from stdin
+
+showsignature --folder . --show-only imports                # Show imports only
+showsignature --folder ./src --show-only signatures,imports # Show code structure and imports
+showsignature --folder ./src --show-only interfaces,types   # Show data shapes
+showsignature --file src/01-main.ts --show-only variables   # Show variables
+
+showsignature --file README.md --show-only md:headings      # Extract Markdown headings
+showsignature --file README.md --show-only md:codeblocks    # Extract Markdown code blocks
+showsignature --folder . --show-only md:tables              # Extract Markdown tables
+
+showsignature --folder . --lang-only py                     # Process Python files only
+showsignature --folder . --max-depth 2                      # Limit recursive scan depth
+showsignature --folder . --ignore-folder dist               # Skip a noisy folder
+showsignature --folder src --show-only signatures,imports --output structure.md # Save compact context
+```
+
+## Pipeline usage
+
+`showsignature` writes to stdout by default, so it works well with tools like `rg`, `grep`, `fzf`, `less`, `head`, `tee`, and shell redirects.
+
+```sh
+showsignature --folder src | rg "function|class" # Search extracted structure with ripgrep
+showsignature --folder src --show-only imports | rg "node:" # Find matching imports
+showsignature --folder src --show-only signatures | rg "async" # Find async functions or methods
+showsignature --folder src --show-only comments,signatures | rg -C 2 "ExtractKind" # Search comments/signatures with nearby context
+showsignature --folder src --show-only signatures,imports | less # Page through large output
+showsignature --folder src --show-only signatures | head -50 # Preview the first 50 lines
+showsignature --folder src --show-only signatures,imports | tee structure.md # View and save output
+```
 ## Development
 
 ```bash
