@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/showsignature-screenshot-1.png" alt="showsignature screenshot" />
+</p>
+
 # showsignature
 
 `showsignature` is a small command-line tool that reads code and shows only the important structure.
