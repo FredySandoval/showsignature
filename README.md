@@ -20,10 +20,13 @@ pi install https://github.com/FredySandoval/showsignature
 npx skills add https://github.com/FredySandoval/showsignature --skill showsignature
 ```
 
-### Step 2. Install the bash script
+### Step 2. Install locally or globally
 ```bash
 # global install
 npm install -g showsignature
+
+# local install
+npm install showsignature
 ```
 
 From source for development:
