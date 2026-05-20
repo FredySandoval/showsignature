@@ -33,8 +33,7 @@
     "clean": "git clean -xdf node_modules dist",
     "typecheck": "tsgo --noEmit",
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "npm run build",
-    "prepublishOnly": "pnpm typecheck && pnpm test"
+    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
   },
   "keywords": [
     "pi",
