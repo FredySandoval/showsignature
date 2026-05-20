@@ -13,6 +13,7 @@ import {
   formatFinalOutput,
   formatPlainOutput,
   isMarkdownOutputPath,
+  redactSecrets,
   toDisplayPath,
   toMarkdownCodeBlock,
 } from "@/src/01-main.js";
@@ -59,6 +60,48 @@ function makeSection(
     ...overrides,
   };
 }
+
+// ---------------------------------------------------------------------------
+// redactSecrets
+// ---------------------------------------------------------------------------
+
+describe("redactSecrets", () => {
+  test("redacts common secret token patterns", () => {
+    const fakeGithubToken = ["gho", "abcdefghijklmnopqrstuvwxyz1234567890"].join(
+      "_",
+    );
+    const fakeAwsKey = ["ASIA", "ABCDEFGHIJKLMNOP"].join("");
+    const fakeSlackToken = ["xoxp", "123456789012", "abcdefghijklmnop"].join("-");
+    const fakeJwtHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+    const fakeJwt = [
+      fakeJwtHeader,
+      "eyJpc3MiOiJzaG93c2lnbmF0dXJlIn0",
+      "signaturepart123456789",
+    ].join(".");
+    const value = [
+      `github=${fakeGithubToken}`,
+      `aws=${fakeAwsKey}`,
+      `slack=${fakeSlackToken}`,
+      `jwt=${fakeJwt}`,
+    ].join("\n");
+
+    const result = redactSecrets(value);
+
+    expect(result).not.toContain(fakeGithubToken);
+    expect(result).not.toContain(fakeAwsKey);
+    expect(result).not.toContain(fakeSlackToken);
+    expect(result).not.toContain(fakeJwtHeader);
+    expect(result.match(/\[redacted\]/gu)?.length).toBe(4);
+  });
+
+  test("redacts secret-like variable and .env assignments", () => {
+    expect(redactSecrets("PASSWORD=hunter2")).toBe("PASSWORD=[redacted]");
+    expect(redactSecrets("const api_key = \"abc123\";")).toBe(
+      "const api_key = [redacted];",
+    );
+    expect(redactSecrets("auth: 'bearer-token'")).toBe("auth: [redacted]");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // toDisplayPath
@@ -136,6 +179,62 @@ describe("formatPlainOutput", () => {
     expect(result).toBe(
       ["// filled.ts", 'import fs from "node:fs";'].join("\n"),
     );
+  });
+
+  test("redacts secret-like entry lines by default", () => {
+    const fakeGithubToken = ["ghp", "abcdefghijklmnopqrstuvwxyz1234567890"].join(
+      "_",
+    );
+    const fakeJwtHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+    const fakeJwt = [
+      fakeJwtHeader,
+      "eyJzdWIiOiIxMjM0NTY3ODkwIn0",
+      "abcdefghijklmnopqrstuvwxyz",
+    ].join(".");
+    const fakeAwsKey = ["AKIA", "ABCDEFGHIJKLMNOP"].join("");
+    const fakeSlackToken = ["xoxb", "123456789012", "abcdefghijklmnop"].join("-");
+    const privateKeyHeader = ["-----BEGIN", "PRIVATE KEY-----"].join(" ");
+    const section = makeSection({
+      filePath: "src/secrets.ts",
+      entries: [
+        {
+          kind: "comments",
+          lines: [
+            `// token = ${fakeGithubToken}`,
+            `const jwt = '${fakeJwt}';`,
+            `AWS_ACCESS_KEY_ID=${fakeAwsKey}`,
+            `SLACK_TOKEN=${fakeSlackToken}`,
+            `private_key: "${privateKeyHeader}"`,
+          ],
+        },
+      ],
+    });
+
+    const result = formatPlainOutput([section]);
+
+    expect(result).toContain("[redacted]");
+    expect(result).not.toContain(fakeGithubToken);
+    expect(result).not.toContain(fakeJwtHeader);
+    expect(result).not.toContain(fakeAwsKey);
+    expect(result).not.toContain(fakeSlackToken);
+    expect(result).not.toContain(privateKeyHeader);
+  });
+
+  test("can disable entry redaction", () => {
+    const fakeApiKey = ["sk", "test", "secret"].join("-");
+    const section = makeSection({
+      filePath: "src/secrets.ts",
+      entries: [
+        {
+          kind: "variables",
+          lines: [`const api_key = "${fakeApiKey}";`],
+        },
+      ],
+    });
+
+    const result = formatPlainOutput([section], { redact: false });
+
+    expect(result).toContain(fakeApiKey);
   });
 
   test("returns empty string when all sections are empty", () => {

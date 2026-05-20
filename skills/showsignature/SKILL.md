@@ -16,6 +16,8 @@ Use this skill to inspect code or Markdown structure without implementation nois
 
 `showsignature` extracts functions, classes, methods, imports, types, interfaces, variables, comments, and Markdown structure.
 
+Security note: secret-like values are redacted by default.
+
 ## Use when
 
 - Understanding an unfamiliar repository

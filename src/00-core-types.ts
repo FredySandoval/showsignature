@@ -231,6 +231,7 @@ export interface FormatFinalOutputOptions {
   outputPath?: string;
   seenLangs: readonly string[];
   includeLineNumbers?: boolean;
+  redact?: boolean;
 }
 
 export interface CliProgram {
@@ -248,6 +249,7 @@ export interface ParsedCliArgs {
   ignoreFolder?: string[];
   maxDepth?: number;
   lineNumber: boolean;
+  redact?: boolean;
 }
 
 export interface ExitCodeError extends Error {
@@ -268,6 +270,7 @@ export interface ResolvedInputTarget {
 export interface OutputTarget {
   path?: string;
   includeLineNumbers?: boolean;
+  redact?: boolean;
 }
 
 export interface ExecutionPlan {
