@@ -1,6 +1,6 @@
 ---
 name: showsignature
-description: Use the showsignature CLI to extract compact structural signatures from code and Markdown files. Useful for quickly exploring and understanding unfamiliar repositories, summarizing source files, preparing AI-agent context, reviewing APIs, and quickly identifying functions, classes, imports, types, variables, comments, Markdown headings, tables, and code blocks.
+description: Fastest path for understanding an unfamiliar codebase by extracting compact structural signatures from key source files; use immediately before summarizing project architecture, entry points, modules, functions/classes, imports, or APIs.
 ---
 
 # showsignature skill guide
