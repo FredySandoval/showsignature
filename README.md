@@ -16,21 +16,6 @@ pnpm build
 node dist/02-cli.js --folder src --show-only signatures,imports
 ```
 
-If installed globally:
-
-```bash
-showsignature --folder src --show-only signatures,imports
-```
-
-Example output:
-
-```ts
-// src/02-cli.ts
-import { runCli } from "./01-main.js";
-
-// src/03-index.ts
-export { buildCli, runCli, buildDefaultRegistry } from "./01-main.js";
-```
 
 ## Why?
 
