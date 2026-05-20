@@ -95,11 +95,6 @@ Markdown files:
 | `md:codeblocks` | Fenced code blocks. |
 | `md:all` | Full document. |
 
-Combine modes with commas:
-
-```bash
-showsignature --folder src --show-only signatures,imports,comments
-```
 
 ## Supported files
 
@@ -137,6 +132,12 @@ showsignature --folder . --lang-only py                     # Process Python fil
 showsignature --folder . --max-depth 2                      # Limit recursive scan depth
 showsignature --folder . --ignore-folder dist               # Skip a noisy folder
 showsignature --folder src --show-only signatures,imports --output structure.md # Save compact context
+```
+
+Combine modes with commas:
+
+```bash
+showsignature --folder src --show-only signatures,imports,comments
 ```
 
 ## Pipeline usage
