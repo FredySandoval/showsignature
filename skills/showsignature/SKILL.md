@@ -54,3 +54,15 @@ showsignature --folder src --show-only signatures,imports | less # Page through 
 showsignature --folder src --show-only signatures | head -50 # Preview the first 50 lines
 showsignature --folder src --show-only signatures,imports | tee structure.md # View and save output
 ```
+
+## Other options
+
+```sh
+showsignature [options]
+
+Options:
+  --include-tests           include files under test directories during discovery (default: false)
+  --ignore-folder <folder>  ignore a folder path or folder name during recursive discovery (repeatable) (default: [])
+  -n, --line-number         prefix each extracted entry with its source line number (default: true)
+  -h, --help                display help for command
+```

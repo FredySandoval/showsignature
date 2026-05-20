@@ -3,9 +3,10 @@
   "version": "0.0.0",
   "type": "module",
   "pi": {
-    "extensions": [
-      "./agents/pi/showsignature.ts"
-    ]
+    "skills": [
+      "./skills"
+    ],
+    "image": "https://github.com/FredySandoval/showsignature/raw/refs/heads/main/assets/showsignature-screenshot-1.png"
   },
   "bin": {
     "showsignature": "./dist/02-cli.js"
