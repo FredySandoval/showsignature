@@ -75,4 +75,3 @@ Options:
   -n, --line-number         prefix each extracted entry with its source line number (default: true)
   -h, --help                display help for command
 ```
-

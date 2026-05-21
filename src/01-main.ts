@@ -70,17 +70,31 @@ const CONTROL_CHARS_PATTERN =
 const ANSI_ESCAPE_PATTERN = /\u001b\[[0-?]*[ -/]*[@-~]/gu;
 const MARKDOWN_META_PATTERN = /[`<>]/gu;
 const REDACTED_SECRET = "[redacted]";
-const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/gu;
-const GITHUB_TOKEN_PATTERN = /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b/gu;
+const JWT_PATTERN =
+  /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/gu;
+const GITHUB_TOKEN_PATTERN =
+  /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b/gu;
 const AWS_ACCESS_KEY_PATTERN = /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/gu;
 const SLACK_TOKEN_PATTERN = /\bxox(?:a|b|p|r|s)-[A-Za-z0-9-]{10,}\b/gu;
-const PRIVATE_KEY_INLINE_PATTERN = /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/gu;
-const PRIVATE_KEY_BOUNDARY_PATTERN = /-----(?:BEGIN|END) [A-Z0-9 ]*PRIVATE KEY-----/gu;
-const SECRET_KEYWORD_PATTERN = "(?:api[_-]?key|token|secret|password|passwd|credential|private[_-]?key|access[_-]?key|auth)";
+const PRIVATE_KEY_INLINE_PATTERN =
+  /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/gu;
+const PRIVATE_KEY_BOUNDARY_PATTERN =
+  /-----(?:BEGIN|END) [A-Z0-9 ]*PRIVATE KEY-----/gu;
+const SECRET_KEYWORD_PATTERN =
+  "(?:api[_-]?key|token|secret|password|passwd|credential|private[_-]?key|access[_-]?key|auth)";
 const SECRET_NAME_PATTERN = `(?:${SECRET_KEYWORD_PATTERN}|[A-Za-z_][A-Za-z0-9_]*${SECRET_KEYWORD_PATTERN})[A-Za-z0-9_]*`;
-const ENV_SECRET_ASSIGNMENT_PATTERN = new RegExp(`(^|\\b)(${SECRET_NAME_PATTERN}\\s*=\\s*)([^\\s#;]+)`, "giu");
-const QUOTED_SECRET_PROPERTY_PATTERN = new RegExp(`(["']?${SECRET_NAME_PATTERN}["']?\\s*[:=]\\s*)(["'])([^"']+)(\\2)`, "giu");
-const SECRET_VARIABLE_ASSIGNMENT_PATTERN = new RegExp(`\\b(${SECRET_NAME_PATTERN}\\s*[:=]\\s*)([^\\s,;)]+)`, "giu");
+const ENV_SECRET_ASSIGNMENT_PATTERN = new RegExp(
+  `(^|\\b)(${SECRET_NAME_PATTERN}\\s*=\\s*)([^\\s#;]+)`,
+  "giu",
+);
+const QUOTED_SECRET_PROPERTY_PATTERN = new RegExp(
+  `(["']?${SECRET_NAME_PATTERN}["']?\\s*[:=]\\s*)(["'])([^"']+)(\\2)`,
+  "giu",
+);
+const SECRET_VARIABLE_ASSIGNMENT_PATTERN = new RegExp(
+  `\\b(${SECRET_NAME_PATTERN}\\s*[:=]\\s*)([^\\s,;)]+)`,
+  "giu",
+);
 
 export function redactSecrets(value: string): string {
   return value
@@ -90,12 +104,31 @@ export function redactSecrets(value: string): string {
     .replace(GITHUB_TOKEN_PATTERN, REDACTED_SECRET)
     .replace(AWS_ACCESS_KEY_PATTERN, REDACTED_SECRET)
     .replace(SLACK_TOKEN_PATTERN, REDACTED_SECRET)
-    .replace(QUOTED_SECRET_PROPERTY_PATTERN, (_match, key: string, quote: string, _secret: string, closeQuote: string) => `${key}${quote}${REDACTED_SECRET}${closeQuote}`)
-    .replace(ENV_SECRET_ASSIGNMENT_PATTERN, (_match, prefix: string, key: string) => `${prefix}${key}${REDACTED_SECRET}`)
-    .replace(SECRET_VARIABLE_ASSIGNMENT_PATTERN, (_match, key: string) => `${key}${REDACTED_SECRET}`);
+    .replace(
+      QUOTED_SECRET_PROPERTY_PATTERN,
+      (
+        _match,
+        key: string,
+        quote: string,
+        _secret: string,
+        closeQuote: string,
+      ) => `${key}${quote}${REDACTED_SECRET}${closeQuote}`,
+    )
+    .replace(
+      ENV_SECRET_ASSIGNMENT_PATTERN,
+      (_match, prefix: string, key: string) =>
+        `${prefix}${key}${REDACTED_SECRET}`,
+    )
+    .replace(
+      SECRET_VARIABLE_ASSIGNMENT_PATTERN,
+      (_match, key: string) => `${key}${REDACTED_SECRET}`,
+    );
 }
 
-function sanitizeAndMaybeRedactForDisplay(value: string, redact = true): string {
+function sanitizeAndMaybeRedactForDisplay(
+  value: string,
+  redact = true,
+): string {
   return sanitizeForDisplay(redact ? redactSecrets(value) : value);
 }
 
@@ -453,7 +486,10 @@ async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
 
 function formatDiagnostic(diagnostic: Diagnostic, redact = true): string {
   const level = diagnostic.level ?? diagnostic.severity ?? "error";
-  const safeMessage = sanitizeAndMaybeRedactForDisplay(diagnostic.message, redact);
+  const safeMessage = sanitizeAndMaybeRedactForDisplay(
+    diagnostic.message,
+    redact,
+  );
   const safeFilePath = diagnostic.filePath
     ? sanitizeAndMaybeRedactForDisplay(diagnostic.filePath, redact)
     : undefined;
@@ -467,7 +503,10 @@ function emitDiagnostic(diagnostic: Diagnostic, redact = true): void {
   process.stderr.write(`${formatDiagnostic(diagnostic, redact)}\n`);
 }
 
-function emitDiagnostics(diagnostics: readonly Diagnostic[], redact = true): void {
+function emitDiagnostics(
+  diagnostics: readonly Diagnostic[],
+  redact = true,
+): void {
   for (const diagnostic of diagnostics) {
     emitDiagnostic(diagnostic, redact);
   }
@@ -579,24 +618,24 @@ async function resolveInputTarget(
   const discoveredFiles = await discoverFiles(
     args.folder
       ? {
-        registry,
-        folder: args.folder,
-        includeTests: args.includeTests,
-        ignoreFolders: args.ignoreFolder ?? [],
-        ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
-      }
+          registry,
+          folder: args.folder,
+          includeTests: args.includeTests,
+          ignoreFolders: args.ignoreFolder ?? [],
+          ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+        }
       : {
-        registry,
-        includeTests: args.includeTests,
-        ignoreFolders: args.ignoreFolder ?? [],
-        ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
-      },
+          registry,
+          includeTests: args.includeTests,
+          ignoreFolders: args.ignoreFolder ?? [],
+          ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+        },
   );
 
   const files = explicitLang
     ? discoveredFiles.filter(
-      (filePath) => registry.inferFromFile(filePath) === explicitLang,
-    )
+        (filePath) => registry.inferFromFile(filePath) === explicitLang,
+      )
     : discoveredFiles;
 
   if (!usesOnlyMarkdownExtractKinds(extractOrder)) {
@@ -1465,10 +1504,10 @@ function withEntryMetadata(
       ...(sourcePos === undefined
         ? {}
         : {
-          sourceLine:
-            entry.metadata?.sourceLine ??
-            toLineNumber(context.source, sourcePos),
-        }),
+            sourceLine:
+              entry.metadata?.sourceLine ??
+              toLineNumber(context.source, sourcePos),
+          }),
     },
   };
 }
@@ -1577,7 +1616,9 @@ function formatEntryLines(
   includeLineNumbers: boolean,
   redact = true,
 ): string {
-  const lines = entry.lines.map((line) => sanitizeAndMaybeRedactForDisplay(line, redact));
+  const lines = entry.lines.map((line) =>
+    sanitizeAndMaybeRedactForDisplay(line, redact),
+  );
   const content = lines.join("\n");
 
   if (!includeLineNumbers) {
@@ -1611,7 +1652,13 @@ export function formatPlainOutput(
     parts.push(`// ${toDisplayPath(section.filePath)}`);
 
     for (const entry of section.entries) {
-      parts.push(formatEntryLines(entry, options.includeLineNumbers === true, options.redact !== false));
+      parts.push(
+        formatEntryLines(
+          entry,
+          options.includeLineNumbers === true,
+          options.redact !== false,
+        ),
+      );
     }
 
     parts.push("");

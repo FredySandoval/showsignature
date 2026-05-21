@@ -67,11 +67,14 @@ function makeSection(
 
 describe("redactSecrets", () => {
   test("redacts common secret token patterns", () => {
-    const fakeGithubToken = ["gho", "abcdefghijklmnopqrstuvwxyz1234567890"].join(
-      "_",
-    );
+    const fakeGithubToken = [
+      "gho",
+      "abcdefghijklmnopqrstuvwxyz1234567890",
+    ].join("_");
     const fakeAwsKey = ["ASIA", "ABCDEFGHIJKLMNOP"].join("");
-    const fakeSlackToken = ["xoxp", "123456789012", "abcdefghijklmnop"].join("-");
+    const fakeSlackToken = ["xoxp", "123456789012", "abcdefghijklmnop"].join(
+      "-",
+    );
     const fakeJwtHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
     const fakeJwt = [
       fakeJwtHeader,
@@ -96,7 +99,7 @@ describe("redactSecrets", () => {
 
   test("redacts secret-like variable and .env assignments", () => {
     expect(redactSecrets("PASSWORD=hunter2")).toBe("PASSWORD=[redacted]");
-    expect(redactSecrets("const api_key = \"abc123\";")).toBe(
+    expect(redactSecrets('const api_key = "abc123";')).toBe(
       "const api_key = [redacted];",
     );
     expect(redactSecrets("auth: 'bearer-token'")).toBe("auth: [redacted]");
@@ -182,9 +185,10 @@ describe("formatPlainOutput", () => {
   });
 
   test("redacts secret-like entry lines by default", () => {
-    const fakeGithubToken = ["ghp", "abcdefghijklmnopqrstuvwxyz1234567890"].join(
-      "_",
-    );
+    const fakeGithubToken = [
+      "ghp",
+      "abcdefghijklmnopqrstuvwxyz1234567890",
+    ].join("_");
     const fakeJwtHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
     const fakeJwt = [
       fakeJwtHeader,
@@ -192,7 +196,9 @@ describe("formatPlainOutput", () => {
       "abcdefghijklmnopqrstuvwxyz",
     ].join(".");
     const fakeAwsKey = ["AKIA", "ABCDEFGHIJKLMNOP"].join("");
-    const fakeSlackToken = ["xoxb", "123456789012", "abcdefghijklmnop"].join("-");
+    const fakeSlackToken = ["xoxb", "123456789012", "abcdefghijklmnop"].join(
+      "-",
+    );
     const privateKeyHeader = ["-----BEGIN", "PRIVATE KEY-----"].join(" ");
     const section = makeSection({
       filePath: "src/secrets.ts",

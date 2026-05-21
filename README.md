@@ -9,7 +9,9 @@ A CLI that extracts the useful structure from source files: signatures, imports,
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
 ## Installation
+
 ### Step 1 Add the skill
+
 ```bash
 # install in pi
 pi install npm:showsignature
@@ -21,6 +23,7 @@ npx skills add https://github.com/FredySandoval/showsignature --skill showsignat
 ```
 
 ### Step 2. Install locally or globally
+
 ```bash
 # global install
 npm install -g showsignature
@@ -57,50 +60,49 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 
 ## Usage
 
-| Option | Description |
-| --- | --- |
-| `--file <file>` | Inspect one file. |
-| `--folder <folder>` | Inspect a folder. |
-| `--stdin` | Read source from stdin. |
-| `--lang-only <lang>` | Force language, useful with stdin. |
-| `--show-only <items>` | Choose extractors. |
-| `--output <file>` | Save output. |
-| `--include-tests` | Include test files in folder scans. |
-| `--max-depth <n>` | Limit folder scan depth. |
-| `--ignore-folder <name>` | Skip folders. |
+| Option                   | Description                         |
+| ------------------------ | ----------------------------------- |
+| `--file <file>`          | Inspect one file.                   |
+| `--folder <folder>`      | Inspect a folder.                   |
+| `--stdin`                | Read source from stdin.             |
+| `--lang-only <lang>`     | Force language, useful with stdin.  |
+| `--show-only <items>`    | Choose extractors.                  |
+| `--output <file>`        | Save output.                        |
+| `--include-tests`        | Include test files in folder scans. |
+| `--max-depth <n>`        | Limit folder scan depth.            |
+| `--ignore-folder <name>` | Skip folders.                       |
 
 ## Extractors
 
 Code files:
 
-| Mode | Shows |
-| --- | --- |
+| Mode         | Shows                                      |
+| ------------ | ------------------------------------------ |
 | `signatures` | Functions, classes, methods, constructors. |
-| `imports` | Import statements. |
-| `interfaces` | TypeScript/Go interfaces. |
-| `types` | Type aliases/declarations. |
-| `variables` | Variables/constants. |
-| `comments` | Code comments. |
+| `imports`    | Import statements.                         |
+| `interfaces` | TypeScript/Go interfaces.                  |
+| `types`      | Type aliases/declarations.                 |
+| `variables`  | Variables/constants.                       |
+| `comments`   | Code comments.                             |
 
 Markdown files:
 
-| Mode | Shows |
-| --- | --- |
-| `md:headings` | Headings. |
-| `md:tables` | Tables. |
+| Mode            | Shows               |
+| --------------- | ------------------- |
+| `md:headings`   | Headings.           |
+| `md:tables`     | Tables.             |
 | `md:codeblocks` | Fenced code blocks. |
-| `md:all` | Full document. |
-
+| `md:all`        | Full document.      |
 
 ## Supported files
 
-| Language | Extensions |
-| --- | --- |
+| Language   | Extensions            |
+| ---------- | --------------------- |
 | TypeScript | `.ts`, `.mts`, `.cts` |
 | JavaScript | `.js`, `.mjs`, `.cjs` |
-| Go | `.go` |
-| Python | `.py` |
-| Markdown | `.md` |
+| Go         | `.go`                 |
+| Python     | `.py`                 |
+| Markdown   | `.md`                 |
 
 ## Basic usage examples
 
@@ -149,6 +151,7 @@ showsignature --folder src --show-only signatures,imports | less # Page through 
 showsignature --folder src --show-only signatures | head -50 # Preview the first 50 lines
 showsignature --folder src --show-only signatures,imports | tee structure.md # View and save output
 ```
+
 ## Development
 
 ```bash
