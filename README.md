@@ -10,7 +10,7 @@ Use it to understand a codebase quickly, review files, or create compact context
 
 ## Installation
 
-### Step 1 Add the skill
+### Step 1. Add the skill
 
 ```bash
 # install in pi
