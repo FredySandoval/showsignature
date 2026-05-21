@@ -1,6 +1,6 @@
 {
   "name": "showsignature",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Extract structure from code. Turn source files into clean, readable artifacts.",
   "type": "module",
   "pi": {
