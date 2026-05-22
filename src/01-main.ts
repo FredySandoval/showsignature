@@ -1478,21 +1478,42 @@ export interface RunExtractorsOptions<
 
 const FALLBACK_COMBINED_POS = Number.MAX_SAFE_INTEGER;
 
-function toLineNumber(source: string, position: number): number {
-  let lineNumber = 1;
+function toLineStarts(source: string): number[] {
+  const starts = [0];
 
-  for (let index = 0; index < position; index += 1) {
+  for (let index = 0; index < source.length; index += 1) {
     if (source[index] === "\n") {
-      lineNumber += 1;
+      starts.push(index + 1);
     }
   }
 
-  return lineNumber;
+  return starts;
+}
+
+function toLineNumberFromStarts(
+  lineStarts: readonly number[],
+  position: number,
+): number {
+  let low = 0;
+  let high = lineStarts.length - 1;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+
+    if ((lineStarts[mid] ?? 0) <= position) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return high + 1;
 }
 
 function withEntryMetadata(
   entry: ExtractEntry,
   context: ParseContext,
+  getSourceLine: (sourcePos: number) => number,
 ): ExtractEntry {
   const sourcePos = entry.metadata?.sourcePos;
 
@@ -1504,27 +1525,19 @@ function withEntryMetadata(
       ...(sourcePos === undefined
         ? {}
         : {
-            sourceLine:
-              entry.metadata?.sourceLine ??
-              toLineNumber(context.source, sourcePos),
+            sourceLine: entry.metadata?.sourceLine ?? getSourceLine(sourcePos),
           }),
     },
   };
 }
 
-function toCombinedEntries(
-  entries: ExtractEntry[],
-  context: ParseContext,
-): CombinedExtractEntry[] {
-  return entries.map((entry) => {
-    const normalized = withEntryMetadata(entry, context);
-    return {
-      kind: normalized.kind,
-      lines: normalized.lines,
-      pos: normalized.metadata?.sourcePos ?? FALLBACK_COMBINED_POS,
-      ...(normalized.metadata ? { metadata: normalized.metadata } : {}),
-    };
-  });
+function toCombinedEntries(entries: ExtractEntry[]): CombinedExtractEntry[] {
+  return entries.map((entry) => ({
+    kind: entry.kind,
+    lines: entry.lines,
+    pos: entry.metadata?.sourcePos ?? FALLBACK_COMBINED_POS,
+    ...(entry.metadata ? { metadata: entry.metadata } : {}),
+  }));
 }
 
 export function runExtractors<TContext extends ParseContext = ParseContext>(
@@ -1541,6 +1554,10 @@ export function runExtractors<TContext extends ParseContext = ParseContext>(
     return { entries: [], warnings: [] };
   }
 
+  const lineStarts = toLineStarts(context.source);
+  const getSourceLine = (sourcePos: number) =>
+    toLineNumberFromStarts(lineStarts, sourcePos);
+
   for (const kind of supportedKinds) {
     const extractor = adapter.extractors.get(kind);
     if (!extractor) {
@@ -1549,11 +1566,11 @@ export function runExtractors<TContext extends ParseContext = ParseContext>(
 
     const result = extractor.extract(context);
     const entries = result.entries.map((entry) =>
-      withEntryMetadata(entry, context),
+      withEntryMetadata(entry, context, getSourceLine),
     );
 
     warnings.push(...result.warnings);
-    combinedGroups.push(toCombinedEntries(entries, context));
+    combinedGroups.push(toCombinedEntries(entries));
   }
 
   const entries = stripCombinedPositions(mergeAndSortEntries(combinedGroups));
