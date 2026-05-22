@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 
 import { buildCli } from "@/src/01-main.js";
+
+const require = createRequire(import.meta.url);
+const packageMetadata = require("../package.json") as { version: string };
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
@@ -81,6 +85,16 @@ afterEach(async () => {
 });
 
 describe("buildCli", () => {
+  test("prints version without an error diagnostic", async () => {
+    installOutputCapture();
+
+    await buildCli().run(["showsignature", "--version"]);
+
+    expect(stdoutBuffer).toBe(`${packageMetadata.version}\n`);
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("prints signature output to stdout by default", async () => {
     installOutputCapture();
 

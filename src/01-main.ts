@@ -377,7 +377,10 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     program.parse(stripArgvPrefix(argv), { from: "user" });
   } catch (error) {
     if (error instanceof CommanderError) {
-      if (error.code === "commander.helpDisplayed") {
+      if (
+        error.code === "commander.helpDisplayed" ||
+        error.code === "commander.version"
+      ) {
         return null;
       }
 
