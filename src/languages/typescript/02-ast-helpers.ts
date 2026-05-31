@@ -2,6 +2,27 @@ import * as ts from "typescript";
 
 import type { Range } from "../../00-core-types.js";
 
+const MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH = 80;
+
+function previewInitializerText(text: string): string {
+  const normalized = text.replace(/\r?\n/gu, "\\n");
+
+  if (normalized.length <= MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH) {
+    return normalized;
+  }
+
+  const delimiter = normalized[0];
+  const closingDelimiter =
+    delimiter === '"' || delimiter === "'" || delimiter === "`" ? delimiter : "";
+  const suffix = `...${closingDelimiter}`;
+  const previewLength = Math.max(
+    0,
+    MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH - suffix.length,
+  );
+
+  return `${normalized.slice(0, previewLength)}${suffix}`;
+}
+
 function mergeRanges(ranges: Range[]): Range[] {
   if (ranges.length === 0) {
     return ranges;
@@ -141,7 +162,7 @@ export namespace TsAstHelpers {
       initializer.kind === ts.SyntaxKind.NullKeyword ||
       ts.isRegularExpressionLiteral(initializer)
     ) {
-      return initializer.getText(sourceFile);
+      return previewInitializerText(initializer.getText(sourceFile));
     }
 
     return "...";

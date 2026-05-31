@@ -122,6 +122,21 @@ describe("createVariablesExtractor", () => {
       "let deferred: number;",
     ]);
   });
+
+  test("renders multi-line template literal initializers as bounded one-line previews", () => {
+    const source = [
+      "const DESCRIPTION = `Fastest path for understanding an unfamiliar codebase by extracting structural signatures from key source files.",
+      "--show-only <options>     comma-separated extract kinds to include",
+      "`;",
+    ].join("\n");
+    const extractor = createVariablesExtractor();
+    const result = extractor.extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      "const DESCRIPTION = `Fastest path for understanding an unfamiliar codebase by extracting structu...`;",
+    ]);
+  });
 });
 
 describe("createCommentsExtractor", () => {
