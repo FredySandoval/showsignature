@@ -26,6 +26,7 @@ describe("createTsFamilyAdapter", () => {
       "variables",
       "comments",
       "imports",
+      "exports",
     ]);
   });
 
@@ -55,6 +56,7 @@ describe("createTsFamilyAdapter", () => {
 
     expect(adapter.supportsKind("signatures")).toBe(true);
     expect(adapter.supportsKind("imports")).toBe(true);
+    expect(adapter.supportsKind("exports")).toBe(true);
     expect(adapter.supportsKind(toPluginExtractKind("custom-kind"))).toBe(
       false,
     );

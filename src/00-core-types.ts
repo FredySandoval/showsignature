@@ -9,7 +9,8 @@ export type BuiltInExtractKind =
   | "types"
   | "variables"
   | "comments"
-  | "imports";
+  | "imports"
+  | "exports";
 
 export const BUILT_IN_EXTRACT_KINDS: readonly BuiltInExtractKind[] = [
   "signatures",
@@ -18,6 +19,7 @@ export const BUILT_IN_EXTRACT_KINDS: readonly BuiltInExtractKind[] = [
   "variables",
   "comments",
   "imports",
+  "exports",
 ] as const;
 
 declare const pluginExtractKindBrand: unique symbol;

@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { createTsParseContext } from "@/src/languages/typescript/01-context.js";
 import {
   createCommentsExtractor,
+  createExportsExtractor,
   createImportsExtractor,
   createInterfacesExtractor,
   createSignaturesExtractor,
@@ -159,6 +160,71 @@ describe("createCommentsExtractor", () => {
       "// first real comment",
       "/*\n        second real comment\n      */",
       "// trailing",
+    ]);
+  });
+});
+
+describe("createExportsExtractor", () => {
+  test("extracts ES module export statements and declarations", () => {
+    const source = `
+      const local = 1;
+      export { local as a } from "./a";
+      export type { User } from "./types";
+      export * from "./all";
+      export default function run(): void {}
+      export = legacy;
+      export interface Person { id: string; }
+      export type Id = string;
+      export enum Mode { On }
+      export namespace Api { export const version = 1; }
+      export const value = 1;
+    `;
+    const extractor = createExportsExtractor();
+    const result = extractor.extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.kind)).toEqual([
+      "exports",
+      "exports",
+      "exports",
+      "exports",
+      "exports",
+      "exports",
+      "exports",
+      "exports",
+      "exports",
+      "exports",
+    ]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      'export { local as a } from "./a";',
+      'export type { User } from "./types";',
+      'export * from "./all";',
+      'export default function run(): void {}',
+      "export = legacy;",
+      "export interface Person { id: string; }",
+      "export type Id = string;",
+      "export enum Mode { On }",
+      "export namespace Api { export const version = 1; }",
+      "export const value = 1;",
+    ]);
+  });
+
+  test("extracts CommonJS export assignments", () => {
+    const source = `
+      const local = 1;
+      module.exports = local;
+      exports.foo = foo;
+      module.exports.bar = bar;
+      notExports.foo = foo;
+    `;
+    const extractor = createExportsExtractor();
+    const result = extractor.extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      "module.exports = local;",
+      "exports.foo = foo;",
+      "module.exports.bar = bar;",
     ]);
   });
 });

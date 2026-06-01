@@ -320,3 +320,107 @@ export function createImportsExtractor(): Extractor<TsParseContext> {
     },
   };
 }
+
+function hasExportModifier(node: ts.Node): boolean {
+  if (!ts.canHaveModifiers(node)) {
+    return false;
+  }
+
+  return (
+    ts
+      .getModifiers(node)
+      ?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ??
+    false
+  );
+}
+
+function isExportedTopLevelDeclaration(
+  statement: ts.Statement,
+): statement is
+  | ts.ClassDeclaration
+  | ts.EnumDeclaration
+  | ts.FunctionDeclaration
+  | ts.InterfaceDeclaration
+  | ts.ModuleDeclaration
+  | ts.TypeAliasDeclaration
+  | ts.VariableStatement {
+  if (!hasExportModifier(statement)) {
+    return false;
+  }
+
+  return (
+    ts.isClassDeclaration(statement) ||
+    ts.isEnumDeclaration(statement) ||
+    ts.isFunctionDeclaration(statement) ||
+    ts.isInterfaceDeclaration(statement) ||
+    ts.isModuleDeclaration(statement) ||
+    ts.isTypeAliasDeclaration(statement) ||
+    ts.isVariableStatement(statement)
+  );
+}
+
+function isModuleExportsAccess(expression: ts.Expression): boolean {
+  return (
+    ts.isPropertyAccessExpression(expression) &&
+    expression.name.text === "exports" &&
+    ts.isIdentifier(expression.expression) &&
+    expression.expression.text === "module"
+  );
+}
+
+function isCommonJsExportTarget(expression: ts.Expression): boolean {
+  if (!ts.isPropertyAccessExpression(expression)) {
+    return false;
+  }
+
+  if (isModuleExportsAccess(expression)) {
+    return true;
+  }
+
+  if (
+    ts.isIdentifier(expression.expression) &&
+    expression.expression.text === "exports"
+  ) {
+    return true;
+  }
+
+  return isModuleExportsAccess(expression.expression);
+}
+
+function isCommonJsExportAssignment(statement: ts.Statement): boolean {
+  return (
+    ts.isExpressionStatement(statement) &&
+    ts.isBinaryExpression(statement.expression) &&
+    statement.expression.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+    isCommonJsExportTarget(statement.expression.left)
+  );
+}
+
+function isExportStatement(statement: ts.Statement): boolean {
+  return (
+    ts.isExportDeclaration(statement) ||
+    ts.isExportAssignment(statement) ||
+    isExportedTopLevelDeclaration(statement) ||
+    isCommonJsExportAssignment(statement)
+  );
+}
+
+export function createExportsExtractor(): Extractor<TsParseContext> {
+  return {
+    kind: "exports",
+    extract(context: TsParseContext): SingleExtractResult {
+      const entries = context.sourceFile.statements
+        .filter(isExportStatement)
+        .map((statement) =>
+          toEntry(
+            "exports",
+            statement.getText(context.sourceFile).split(/\r?\n/u),
+            statement.getStart(context.sourceFile),
+            context.filePath,
+          ),
+        );
+
+      return toResult(entries);
+    },
+  };
+}
