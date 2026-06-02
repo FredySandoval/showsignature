@@ -286,9 +286,7 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   }
 
   if (markdownKinds.length > 0) {
-    sections.push(
-      `markdown: ${markdownKinds.sort().join(", ")} (legacy alias: md -> md:all)`,
-    );
+    sections.push(`markdown: ${markdownKinds.sort().join(", ")}`);
   }
 
   sections.push("default: signatures --line-number");
