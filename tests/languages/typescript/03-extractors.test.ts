@@ -117,10 +117,21 @@ describe("createVariablesExtractor", () => {
     expect(result.entries.map((entry) => entry.lines[0])).toEqual([
       'export const API_URL = "https://example.com";',
       "let cache: Map<string, User> = ...;",
-      "const settings = {...};",
-      "const list = [...];",
+      'const settings = { theme: "dark", compact: true };',
+      "const list = [1, 2, 3];",
       "const fn = ...;",
       "let deferred: number;",
+    ]);
+  });
+
+  test("renders long array initializers as bounded one-line previews", () => {
+    const source = 'const DEFAULT_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];';
+    const extractor = createVariablesExtractor();
+    const result = extractor.extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      'const DEFAULT_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];',
     ]);
   });
 

@@ -148,14 +148,34 @@ describe("TsAstHelpers.summarizeInitializer", () => {
     );
 
     expect(values).toEqual([
-      "{...}",
-      "[...]",
+      "{ a: 1 }",
+      "[1, 2, 3]",
       '"hello"',
       "42",
       "true",
       "null",
       "...",
       "...",
+    ]);
+  });
+
+  test("renders long array and object literal initializers as bounded previews", () => {
+    const sourceFile = parse(`
+      const arrayValue = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india"];
+      const objectValue = { alpha: 1, bravo: 2, charlie: 3, delta: 4, echo: 5, foxtrot: 6, golf: 7, hotel: 8, india: 9 };
+    `);
+
+    const declarations = sourceFile.statements
+      .filter(ts.isVariableStatement)
+      .flatMap((statement) => statement.declarationList.declarations);
+
+    const values = declarations.map((decl) =>
+      TsAstHelpers.summarizeInitializer(decl.initializer!, sourceFile),
+    );
+
+    expect(values).toEqual([
+      '["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "...]',
+      "{ alpha: 1, bravo: 2, charlie: 3, delta: 4, echo: 5, foxtrot: 6, golf: 7, ho...}",
     ]);
   });
 });

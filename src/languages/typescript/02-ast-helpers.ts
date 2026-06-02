@@ -4,6 +4,23 @@ import type { Range } from "../../00-core-types.js";
 
 const MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH = 80;
 
+function closingDelimiterFor(openingDelimiter: string): string {
+  switch (openingDelimiter) {
+    case '"':
+    case "'":
+    case "`":
+      return openingDelimiter;
+    case "[":
+      return "]";
+    case "{":
+      return "}";
+    case "(":
+      return ")";
+    default:
+      return "";
+  }
+}
+
 function previewInitializerText(text: string): string {
   const normalized = text.replace(/\r?\n/gu, "\\n");
 
@@ -11,9 +28,7 @@ function previewInitializerText(text: string): string {
     return normalized;
   }
 
-  const delimiter = normalized[0];
-  const closingDelimiter =
-    delimiter === '"' || delimiter === "'" || delimiter === "`" ? delimiter : "";
+  const closingDelimiter = closingDelimiterFor(normalized[0] ?? "");
   const suffix = `...${closingDelimiter}`;
   const previewLength = Math.max(
     0,
@@ -136,12 +151,11 @@ export namespace TsAstHelpers {
     initializer: ts.Expression,
     sourceFile: ts.SourceFile,
   ): string {
-    if (ts.isObjectLiteralExpression(initializer)) {
-      return "{...}";
-    }
-
-    if (ts.isArrayLiteralExpression(initializer)) {
-      return "[...]";
+    if (
+      ts.isObjectLiteralExpression(initializer) ||
+      ts.isArrayLiteralExpression(initializer)
+    ) {
+      return previewInitializerText(initializer.getText(sourceFile));
     }
 
     if (
