@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { createGoParseContext } from "@/src/languages/go/01-context.js";
 import {
   createCommentsExtractor,
+  createExportsExtractor,
   createImportsExtractor,
   createInterfacesExtractor,
   createSignaturesExtractor,
@@ -99,6 +100,55 @@ describe("Go extractors", () => {
       "var Ready bool",
       "const Flag = true",
       "const Number = ...",
+    ]);
+  });
+
+  test("extracts exported top-level Go declarations", () => {
+    const source = [
+      "package main",
+      "func NewUser(id string) *User { return &User{ID: id} }",
+      "func newInternal() {}",
+      "func (u *User) Name() string { return u.name }",
+      "func (u *User) internal() string { return u.name }",
+      "func Über(value string) string { return value }",
+      "type User struct { ID string }",
+      "type userID = string",
+      "type Reader interface { Read([]byte) (int, error) }",
+      "type (",
+      "    Point struct { X int; Y int }",
+      "    hidden string",
+      "    GroupReader interface { Read([]byte) (int, error) }",
+      ")",
+      'const Version = "1.0.0"',
+      'const internalVersion = "dev"',
+      "var DefaultCache = map[string]int{}",
+      "var localCache = map[string]int{}",
+      "const (",
+      "    Flag = true",
+      "    privateFlag = false",
+      ")",
+      "var (",
+      "    Ready bool",
+      "    notReady bool",
+      ")",
+    ].join("\n");
+
+    expect(
+      createExportsExtractor()
+        .extract(buildContext(source))
+        .entries.map((entry) => entry.lines[0]),
+    ).toEqual([
+      "func NewUser(id string) *User",
+      "func (u *User) Name() string",
+      "func Über(value string) string",
+      "type User struct { ID string }",
+      "type Reader interface { Read([]byte) (int, error) }",
+      "type Point struct { X int; Y int }",
+      "type GroupReader interface { Read([]byte) (int, error) }",
+      'const Version = "1.0.0"',
+      "var DefaultCache = {...}",
+      "const Flag = true",
+      "var Ready bool",
     ]);
   });
 

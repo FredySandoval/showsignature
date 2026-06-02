@@ -7,6 +7,7 @@ import type {
 import { createGoParseContext } from "./01-context.js";
 import {
   createCommentsExtractor,
+  createExportsExtractor,
   createImportsExtractor,
   createInterfacesExtractor,
   createSignaturesExtractor,
@@ -31,6 +32,7 @@ function buildExtractors(): ReadonlyMap<
     createVariablesExtractor(),
     createCommentsExtractor(),
     createImportsExtractor(),
+    createExportsExtractor(),
   ];
 
   return new Map(extractors.map((extractor) => [extractor.kind, extractor]));

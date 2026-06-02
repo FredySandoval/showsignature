@@ -35,6 +35,32 @@ function normalizeBlockLines(lines: readonly string[]): string[] {
     .map((line) => line.trimEnd());
 }
 
+function isExportedIdentifier(name: string): boolean {
+  return /^\p{Lu}/u.test(name);
+}
+
+function readIdentifier(text: string): string | undefined {
+  return /^[\p{L}_][\p{L}\p{N}_]*/u.exec(text.trimStart())?.[0];
+}
+
+function getGoFunctionName(header: string): string | undefined {
+  const match = /^func\s+(?:\([^)]*\)\s*)?([\p{L}_][\p{L}\p{N}_]*)/u.exec(
+    header,
+  );
+  return match?.[1];
+}
+
+function getGoDeclaredName(statement: string, keyword: "const" | "type" | "var"): string | undefined {
+  const cleaned = GoHelpers.stripLineCommentOutsideStrings(statement).trim();
+  if (!cleaned.startsWith(keyword)) return undefined;
+  return readIdentifier(cleaned.slice(keyword.length));
+}
+
+function isExportedGoDeclaration(statement: string, keyword: "const" | "type" | "var"): boolean {
+  const name = getGoDeclaredName(statement, keyword);
+  return name ? isExportedIdentifier(name) : false;
+}
+
 function groupedTypeEntries(
   context: GoParseContext,
   startLine: number,
@@ -257,6 +283,98 @@ export function createVariablesExtractor(): Extractor<GoParseContext> {
           lineIndex = block.endLine;
         }
       }
+      return toResult(entries);
+    },
+  };
+}
+
+export function createExportsExtractor(): Extractor<GoParseContext> {
+  return {
+    kind: "exports",
+    extract(context) {
+      const entries: ExtractEntry[] = [];
+      const depths = GoHelpers.topLevelLineStates(context);
+
+      for (
+        let lineIndex = 0;
+        lineIndex < context.lines.length;
+        lineIndex += 1
+      ) {
+        const line = context.lines[lineIndex] ?? "";
+        if (!isTopLevel(depths, lineIndex)) continue;
+
+        const trimmed = line.trimStart();
+
+        if (/^func\b/u.test(trimmed)) {
+          const header = GoHelpers.collectFuncHeader(context, lineIndex);
+          const name = getGoFunctionName(header.text);
+          if (name && isExportedIdentifier(name)) {
+            entries.push(
+              toEntry("exports", [header.text], header.sourcePos, context.filePath),
+            );
+          }
+          lineIndex = header.endLine;
+          continue;
+        }
+
+        const typeGroup = /^type\s*\(/u.test(trimmed);
+        if (typeGroup) {
+          const block = GoHelpers.collectDeclarationBlock(context, lineIndex);
+          entries.push(
+            ...groupedTypeEntries(context, lineIndex)
+              .filter((entry) =>
+                isExportedGoDeclaration(entry.lines[0] ?? "", "type"),
+              )
+              .map((entry) => ({ ...entry, kind: "exports" as const })),
+          );
+          lineIndex = block.endLine;
+          continue;
+        }
+
+        if (/^type\s+/u.test(trimmed)) {
+          const block = GoHelpers.collectDeclarationBlock(context, lineIndex);
+          if (isExportedGoDeclaration(block.text, "type")) {
+            entries.push(
+              toEntry(
+                "exports",
+                normalizeBlockLines(block.lines),
+                block.sourcePos,
+                context.filePath,
+              ),
+            );
+          }
+          lineIndex = block.endLine;
+          continue;
+        }
+
+        const variableGroup = /^(const|var)\s*\(/u.exec(trimmed);
+        if (variableGroup?.[1] === "const" || variableGroup?.[1] === "var") {
+          const keyword = variableGroup[1];
+          const block = GoHelpers.collectDeclarationBlock(context, lineIndex);
+          entries.push(
+            ...variableEntriesFromGroup(context, lineIndex, keyword)
+              .filter((entry) =>
+                isExportedGoDeclaration(entry.lines[0] ?? "", keyword),
+              )
+              .map((entry) => ({ ...entry, kind: "exports" as const })),
+          );
+          lineIndex = block.endLine;
+          continue;
+        }
+
+        if (/^(const|var)\s+/u.test(trimmed)) {
+          const block = GoHelpers.collectDeclarationBlock(context, lineIndex);
+          const keyword = trimmed.startsWith("const") ? "const" : "var";
+          const rendered = renderVariableLine(block.text);
+          if (isExportedGoDeclaration(rendered, keyword)) {
+            entries.push(
+              toEntry("exports", [rendered], block.sourcePos, context.filePath),
+            );
+          }
+          lineIndex = block.endLine;
+        }
+      }
+
       return toResult(entries);
     },
   };

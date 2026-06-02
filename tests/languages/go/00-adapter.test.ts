@@ -25,6 +25,7 @@ describe("createGoAdapter", () => {
       "variables",
       "comments",
       "imports",
+      "exports",
     ]);
   });
 
@@ -38,6 +39,7 @@ describe("createGoAdapter", () => {
     expect(adapter.supportsKind("signatures")).toBe(true);
     expect(adapter.supportsKind("interfaces")).toBe(true);
     expect(adapter.supportsKind("imports")).toBe(true);
+    expect(adapter.supportsKind("exports")).toBe(true);
     expect(adapter.supportsKind(toPluginExtractKind("custom-kind"))).toBe(
       false,
     );
