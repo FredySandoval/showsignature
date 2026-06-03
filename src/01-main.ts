@@ -321,7 +321,7 @@ function formatUnsupportedFileMessage(
   return `File is not supported: could not infer a language from the file name. Supported extensions: ${supportedExtensions}`;
 }
 
-function collectOptionValue(value: string, previous: string[]): string[] {
+function collectOptionValue(value: string, previous: string[] = []): string[] {
   return [...previous, value];
 }
 
@@ -360,9 +360,8 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     )
     .option(
       "--ignore-folder <folder>",
-      "ignore a folder path or folder name during recursive discovery (repeatable)",
+      "ignore a folder path or folder name during recursive discovery",
       collectOptionValue,
-      [],
     )
     .option(
       "-n, --line-number",
@@ -895,7 +894,7 @@ export function stringifyError(err: unknown): string {
   }
 }
 
-export function toDiagnostic(
+function toDiagnostic(
   err: unknown,
   options?: {
     level?: "warning" | "error";
