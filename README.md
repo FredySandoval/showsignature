@@ -79,7 +79,8 @@ Code files:
 | Mode         | Shows                                      |
 | ------------ | ------------------------------------------ |
 | `signatures` | Functions, classes, methods, constructors. |
-| `imports`    | Import statements.                         |
+| `imports`    | Import statements/declarations.            |
+| `exports`    | JS/TS exports and exported Go declarations. |
 | `interfaces` | TypeScript/Go interfaces.                  |
 | `types`      | Type aliases/declarations.                 |
 | `variables`  | Variables/constants.                       |
@@ -118,7 +119,9 @@ showsignature --folder .                                    # Inspect the curren
 cat src/01-main.ts | showsignature --stdin --lang-only ts   # Read TypeScript from stdin
 
 showsignature --folder . --show-only imports                # Show imports only
+showsignature --folder . --show-only exports                # Show exports only
 showsignature --folder ./src --show-only signatures,imports # Show code structure and imports
+showsignature --folder ./src --show-only imports,exports    # Show dependencies and public API
 showsignature --folder ./src --show-only interfaces,types   # Show data shapes
 showsignature --file src/01-main.ts --show-only variables   # Show variables
 
@@ -127,6 +130,7 @@ showsignature --file README.md --show-only md:codeblocks    # Extract Markdown c
 showsignature --folder . --show-only md:tables              # Extract Markdown tables
 
 showsignature --folder . --lang-only py                     # Process Python files only
+showsignature --folder . --lang-only go --show-only imports,exports # Show Go imports and exported declarations
 showsignature --folder . --max-depth 2                      # Limit recursive scan depth
 showsignature --folder . --ignore-folder dist               # Skip a noisy folder
 showsignature --folder src --show-only signatures,imports --output structure.md # Save compact context
