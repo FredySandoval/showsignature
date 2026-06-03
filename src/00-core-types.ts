@@ -226,11 +226,14 @@ export interface DetectFenceLanguageOptions {
   seenLangs: readonly string[];
 }
 
+export type OutputFormat = "text" | "mermaid";
+
 export interface FormatFinalOutputOptions {
   registry: LanguageRegistry;
   sections: FileSection[];
   explicitLang?: string;
   outputPath?: string;
+  outputFormat?: OutputFormat;
   seenLangs: readonly string[];
   includeLineNumbers?: boolean;
   redact?: boolean;
@@ -247,6 +250,7 @@ export interface ParsedCliArgs {
   langOnly?: string;
   showOnly?: string;
   output?: string;
+  outputFormat?: string;
   includeTests: boolean;
   ignoreFolder?: string[];
   maxDepth?: number;
@@ -271,6 +275,7 @@ export interface ResolvedInputTarget {
 
 export interface OutputTarget {
   path?: string;
+  format?: OutputFormat;
   includeLineNumbers?: boolean;
   redact?: boolean;
 }

@@ -37,6 +37,7 @@ import {
   type LanguageAdapterMetadata,
   type LanguageRegistry,
   type LazyLanguageAdapterRegistration,
+  type OutputFormat,
   type PackageMetadata,
   type ParseContext,
   type ParsedCliArgs,
@@ -54,6 +55,7 @@ import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 export type { Extractor, LanguageAdapter } from "./00-core-types.js";
 
 const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
+const SUPPORTED_OUTPUT_FORMATS = ["text", "mermaid"] as const satisfies readonly OutputFormat[];
 const require = createRequire(import.meta.url);
 const packageMetadata = require("../package.json") as PackageMetadata;
 const CLI_NAME = packageMetadata.name ?? "showsignature";
@@ -347,6 +349,10 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     )
     .option("--stdin", "read source from standard input", false)
     .option("--output <name>", "write formatted output to a file")
+    .option(
+      "--output-format <format>",
+      `output format: ${SUPPORTED_OUTPUT_FORMATS.join(", ")}`,
+    )
     .option("--no-redact", "disable built-in secret redaction")
     .option(
       "--max-depth <number>",
@@ -394,6 +400,10 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
 }
 
 function validateCliArgs(args: ParsedCliArgs): void {
+  if (args.outputFormat !== undefined) {
+    parseOutputFormat(args.outputFormat);
+  }
+
   if (
     args.maxDepth !== undefined &&
     (!Number.isInteger(args.maxDepth) || args.maxDepth < 0)
@@ -683,6 +693,9 @@ async function resolveExecutionPlan(
     input,
     output: {
       ...(args.output ? { path: args.output } : {}),
+      ...(args.outputFormat
+        ? { format: parseOutputFormat(args.outputFormat) }
+        : {}),
       ...(args.lineNumber ? { includeLineNumbers: true } : {}),
       ...(args.redact === false ? { redact: false } : {}),
     },
@@ -698,6 +711,7 @@ function renderPipelineOutput(
     sections: result.sections,
     ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
     ...(plan.output.path ? { outputPath: plan.output.path } : {}),
+    ...(plan.output.format ? { outputFormat: plan.output.format } : {}),
     ...(plan.output.includeLineNumbers ? { includeLineNumbers: true } : {}),
     ...(plan.output.redact === false ? { redact: false } : {}),
     seenLangs: result.meta.seenLangs,
@@ -836,6 +850,18 @@ function hasNumberProp<T extends string>(
   key: T,
 ): value is Record<T, number> {
   return typeof value[key] === "number";
+}
+
+function parseOutputFormat(rawValue: string): OutputFormat {
+  const normalized = rawValue.trim().toLowerCase();
+
+  if ((SUPPORTED_OUTPUT_FORMATS as readonly string[]).includes(normalized)) {
+    return normalized as OutputFormat;
+  }
+
+  throw new Error(
+    `Unsupported output format: ${rawValue}. Supported formats: ${SUPPORTED_OUTPUT_FORMATS.join(", ")}`,
+  );
 }
 
 export function parseExtractOptions(
@@ -1725,8 +1751,142 @@ export function isMarkdownOutputPath(outputPath: string | undefined): boolean {
   return extension === ".md" || extension === ".mdx";
 }
 
+function mermaidId(input: string): string {
+  const normalized = input
+    .trim()
+    .replace(/[^A-Za-z0-9_]/gu, "_")
+    .replace(/_+/gu, "_")
+    .replace(/^_+|_+$/gu, "");
+
+  if (!normalized) {
+    return "node";
+  }
+
+  return /^\d/u.test(normalized) ? `_${normalized}` : normalized;
+}
+
+function mermaidLabel(input: string): string {
+  return sanitizeForDisplay(input)
+    .replace(/\r?\n/gu, " ")
+    .replace(/"/gu, "'")
+    .replace(/`/gu, "'")
+    .trim();
+}
+
+function formatMermaidEntryLabel(
+  entry: ExtractEntry,
+  includeLineNumbers: boolean,
+  redact = true,
+): string {
+  const rawContent = entry.lines.join(" ");
+  const displayContent = redact ? redactSecrets(rawContent) : rawContent;
+  const label = mermaidLabel(displayContent);
+  const sourceLine = entry.metadata?.sourceLine;
+
+  if (!includeLineNumbers || sourceLine === undefined) {
+    return label;
+  }
+
+  return `${sourceLine}: ${label}`;
+}
+
+function toMermaidNodePrefix(kind: ExtractKind): string {
+  switch (kind) {
+    case "imports":
+      return "dep";
+    case "exports":
+      return "export";
+    case "interfaces":
+      return "interface";
+    case "types":
+      return "type";
+    case "variables":
+      return "var";
+    case "comments":
+      return "comment";
+    case "signatures":
+      return "sig";
+    default:
+      return "entry";
+  }
+}
+
+export function formatMermaidOutput(
+  sections: FileSection[],
+  options: { includeLineNumbers?: boolean; redact?: boolean } = {},
+): string {
+  const nodeLines: string[] = ["flowchart TD"];
+  const edgeLines: string[] = [];
+  const seenNodes = new Set<string>();
+  const seenEdges = new Set<string>();
+
+  const addNode = (id: string, label: string): void => {
+    if (seenNodes.has(id)) {
+      return;
+    }
+
+    nodeLines.push(`  ${id}["${mermaidLabel(label)}"]`);
+    seenNodes.add(id);
+  };
+
+  const addEdge = (from: string, to: string): void => {
+    const edge = `${from} --> ${to}`;
+    if (seenEdges.has(edge)) {
+      return;
+    }
+
+    edgeLines.push(`  ${edge}`);
+    seenEdges.add(edge);
+  };
+
+  const sortedSections = [...sections].sort((left, right) =>
+    toDisplayPath(left.filePath).localeCompare(toDisplayPath(right.filePath)),
+  );
+
+  for (const section of sortedSections) {
+    if (section.entries.length === 0) {
+      continue;
+    }
+
+    const displayPath = toDisplayPath(section.filePath);
+    const fileNodeId = mermaidId(`file_${displayPath}`);
+    addNode(fileNodeId, displayPath);
+
+    section.entries.forEach((entry, entryIndex) => {
+      const label = formatMermaidEntryLabel(
+        entry,
+        options.includeLineNumbers === true,
+        options.redact !== false,
+      );
+
+      if (!label) {
+        return;
+      }
+
+      const prefix = toMermaidNodePrefix(entry.kind);
+      const stablePart = entry.metadata?.sourceLine ?? entryIndex + 1;
+      const entryNodeId = mermaidId(
+        `${prefix}_${displayPath}_${stablePart}_${entryIndex + 1}`,
+      );
+
+      addNode(entryNodeId, label);
+      addEdge(fileNodeId, entryNodeId);
+    });
+  }
+
+  return [...nodeLines, ...edgeLines].join("\n");
+}
+
 export function formatFinalOutput(options: FormatFinalOutputOptions): string {
   const { registry, sections, explicitLang, seenLangs } = options;
+
+  if (options.outputFormat === "mermaid") {
+    return formatMermaidOutput(sections, {
+      ...(options.includeLineNumbers ? { includeLineNumbers: true } : {}),
+      ...(options.redact === false ? { redact: false } : {}),
+    });
+  }
+
   const plainOutput = formatPlainOutput(sections, {
     ...(options.includeLineNumbers ? { includeLineNumbers: true } : {}),
     ...(options.redact === false ? { redact: false } : {}),
@@ -1736,7 +1896,10 @@ export function formatFinalOutput(options: FormatFinalOutputOptions): string {
     return "";
   }
 
-  if (!isMarkdownOutputPath(options.outputPath)) {
+  if (
+    options.outputFormat === "text" ||
+    !isMarkdownOutputPath(options.outputPath)
+  ) {
     return plainOutput;
   }
 
