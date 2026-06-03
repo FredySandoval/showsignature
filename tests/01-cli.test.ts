@@ -118,46 +118,7 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("writes markdown output to a .md file and uses combined ordering by default", async () => {
-    installOutputCapture();
-
-    const rootDir = await createTempDir();
-    await writeFixtureFile(
-      rootDir,
-      "src/app.ts",
-      `// before\nfunction greet(): void {}\n`,
-    );
-
-    process.chdir(rootDir);
-
-    await buildCli().run([
-      "showcode",
-      "--file",
-      "src/app.ts",
-      "--show-only=signatures,comments",
-      "--output",
-      "artifacts/output.md",
-    ]);
-
-    const output = await readFile(
-      path.join(rootDir, "artifacts/output.md"),
-      "utf8",
-    );
-
-    expect(output).toBe(
-      [
-        "```ts",
-        "// src/app.ts",
-        "1 // before",
-        "2 function greet(): void;",
-        "```",
-      ].join("\n"),
-    );
-    expect(stdoutBuffer).toBe("");
-    expect(stderrBuffer).toBe("");
-  });
-
-  test("writes plain output to a non-markdown file", async () => {
+  test("throws for removed --output option", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -169,24 +130,15 @@ describe("buildCli", () => {
 
     process.chdir(rootDir);
 
-    await buildCli().run([
-      "showcode",
-      "--file",
-      "src/app.ts",
-      "--output",
-      "artifacts/output.txt",
-    ]);
-
-    const output = await readFile(
-      path.join(rootDir, "artifacts/output.txt"),
-      "utf8",
-    );
-
-    expect(output).toBe(
-      ["// src/app.ts", "1 function greet(): void;"].join("\n"),
-    );
-    expect(stdoutBuffer).toBe("");
-    expect(stderrBuffer).toBe("");
+    await expect(
+      buildCli().run([
+        "showcode",
+        "--file",
+        "src/app.ts",
+        "--output",
+        "artifacts/output.txt",
+      ]),
+    ).rejects.toThrow("unknown option '--output'");
   });
 
   test("optionally prints source line numbers", async () => {

@@ -2,17 +2,9 @@
 // CLI                                  [Step 1 — entry point]
 // Uses commanderjs to parse CLI arguments and run the pipeline
 // ============================================================================
-import {
-  lstat,
-  mkdir,
-  readFile,
-  realpath,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { readFile, realpath, stat } from "node:fs/promises";
 import { Buffer } from "node:buffer";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { Command, CommanderError } from "commander";
 import { globby } from "globby";
@@ -162,16 +154,6 @@ function isPathWithin(basePath: string, targetPath: string): boolean {
   );
 }
 
-async function canWriteOutputPath(targetPath: string): Promise<boolean> {
-  const cwdRealPath = await realpath(process.cwd());
-  if (isPathWithin(cwdRealPath, targetPath)) {
-    return true;
-  }
-
-  const tmpRealPath = await realpath(tmpdir());
-  return isPathWithin(tmpRealPath, targetPath);
-}
-
 async function resolveSafeInputPath(
   targetPath: string,
 ): Promise<string | null> {
@@ -189,36 +171,6 @@ async function resolveSafeInputPath(
   }
 
   return realTargetPath;
-}
-
-async function resolveSafeOutputPath(
-  targetPath: string,
-): Promise<string | null> {
-  const resolvedPath = path.resolve(targetPath);
-
-  if (!(await canWriteOutputPath(resolvedPath))) {
-    return null;
-  }
-
-  const parentDir = path.dirname(resolvedPath);
-  await mkdir(parentDir, { recursive: true });
-  const parentRealPath = await realpath(parentDir);
-
-  if (!(await canWriteOutputPath(parentRealPath))) {
-    return null;
-  }
-
-  try {
-    const targetStats = await lstat(resolvedPath);
-    if (!targetStats.isFile()) {
-      return null;
-    }
-
-    const realTargetPath = await realpath(resolvedPath);
-    return (await canWriteOutputPath(realTargetPath)) ? resolvedPath : null;
-  } catch {
-    return resolvedPath;
-  }
 }
 
 function stripArgvPrefix(argv: readonly string[]): string[] {
@@ -348,7 +300,6 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "process files from a folder (.gitignore files are respected)",
     )
     .option("--stdin", "read source from standard input", false)
-    .option("--output <name>", "write formatted output to a file")
     .option(
       "--output-format <format>",
       `output format: ${SUPPORTED_OUTPUT_FORMATS.join(", ")}`,
@@ -522,21 +473,6 @@ function emitDiagnostics(
   }
 }
 
-async function writeOutputFile(
-  outputPath: string,
-  content: string,
-): Promise<void> {
-  const resolvedOutputPath = await resolveSafeOutputPath(outputPath);
-  if (!resolvedOutputPath) {
-    throw createCliError(
-      `Could not write output outside the current folder or ${tmpdir()}: ${outputPath}`,
-    );
-  }
-
-  await mkdir(path.dirname(resolvedOutputPath), { recursive: true });
-  await writeFile(resolvedOutputPath, content, "utf8");
-}
-
 async function readStdin(): Promise<string> {
   const chunks: Uint8Array[] = [];
 
@@ -692,7 +628,6 @@ async function resolveExecutionPlan(
     extractOrder,
     input,
     output: {
-      ...(args.output ? { path: args.output } : {}),
       ...(args.outputFormat
         ? { format: parseOutputFormat(args.outputFormat) }
         : {}),
@@ -710,7 +645,6 @@ function renderPipelineOutput(
     registry: plan.registry,
     sections: result.sections,
     ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
-    ...(plan.output.path ? { outputPath: plan.output.path } : {}),
     ...(plan.output.format ? { outputFormat: plan.output.format } : {}),
     ...(plan.output.includeLineNumbers ? { includeLineNumbers: true } : {}),
     ...(plan.output.redact === false ? { redact: false } : {}),
@@ -723,9 +657,7 @@ async function emitPipelineResult(
   result: PipelineResult,
   formattedOutput: string,
 ): Promise<void> {
-  if (plan.output.path) {
-    await writeOutputFile(plan.output.path, formattedOutput);
-  } else if (formattedOutput) {
+  if (formattedOutput) {
     process.stdout.write(`${formattedOutput}\n`);
   }
 
@@ -1742,15 +1674,6 @@ export function toMarkdownCodeBlock(
   return `${openFence}\n${body.endsWith("\n") ? body : `${body}\n`}\`\`\``;
 }
 
-export function isMarkdownOutputPath(outputPath: string | undefined): boolean {
-  if (!outputPath) {
-    return false;
-  }
-
-  const extension = path.extname(outputPath).toLowerCase();
-  return extension === ".md" || extension === ".mdx";
-}
-
 function mermaidId(input: string): string {
   const normalized = input
     .trim()
@@ -1878,7 +1801,7 @@ export function formatMermaidOutput(
 }
 
 export function formatFinalOutput(options: FormatFinalOutputOptions): string {
-  const { registry, sections, explicitLang, seenLangs } = options;
+  const { sections } = options;
 
   if (options.outputFormat === "mermaid") {
     return formatMermaidOutput(sections, {
@@ -1896,19 +1819,7 @@ export function formatFinalOutput(options: FormatFinalOutputOptions): string {
     return "";
   }
 
-  if (
-    options.outputFormat === "text" ||
-    !isMarkdownOutputPath(options.outputPath)
-  ) {
-    return plainOutput;
-  }
-
-  const fenceLang = detectFenceLanguage({
-    registry,
-    ...(explicitLang ? { explicitLang } : {}),
-    seenLangs,
-  });
-  return toMarkdownCodeBlock(plainOutput, fenceLang);
+  return plainOutput;
 }
 
 // ============================================================================

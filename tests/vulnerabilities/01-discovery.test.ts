@@ -268,10 +268,8 @@ describe("vulnerability discovery", () => {
     ).not.toContain("export const traversed = 1;");
   });
 
-  test("allows --output path traversal when the target still stays inside the system temp directory", async () => {
+  test("fails if removed --output option is used", async () => {
     const projectDir = await createTempDir("showsignature-vuln-project-");
-    const victimParentDir = await createTempDir("showsignature-vuln-victim-");
-    const victimFile = path.join(victimParentDir, "owned.txt");
 
     await writeFixtureFile(
       projectDir,
@@ -281,18 +279,15 @@ describe("vulnerability discovery", () => {
 
     process.chdir(projectDir);
 
-    await buildCli().run([
-      "showsignature",
-      "--file",
-      "src/app.ts",
-      "--output",
-      path.join("..", path.basename(victimParentDir), "owned.txt"),
-    ]);
-
     await expect(
-      readFile(victimFile, "utf8"),
-      "Expected --output to allow writes that stay inside the system temp directory, even when the path uses traversal segments.",
-    ).resolves.toContain("function greet(name: string): string;");
+      buildCli().run([
+        "showsignature",
+        "--file",
+        "src/app.ts",
+        "--output",
+        "owned.txt",
+      ]),
+    ).rejects.toThrow("unknown option '--output'");
   });
 
   test("fails if --output accepts absolute paths outside the current working directory", async () => {
@@ -588,141 +583,5 @@ describe("vulnerability discovery", () => {
       stderrChunks.join(""),
       "Security issue discovered: error diagnostics should sanitize embedded newlines from attacker-controlled paths.",
     ).not.toContain("[forged].ts");
-  });
-
-  test("fails if markdown output allows HTML injection from attacker-controlled file names", async () => {
-    const projectDir = await createTempDir(
-      "showsignature-vuln-markdown-filename-",
-    );
-    const registry = buildDefaultRegistry();
-    const filePath = await writeFixtureFile(
-      projectDir,
-      "<img src=x onerror=alert('owned')>.ts",
-      "export const safe = 1;\n",
-    );
-
-    const section = await processFile({
-      registry,
-      filePath,
-      extractOrder: ["variables"],
-    });
-
-    const markdown = formatFinalOutput({
-      registry,
-      sections: [section],
-      seenLangs: [section.lang],
-      outputPath: "report.md",
-    });
-
-    expect(
-      markdown,
-      "Security issue discovered: markdown output should not embed attacker-controlled HTML from file names.",
-    ).not.toContain("<img src=x onerror=alert('owned')>");
-  });
-
-  test("fails if markdown output allows fence injection from attacker-controlled file names", async () => {
-    const projectDir = await createTempDir(
-      "showsignature-vuln-markdown-filename-fence-",
-    );
-    const registry = buildDefaultRegistry();
-    const filePath = await writeFixtureFile(
-      projectDir,
-      "evil```html.ts",
-      "export const safe = 1;\n",
-    );
-
-    const section = await processFile({
-      registry,
-      filePath,
-      extractOrder: ["variables"],
-    });
-
-    const markdown = formatFinalOutput({
-      registry,
-      sections: [section],
-      seenLangs: [section.lang],
-      outputPath: "report.md",
-    });
-
-    expect(
-      markdown,
-      "Security issue discovered: markdown output should neutralize attacker-controlled code fences from file names.",
-    ).not.toContain("```html");
-  });
-
-  test("fails if markdown output allows newline-based fence injection from attacker-controlled file names", async () => {
-    const projectDir = await createTempDir(
-      "showsignature-vuln-markdown-filename-newline-",
-    );
-    const registry = buildDefaultRegistry();
-    const filePath = await writeFixtureFile(
-      projectDir,
-      "evil\n```md\n.ts",
-      "export const safe = 1;\n",
-    );
-
-    const section = await processFile({
-      registry,
-      filePath,
-      extractOrder: ["variables"],
-    });
-
-    const markdown = formatFinalOutput({
-      registry,
-      sections: [section],
-      seenLangs: [section.lang],
-      outputPath: "report.md",
-    });
-
-    expect(
-      markdown,
-      "Security issue discovered: markdown output should not allow newline-controlled file names to break the surrounding fence.",
-    ).not.toContain("```md");
-  });
-
-  test("fails if markdown output allows fence injection from untrusted source comments", async () => {
-    const projectDir = await createTempDir("showsignature-vuln-markdown-");
-    const registry = buildDefaultRegistry();
-    const filePath = await writeFixtureFile(
-      projectDir,
-      "src/injected.ts",
-      [
-        "/*",
-        "```html",
-        "<img src=x onerror=alert('owned')>",
-        "```",
-        "*/",
-        "export function safe(): void {}",
-        "",
-      ].join("\n"),
-    );
-
-    const section = await processFile({
-      registry,
-      filePath,
-      extractOrder: ["comments", "signatures"],
-    });
-
-    const markdown = formatFinalOutput({
-      registry,
-      sections: [section],
-      seenLangs: [section.lang],
-      outputPath: "report.md",
-    });
-
-    expect(
-      markdown,
-      "Security issue discovered: markdown output should escape or neutralize injected HTML payloads from comments.",
-    ).not.toContain("<img src=x onerror=alert('owned')>");
-    expect(
-      markdown.match(/```/g)?.length ?? 0,
-      "Security issue discovered: markdown output should not let untrusted comments inject extra code fences.",
-    ).toBeLessThanOrEqual(2);
-    expect(
-      markdown,
-      "Security issue discovered: markdown output should not contain attacker-controlled fenced blocks from comments.",
-    ).not.toContain(
-      ["```html", "<img src=x onerror=alert('owned')>", "```"].join("\n"),
-    );
   });
 });

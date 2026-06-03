@@ -67,7 +67,7 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 | `--stdin`                | Read source from stdin.             |
 | `--lang-only <lang>`     | Force language, useful with stdin.  |
 | `--show-only <items>`    | Choose extractors.                  |
-| `--output <file>`        | Save output.                        |
+| `--output-format <fmt>`  | Choose renderer: `text` or `mermaid`. |
 | `--include-tests`        | Include test files in folder scans. |
 | `--max-depth <n>`        | Limit folder scan depth.            |
 | `--ignore-folder <name>` | Skip folders.                       |
@@ -134,13 +134,29 @@ showsignature --folder . --lang-only go --show-only imports,exports # Show Go im
 showsignature --folder . --lang-only py --show-only imports,exports # Show Python imports and public exports
 showsignature --folder . --max-depth 2                      # Limit recursive scan depth
 showsignature --folder . --ignore-folder dist               # Skip a noisy folder
-showsignature --folder src --show-only signatures,imports --output structure.md # Save compact context
+showsignature --folder src --show-only signatures,imports > structure.txt # Save compact context
+showsignature --folder src --show-only imports,exports --output-format mermaid > graph.mmd # Save a Mermaid graph
 ```
 
 Combine modes with commas:
 
 ```bash
 showsignature --folder src --show-only signatures,imports,comments
+```
+
+## Output formats
+
+By default, `showsignature` prints compact text output. Use shell redirection to save output to a file:
+
+```bash
+showsignature --folder src --show-only signatures > structure.txt
+```
+
+Use `--output-format mermaid` to render extracted structure as a Mermaid flowchart:
+
+```bash
+showsignature --folder src --show-only imports,exports --output-format mermaid > graph.mmd
+showsignature --folder src --show-only signatures --output-format mermaid
 ```
 
 ## Pipeline usage

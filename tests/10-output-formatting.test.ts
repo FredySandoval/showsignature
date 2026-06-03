@@ -12,7 +12,6 @@ import {
   detectFenceLanguage,
   formatFinalOutput,
   formatPlainOutput,
-  isMarkdownOutputPath,
   redactSecrets,
   toDisplayPath,
   toMarkdownCodeBlock,
@@ -497,24 +496,6 @@ describe("toMarkdownCodeBlock", () => {
 });
 
 // ---------------------------------------------------------------------------
-// isMarkdownOutputPath
-// ---------------------------------------------------------------------------
-
-describe("isMarkdownOutputPath", () => {
-  test("returns true for .md and .mdx output paths", () => {
-    expect(isMarkdownOutputPath("output.md")).toBe(true);
-    expect(isMarkdownOutputPath("docs/output.mdx")).toBe(true);
-    expect(isMarkdownOutputPath("OUTPUT.MD")).toBe(true);
-  });
-
-  test("returns false for missing or non-markdown extensions", () => {
-    expect(isMarkdownOutputPath(undefined)).toBe(false);
-    expect(isMarkdownOutputPath("output.txt")).toBe(false);
-    expect(isMarkdownOutputPath("output")).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // formatFinalOutput
 // ---------------------------------------------------------------------------
 
@@ -543,129 +524,6 @@ describe("formatFinalOutput", () => {
     expect(result).toBe(
       ["// src/index.ts", "function main(): void;"].join("\n"),
     );
-  });
-
-  test("returns code block when outputPath has a markdown extension", () => {
-    const registry = createLanguageRegistry();
-    registry.register(
-      createMockAdapter({
-        id: "ts",
-        extensions: [".ts"],
-        fenceLang: "typescript",
-      }),
-    );
-
-    const section = makeSection({
-      filePath: "src/index.ts",
-      entries: [{ kind: "signatures", lines: ["function main(): void;"] }],
-    });
-
-    const result = formatFinalOutput({
-      registry,
-      sections: [section],
-      outputPath: "output.md",
-      seenLangs: ["ts"],
-    });
-
-    expect(result).toBe(
-      [
-        "```typescript",
-        "// src/index.ts",
-        "function main(): void;",
-        "```",
-      ].join("\n"),
-    );
-  });
-
-  test("returns plain output when outputPath is non-markdown", () => {
-    const registry = createLanguageRegistry();
-    registry.register(
-      createMockAdapter({
-        id: "ts",
-        extensions: [".ts"],
-        fenceLang: "typescript",
-      }),
-    );
-
-    const section = makeSection({
-      filePath: "src/index.ts",
-      entries: [{ kind: "signatures", lines: ["function main(): void;"] }],
-    });
-
-    const result = formatFinalOutput({
-      registry,
-      sections: [section],
-      outputPath: "output.txt",
-      seenLangs: ["ts"],
-    });
-
-    expect(result).toBe(
-      ["// src/index.ts", "function main(): void;"].join("\n"),
-    );
-  });
-
-  test("uses explicitLang over seenLangs for code block fence", () => {
-    const registry = createLanguageRegistry();
-    registry.register(
-      createMockAdapter({ id: "py", extensions: [".py"], fenceLang: "python" }),
-    );
-    registry.register(
-      createMockAdapter({
-        id: "ts",
-        extensions: [".ts"],
-        fenceLang: "typescript",
-      }),
-    );
-
-    const section = makeSection({
-      filePath: "app.py",
-      entries: [{ kind: "signatures", lines: ["def hello():"] }],
-    });
-
-    const result = formatFinalOutput({
-      registry,
-      sections: [section],
-      explicitLang: "py",
-      outputPath: "output.md",
-      seenLangs: ["ts"],
-    });
-
-    expect(result).toBe(
-      ["```python", "// app.py", "def hello():", "```"].join("\n"),
-    );
-  });
-
-  test("formats code block with no fence language when multiple langs seen", () => {
-    const registry = createLanguageRegistry();
-    registry.register(
-      createMockAdapter({
-        id: "ts",
-        extensions: [".ts"],
-        fenceLang: "typescript",
-      }),
-    );
-    registry.register(
-      createMockAdapter({ id: "py", extensions: [".py"], fenceLang: "python" }),
-    );
-
-    const result = formatFinalOutput({
-      registry,
-      sections: [
-        makeSection({
-          filePath: "a.ts",
-          entries: [{ kind: "signatures", lines: ["function a(): void;"] }],
-        }),
-        makeSection({
-          filePath: "b.py",
-          entries: [{ kind: "signatures", lines: ["def b():"] }],
-        }),
-      ],
-      outputPath: "output.md",
-      seenLangs: ["ts", "py"],
-    });
-
-    expect(result).toStartWith("```\n");
-    expect(result).toEndWith("\n```");
   });
 
   test("returns empty string when all sections have no entries and no outputPath", () => {

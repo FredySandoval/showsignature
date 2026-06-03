@@ -232,7 +232,6 @@ export interface FormatFinalOutputOptions {
   registry: LanguageRegistry;
   sections: FileSection[];
   explicitLang?: string;
-  outputPath?: string;
   outputFormat?: OutputFormat;
   seenLangs: readonly string[];
   includeLineNumbers?: boolean;
@@ -249,7 +248,6 @@ export interface ParsedCliArgs {
   stdin: boolean;
   langOnly?: string;
   showOnly?: string;
-  output?: string;
   outputFormat?: string;
   includeTests: boolean;
   ignoreFolder?: string[];
@@ -274,7 +272,6 @@ export interface ResolvedInputTarget {
 }
 
 export interface OutputTarget {
-  path?: string;
   format?: OutputFormat;
   includeLineNumbers?: boolean;
   redact?: boolean;
