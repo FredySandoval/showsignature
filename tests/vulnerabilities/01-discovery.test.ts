@@ -12,13 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import {
-  buildCli,
-  formatFinalOutput,
-  processFile,
-  runCli,
-} from "@/src/01-main.js";
-import { buildDefaultRegistry } from "@/src/03-index.js";
+import { buildCli, runCli } from "@/src/01-main.js";
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
