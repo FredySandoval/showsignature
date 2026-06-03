@@ -268,6 +268,38 @@ describe("formatPlainOutput", () => {
     );
   });
 
+  test("preserves embedded newlines inside extractor lines", () => {
+    const section = makeSection({
+      filePath: "src/adapter.ts",
+      entries: [
+        {
+          kind: "imports",
+          lines: [
+            [
+              "import type {",
+              "  ExtractKind,",
+              "  Extractor,",
+              '} from "../../00-core-types.js";',
+            ].join("\n"),
+          ],
+          metadata: { sourceLine: 1 },
+        },
+      ],
+    });
+
+    const result = formatPlainOutput([section], { includeLineNumbers: true });
+
+    expect(result).toBe(
+      [
+        "// src/adapter.ts",
+        "1 import type {",
+        "    ExtractKind,",
+        "    Extractor,",
+        '  } from "../../00-core-types.js";',
+      ].join("\n"),
+    );
+  });
+
   test("optionally prefixes entries with source line numbers", () => {
     const section = makeSection({
       filePath: "src/app.ts",

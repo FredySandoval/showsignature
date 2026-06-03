@@ -7,6 +7,7 @@ import type {
 import { createPyParseContext } from "./01-context.js";
 import {
   createCommentsExtractor,
+  createExportsExtractor,
   createImportsExtractor,
   createSignaturesExtractor,
   createVariablesExtractor,
@@ -27,6 +28,7 @@ function buildExtractors(): ReadonlyMap<
     createVariablesExtractor(),
     createCommentsExtractor(),
     createImportsExtractor(),
+    createExportsExtractor(),
   ];
 
   return new Map(extractors.map((extractor) => [extractor.kind, extractor]));

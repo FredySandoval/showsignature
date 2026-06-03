@@ -5,6 +5,7 @@ import path from "node:path";
 import { createPyParseContext } from "@/src/languages/python/01-context.js";
 import {
   createCommentsExtractor,
+  createExportsExtractor,
   createImportsExtractor,
   createSignaturesExtractor,
   createVariablesExtractor,
@@ -93,6 +94,68 @@ describe("createCommentsExtractor", () => {
     expect(result.entries.map((entry) => entry.lines[0])).toEqual([
       "# first real comment",
       "# trailing",
+    ]);
+  });
+});
+
+describe("createExportsExtractor", () => {
+  test("exports public top-level declarations when __all__ is absent", () => {
+    const source = [
+      "import os",
+      "import pathlib as PathLib",
+      "from pkg import alpha, _beta, gamma as PublicGamma",
+      "VALUE = 1",
+      "_PRIVATE = 2",
+      "Name, _other = make_names()",
+      "class User(Base):",
+      "    def name(self) -> str:",
+      '        return "x"',
+      "class _Hidden:",
+      "    pass",
+      "async def Load() -> None:",
+      "    pass",
+      "def _helper():",
+      "    pass",
+    ].join("\n");
+
+    const result = createExportsExtractor().extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      "class User(Base):",
+      "async def Load() -> None: ...",
+      "VALUE = 1",
+      "Name, _other = ...",
+      "import os",
+      "import pathlib as PathLib",
+      "from pkg import alpha, _beta, gamma as PublicGamma",
+    ]);
+  });
+
+  test("uses __all__ as the explicit Python export list when present", () => {
+    const source = [
+      "from pkg import alpha, beta as PublicBeta, gamma",
+      "__all__ = [",
+      "    'User',",
+      "    'Load',",
+      "    'PublicBeta',",
+      "]",
+      "VALUE = 1",
+      "class User:",
+      "    pass",
+      "def Load():",
+      "    pass",
+      "def helper():",
+      "    pass",
+    ].join("\n");
+
+    const result = createExportsExtractor().extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      "class User:",
+      "def Load(): ...",
+      "from pkg import alpha, beta as PublicBeta, gamma",
     ]);
   });
 });

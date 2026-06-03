@@ -1634,9 +1634,11 @@ function formatEntryLines(
   includeLineNumbers: boolean,
   redact = true,
 ): string {
-  const lines = entry.lines.map((line) =>
-    sanitizeAndMaybeRedactForDisplay(line, redact),
-  );
+  const entryContent = entry.lines.join("\n");
+  const displayContent = redact ? redactSecrets(entryContent) : entryContent;
+  const lines = displayContent
+    .split("\n")
+    .map((line) => sanitizeForDisplay(line));
   const content = lines.join("\n");
 
   if (!includeLineNumbers) {

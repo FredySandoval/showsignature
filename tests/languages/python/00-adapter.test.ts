@@ -23,6 +23,7 @@ describe("createPythonAdapter", () => {
       "variables",
       "comments",
       "imports",
+      "exports",
     ]);
   });
 
@@ -52,6 +53,7 @@ describe("createPythonAdapter", () => {
 
     expect(adapter.supportsKind("signatures")).toBe(true);
     expect(adapter.supportsKind("imports")).toBe(true);
+    expect(adapter.supportsKind("exports")).toBe(true);
     expect(adapter.supportsKind("interfaces")).toBe(false);
     expect(adapter.supportsKind(toPluginExtractKind("custom-kind"))).toBe(
       false,

@@ -37,6 +37,72 @@ function renderClassSignature(
   return [header, ...methodSignatures.map((line) => `    ${line}`)];
 }
 
+function toExportEntry(entry: ExtractEntry): ExtractEntry {
+  return { ...entry, kind: "exports" };
+}
+
+function isPublicPythonName(name: string): boolean {
+  return !name.startsWith("_");
+}
+
+function getPythonFunctionName(header: string): string | undefined {
+  return /^(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\b/u.exec(header)?.[1];
+}
+
+function getPythonVariableNames(line: string): string[] {
+  const match = /^([A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*)(?:\s*:\s*[^=]+)?\s*=/u.exec(
+    line.trim(),
+  );
+  return match?.[1]?.split(/\s*,\s*/u) ?? [];
+}
+
+function extractPythonAllNames(statement: string): string[] {
+  if (!/^__all__\s*=/u.test(statement.trim())) return [];
+  return [...statement.matchAll(/(["'])([A-Za-z_][A-Za-z0-9_]*)\1/gu)].map(
+    (match) => match[2] ?? "",
+  );
+}
+
+function getExplicitAllExports(context: PyParseContext): Set<string> | null {
+  for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
+    const line = context.lines[lineIndex];
+    if (!line || PyHelpers.getIndent(line) !== 0) continue;
+    if (!line.trimStart().startsWith("__all__")) continue;
+    const statement = PyHelpers.collectStatement(context, lineIndex);
+    if (!statement) continue;
+    const names = extractPythonAllNames(statement.text);
+    return names.length > 0 ? new Set(names) : null;
+  }
+  return null;
+}
+
+function splitPythonImportItems(value: string): string[] {
+  return value
+    .replace(/[()]/gu, "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function getImportedPublicNames(statement: string): string[] {
+  const trimmed = statement.trim();
+  if (trimmed.startsWith("import ")) {
+    return splitPythonImportItems(trimmed.slice("import ".length)).map((item) => {
+      const aliasMatch = /\s+as\s+([A-Za-z_][A-Za-z0-9_]*)$/u.exec(item);
+      if (aliasMatch?.[1]) return aliasMatch[1];
+      return item.split(".")[0]?.trim() ?? "";
+    });
+  }
+
+  const fromMatch = /^from\s+\S+\s+import\s+(.+)$/u.exec(trimmed);
+  if (!fromMatch?.[1]) return [];
+  return splitPythonImportItems(fromMatch[1]).map((item) => {
+    const aliasMatch = /\s+as\s+([A-Za-z_][A-Za-z0-9_]*)$/u.exec(item);
+    if (aliasMatch?.[1]) return aliasMatch[1];
+    return /^[A-Za-z_][A-Za-z0-9_]*/u.exec(item)?.[0] ?? "";
+  });
+}
+
 function createTopLevelFunctionEntries(
   context: PyParseContext,
 ): ExtractEntry[] {
@@ -289,6 +355,46 @@ export function createCommentsExtractor(): Extractor<PyParseContext> {
             context.filePath,
           ),
         );
+      }
+
+      return toResult(entries);
+    },
+  };
+}
+
+export function createExportsExtractor(): Extractor<PyParseContext> {
+  return {
+    kind: "exports",
+    extract(context: PyParseContext): SingleExtractResult {
+      const explicitExports = getExplicitAllExports(context);
+      const shouldExport = (name: string): boolean =>
+        explicitExports ? explicitExports.has(name) : isPublicPythonName(name);
+      const entries: ExtractEntry[] = [];
+
+      for (const entry of createClassEntries(context)) {
+        const name = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\b/u.exec(
+          entry.lines[0] ?? "",
+        )?.[1];
+        if (name && shouldExport(name)) entries.push(toExportEntry(entry));
+      }
+
+      for (const entry of createTopLevelFunctionEntries(context)) {
+        const name = getPythonFunctionName(entry.lines[0] ?? "");
+        if (name && shouldExport(name)) entries.push(toExportEntry(entry));
+      }
+
+      for (const entry of createVariablesExtractor().extract(context).entries) {
+        const names = getPythonVariableNames(entry.lines[0] ?? "");
+        if (names.some((name) => shouldExport(name))) {
+          entries.push(toExportEntry(entry));
+        }
+      }
+
+      for (const entry of createImportsExtractor().extract(context).entries) {
+        const names = getImportedPublicNames(entry.lines[0] ?? "");
+        if (names.some((name) => name && shouldExport(name))) {
+          entries.push(toExportEntry(entry));
+        }
       }
 
       return toResult(entries);

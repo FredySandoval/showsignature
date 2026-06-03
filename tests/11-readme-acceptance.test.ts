@@ -133,7 +133,7 @@ describe("README acceptance", () => {
         "9 export type UserId = string | number;",
         '11 export const API_URL = "https://example.com";',
         "12 let cache: Map<string, User> = ...;",
-        "13 const settings = {...};",
+        '13 const settings = { theme: "dark", compact: true };',
         "15 export abstract class UserAccount<T extends User> implements User {",
         "     constructor(public id: number);",
         "     getProfile(): string;",

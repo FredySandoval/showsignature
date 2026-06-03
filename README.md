@@ -80,7 +80,7 @@ Code files:
 | ------------ | ------------------------------------------ |
 | `signatures` | Functions, classes, methods, constructors. |
 | `imports`    | Import statements/declarations.            |
-| `exports`    | JS/TS exports and exported Go declarations. |
+| `exports`    | JS/TS exports, exported Go declarations, and Python public exports. |
 | `interfaces` | TypeScript/Go interfaces.                  |
 | `types`      | Type aliases/declarations.                 |
 | `variables`  | Variables/constants.                       |
@@ -131,6 +131,7 @@ showsignature --folder . --show-only md:tables              # Extract Markdown t
 
 showsignature --folder . --lang-only py                     # Process Python files only
 showsignature --folder . --lang-only go --show-only imports,exports # Show Go imports and exported declarations
+showsignature --folder . --lang-only py --show-only imports,exports # Show Python imports and public exports
 showsignature --folder . --max-depth 2                      # Limit recursive scan depth
 showsignature --folder . --ignore-folder dist               # Skip a noisy folder
 showsignature --folder src --show-only signatures,imports --output structure.md # Save compact context
