@@ -16,6 +16,8 @@ const EXTENSION_TO_SCRIPT_KIND: Record<string, ts.ScriptKind> = {
   ".cts": ts.ScriptKind.TS,
   ".mjs": ts.ScriptKind.JS,
   ".cjs": ts.ScriptKind.JS,
+  ".tsx": ts.ScriptKind.TSX,
+  ".jsx": ts.ScriptKind.JSX,
 };
 
 function inferScriptKind(filePath: string): ts.ScriptKind {

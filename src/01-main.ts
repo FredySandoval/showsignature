@@ -44,6 +44,7 @@ import { createLuaAdapter } from "./languages/lua/00-adapter.js";
 import { createMarkdownAdapter } from "./languages/markdown/00-adapter.js";
 import { createPythonAdapter } from "./languages/python/00-adapter.js";
 import { createRustAdapter } from "./languages/rust/00-adapter.js";
+import { createTsxAdapter } from "./languages/tsx/00-adapter.js";
 import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
 export type { Extractor, LanguageAdapter } from "./00-core-types.js";
@@ -223,11 +224,15 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   const markdownKinds = uniqueKinds.filter(
     (kind) => kind === "md" || kind.startsWith("md:"),
   );
+  const tsxKinds = uniqueKinds.filter((kind) =>
+    ["html", "csshidden"].includes(kind),
+  );
   const otherPluginKinds = uniqueKinds
     .filter(
       (kind) =>
         !BUILT_IN_EXTRACT_KINDS.includes(kind as BuiltInExtractKind) &&
-        !markdownKinds.includes(kind),
+        !markdownKinds.includes(kind) &&
+        !tsxKinds.includes(kind),
     )
     .sort();
 
@@ -235,6 +240,10 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
 
   if (codeKinds.length > 0) {
     sections.push(`code: ${codeKinds.join(", ")}`);
+  }
+
+  if (tsxKinds.length > 0) {
+    sections.push(`tsx/jsx: ${tsxKinds.sort().join(", ")}`);
   }
 
   if (otherPluginKinds.length > 0) {
@@ -1139,6 +1148,8 @@ export function buildDefaultRegistry(): LanguageRegistry {
       fenceLang: "js",
     }),
   );
+
+  registry.register(createTsxAdapter());
 
   registry.register(
     createPythonAdapter({

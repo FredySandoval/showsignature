@@ -284,26 +284,30 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(1);
   });
 
-  test("prints a clear unsupported extension error for .tsx files", async () => {
+  test("supports .tsx files with JSX html extraction", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
     await writeFixtureFile(
       rootDir,
       "src/component.tsx",
-      "export const App = <div />;",
+      "export const App = () => (<Layout><Header /></Layout>);",
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--file", "src/component.tsx"]);
+    await buildCli().run([
+      "showcode",
+      "--file",
+      "src/component.tsx",
+      "--show-only",
+      "html",
+    ]);
 
-    expect(stdoutBuffer).toBe("");
-    expect(stderrBuffer).toContain("File is not supported");
-    expect(stderrBuffer).toContain('extension ".tsx" is not supported');
-    expect(stderrBuffer).toContain(
-      "Supported extensions: .cjs, .cts, .go, .js, .lua, .md, .mjs, .mts, .py, .rs, .ts",
-    );
-    expect(process.exitCode).toBe(1);
+    expect(stderrBuffer).toBe("");
+    expect(stdoutBuffer).toContain("<Layout>");
+    expect(stdoutBuffer).toContain("<Header />");
+    expect(stdoutBuffer).toContain("</Layout>");
+    expect(process.exitCode).toBe(0);
   });
 
   test("throws when --file points to a directory", async () => {
