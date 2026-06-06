@@ -86,6 +86,13 @@ Code files:
 | `variables`  | Variables/constants.                       |
 | `comments`   | Code comments.                             |
 
+JSX/TSX files:
+
+| Mode        | Shows                                      |
+| ----------- | ------------------------------------------ |
+| `html`      | JSX/HTML-like element and component structure. |
+| `csshidden` | Full file with noisy `class`, `className`, and `style` values collapsed. |
+
 Markdown files:
 
 | Mode            | Shows               |
@@ -101,8 +108,11 @@ Markdown files:
 | ---------- | --------------------- |
 | TypeScript | `.ts`, `.mts`, `.cts` |
 | JavaScript | `.js`, `.mjs`, `.cjs` |
+| TSX/JSX    | `.tsx`, `.jsx`        |
 | Go         | `.go`                 |
 | Python     | `.py`                 |
+| Rust       | `.rs`                 |
+| Lua        | `.lua`                |
 | Markdown   | `.md`                 |
 
 ## Basic usage examples
@@ -124,6 +134,9 @@ showsignature --folder ./src --show-only signatures,imports # Show code structur
 showsignature --folder ./src --show-only imports,exports    # Show dependencies and public API
 showsignature --folder ./src --show-only interfaces,types   # Show data shapes
 showsignature --file src/01-main.ts --show-only variables   # Show variables
+showsignature --file src/App.tsx --show-only html           # Show JSX/HTML-like component structure
+showsignature --file src/App.tsx --show-only csshidden      # Show file with class/style noise hidden
+showsignature --file src/App.tsx --show-only imports,exports,html # Combine TS/JS and JSX extractors
 
 showsignature --file README.md --show-only md:headings      # Extract Markdown headings
 showsignature --file README.md --show-only md:codeblocks    # Extract Markdown code blocks
