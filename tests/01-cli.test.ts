@@ -301,7 +301,7 @@ describe("buildCli", () => {
     expect(stderrBuffer).toContain("File is not supported");
     expect(stderrBuffer).toContain('extension ".tsx" is not supported');
     expect(stderrBuffer).toContain(
-      "Supported extensions: .cjs, .cts, .go, .js, .md, .mjs, .mts, .py, .ts",
+      "Supported extensions: .cjs, .cts, .go, .js, .lua, .md, .mjs, .mts, .py, .rs, .ts",
     );
     expect(process.exitCode).toBe(1);
   });

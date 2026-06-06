@@ -115,6 +115,16 @@ export interface GoParseContext extends ParseContext {
   readonly lineStarts: readonly number[];
 }
 
+export interface LuaParseContext extends ParseContext {
+  readonly lines: readonly string[];
+  readonly lineStarts: readonly number[];
+}
+
+export interface RustParseContext extends ParseContext {
+  readonly lines: readonly string[];
+  readonly lineStarts: readonly number[];
+}
+
 export interface LanguageAdapterMetadata {
   id: string;
   extensions: readonly string[];
