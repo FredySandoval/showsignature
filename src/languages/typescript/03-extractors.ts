@@ -132,35 +132,30 @@ export function createSignaturesExtractor(): Extractor<TsParseContext> {
       const entries: ExtractEntry[] = [];
       const { sourceFile, filePath } = context;
 
-      function visit(node: ts.Node): void {
-        if (ts.isClassDeclaration(node)) {
+      for (const statement of sourceFile.statements) {
+        if (ts.isClassDeclaration(statement)) {
           entries.push(
             toEntry(
               "signatures",
-              renderClassSignature(node, sourceFile),
-              node.getStart(sourceFile),
+              renderClassSignature(statement, sourceFile),
+              statement.getStart(sourceFile),
               filePath,
             ),
           );
-          return;
+          continue;
         }
 
-        if (ts.isFunctionDeclaration(node)) {
+        if (ts.isFunctionDeclaration(statement)) {
           entries.push(
             toEntry(
               "signatures",
-              [renderFunctionSignature(node, sourceFile)],
-              node.getStart(sourceFile),
+              [renderFunctionSignature(statement, sourceFile)],
+              statement.getStart(sourceFile),
               filePath,
             ),
           );
-          return;
         }
-
-        ts.forEachChild(node, visit);
       }
-
-      ts.forEachChild(sourceFile, visit);
       return toResult(entries);
     },
   };
@@ -420,6 +415,75 @@ function renderModuleDeclaration(
   return `${modifierPrefix}${keyword} ${name} { ... }`;
 }
 
+function renderCompactExpression(
+  expression: ts.Expression,
+  sourceFile: ts.SourceFile,
+): string {
+  if (ts.isCallExpression(expression)) {
+    const callee = expression.expression.getText(sourceFile);
+    const typeArguments = expression.typeArguments
+      ? `<${expression.typeArguments
+          .map((typeArgument) => typeArgument.getText(sourceFile))
+          .join(", ")}>`
+      : "";
+    const args = expression.arguments
+      .map((argument) => renderCompactExpression(argument, sourceFile))
+      .join(", ");
+
+    return `${callee}${typeArguments}(${args})`;
+  }
+
+  if (ts.isArrowFunction(expression)) {
+    const typeParameters = expression.typeParameters
+      ? TsAstHelpers.printTypeParams(expression.typeParameters, sourceFile)
+      : "";
+    const parameters = expression.parameters.length === 1
+      ? expression.parameters[0]?.getText(sourceFile) ?? ""
+      : `(${TsAstHelpers.printParams(expression.parameters, sourceFile)})`;
+    const returnType = TsAstHelpers.printType(expression, sourceFile);
+    const returnPart = returnType.length > 0 ? `: ${returnType}` : "";
+    const body = ts.isBlock(expression.body)
+      ? "{ ... }"
+      : renderCompactExpression(expression.body, sourceFile);
+
+    return `${typeParameters}${parameters}${returnPart} => ${body}`;
+  }
+
+  if (ts.isFunctionExpression(expression)) {
+    const asyncPrefix = TsAstHelpers.hasAsyncModifier(expression) ? "async " : "";
+    const name = expression.name ? ` ${expression.name.getText(sourceFile)}` : "";
+    const typeParams = TsAstHelpers.printTypeParams(
+      expression.typeParameters,
+      sourceFile,
+    );
+    const params = TsAstHelpers.printParams(expression.parameters, sourceFile);
+    const returnType = TsAstHelpers.printType(expression, sourceFile);
+    const returnPart = returnType.length > 0 ? `: ${returnType}` : "";
+
+    return `${asyncPrefix}function${name}${typeParams}(${params})${returnPart} { ... }`;
+  }
+
+  if (ts.isClassExpression(expression)) {
+    const name = expression.name ? ` ${expression.name.getText(sourceFile)}` : "";
+    return `class${name} { ... }`;
+  }
+
+  if (ts.isObjectLiteralExpression(expression)) {
+    return /\r?\n/u.test(expression.getText(sourceFile))
+      ? "{ ... }"
+      : expression.getText(sourceFile);
+  }
+
+  if (ts.isArrayLiteralExpression(expression)) {
+    return /\r?\n/u.test(expression.getText(sourceFile))
+      ? "[...]"
+      : expression.getText(sourceFile);
+  }
+
+  const text = expression.getText(sourceFile);
+  return /\r?\n/u.test(text) ? "..." : text;
+}
+
 function renderExportStatementLines(
   statement: ts.Statement,
   sourceFile: ts.SourceFile,
@@ -442,6 +506,12 @@ function renderExportStatementLines(
 
   if (ts.isModuleDeclaration(statement)) {
     return [renderModuleDeclaration(statement, sourceFile)];
+  }
+
+  if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
+    return [
+      `export default ${renderCompactExpression(statement.expression, sourceFile)};`,
+    ];
   }
 
   return statement.getText(sourceFile).split(/\r?\n/u);

@@ -289,6 +289,56 @@ describe("createExportsExtractor", () => {
     expect(rendered).not.toContain("console.log");
   });
 
+  test("renders default export callback expressions compactly", () => {
+    const source = `
+      export default defineBackground(() => {
+        function getNextConversationListOffset(): number {
+          return 1;
+        }
+
+        return getNextConversationListOffset();
+      });
+    `;
+    const extractor = createExportsExtractor();
+    const result = extractor.extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]?.lines).toEqual([
+      "export default defineBackground(() => { ... });",
+    ]);
+    expect(result.entries[0]?.lines.join("\n")).not.toContain(
+      "getNextConversationListOffset",
+    );
+  });
+
+  test("combines signatures and exports without nested default callback signatures", () => {
+    const source = `
+      export default defineBackground(() => {
+        function getNextConversationListOffset(): number {
+          return 1;
+        }
+
+        return getNextConversationListOffset();
+      });
+    `;
+    const adapter = createTsFamilyAdapter({
+      id: "ts",
+      extensions: [".ts"],
+      fenceLang: "ts",
+    });
+    const result = runExtractors({
+      adapter,
+      context: buildContext(source),
+      extractOrder: ["signatures", "exports"],
+    });
+    const rendered = result.entries.flatMap((entry) => entry.lines).join("\n");
+
+    expect(rendered).toBe("export default defineBackground(() => { ... });");
+    expect(rendered).not.toContain("getNextConversationListOffset");
+    expect(rendered).not.toContain("return 1");
+  });
+
   test("extracts CommonJS export assignments", () => {
     const source = `
       const local = 1;
