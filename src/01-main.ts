@@ -1534,7 +1534,9 @@ export function runExtractors<TContext extends ParseContext = ParseContext>(
     combinedGroups.push(toCombinedEntries(entries));
   }
 
-  const entries = stripCombinedPositions(mergeAndSortEntries(combinedGroups));
+  const entries = stripCombinedPositions(
+    dedupeCombinedEntries(mergeAndSortEntries(combinedGroups)),
+  );
   return { entries, warnings };
 }
 
@@ -1566,6 +1568,30 @@ export function mergeAndSortEntries(
       return left.entryIndex - right.entryIndex;
     })
     .map(({ entry }) => entry);
+}
+
+function dedupeCombinedEntries(
+  entries: readonly CombinedExtractEntry[],
+): CombinedExtractEntry[] {
+  const seen = new Set<string>();
+  const uniqueEntries: CombinedExtractEntry[] = [];
+
+  for (const entry of entries) {
+    const key = JSON.stringify({
+      filePath: entry.metadata?.filePath,
+      sourcePos: entry.metadata?.sourcePos ?? entry.pos,
+      lines: entry.lines,
+    });
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    uniqueEntries.push(entry);
+  }
+
+  return uniqueEntries;
 }
 
 export function stripCombinedPositions(

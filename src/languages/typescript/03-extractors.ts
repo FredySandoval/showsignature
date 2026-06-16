@@ -210,6 +210,7 @@ function renderVariableDeclaration(
   statement: ts.VariableStatement,
   declaration: ts.VariableDeclaration,
   sourceFile: ts.SourceFile,
+  options: { compactMultilineInitializer?: boolean } = {},
 ): string {
   const modifiers = TsAstHelpers.getModifiers(statement).join(" ");
   const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : "";
@@ -222,10 +223,11 @@ function renderVariableDeclaration(
     return `${modifierPrefix}${keyword} ${name}${typePart};`;
   }
 
-  const initializer = TsAstHelpers.summarizeInitializer(
-    declaration.initializer,
-    sourceFile,
-  );
+  const initializerText = declaration.initializer.getText(sourceFile);
+  const initializer =
+    options.compactMultilineInitializer && /\r?\n/u.test(initializerText)
+      ? "..."
+      : TsAstHelpers.summarizeInitializer(declaration.initializer, sourceFile);
   return `${modifierPrefix}${keyword} ${name}${typePart} = ${initializer};`;
 }
 
@@ -405,6 +407,46 @@ function isExportStatement(statement: ts.Statement): boolean {
   );
 }
 
+function renderModuleDeclaration(
+  node: ts.ModuleDeclaration,
+  sourceFile: ts.SourceFile,
+): string {
+  const modifiers = TsAstHelpers.getModifiers(node).join(" ");
+  const modifierPrefix = modifiers.length > 0 ? `${modifiers} ` : "";
+  const keyword =
+    node.flags & ts.NodeFlags.Namespace ? "namespace" : "module";
+  const name = node.name.getText(sourceFile);
+
+  return `${modifierPrefix}${keyword} ${name} { ... }`;
+}
+
+function renderExportStatementLines(
+  statement: ts.Statement,
+  sourceFile: ts.SourceFile,
+): string[] {
+  if (ts.isFunctionDeclaration(statement)) {
+    return [renderFunctionSignature(statement, sourceFile)];
+  }
+
+  if (ts.isClassDeclaration(statement)) {
+    return renderClassSignature(statement, sourceFile);
+  }
+
+  if (ts.isVariableStatement(statement)) {
+    return statement.declarationList.declarations.map((declaration) =>
+      renderVariableDeclaration(statement, declaration, sourceFile, {
+        compactMultilineInitializer: true,
+      }),
+    );
+  }
+
+  if (ts.isModuleDeclaration(statement)) {
+    return [renderModuleDeclaration(statement, sourceFile)];
+  }
+
+  return statement.getText(sourceFile).split(/\r?\n/u);
+}
+
 export function createExportsExtractor(): Extractor<TsParseContext> {
   return {
     kind: "exports",
@@ -414,7 +456,7 @@ export function createExportsExtractor(): Extractor<TsParseContext> {
         .map((statement) =>
           toEntry(
             "exports",
-            statement.getText(context.sourceFile).split(/\r?\n/u),
+            renderExportStatementLines(statement, context.sourceFile),
             statement.getStart(context.sourceFile),
             context.filePath,
           ),

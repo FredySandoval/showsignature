@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
+import { runExtractors } from "@/src/01-main.js";
 import { createTsParseContext } from "@/src/languages/typescript/01-context.js";
+import { createTsFamilyAdapter } from "@/src/languages/typescript/00-adapter.js";
 import {
   createCommentsExtractor,
   createExportsExtractor,
@@ -182,7 +184,7 @@ describe("createExportsExtractor", () => {
       export { local as a } from "./a";
       export type { User } from "./types";
       export * from "./all";
-      export default function run(): void {}
+      export default function run(): void { console.log("run"); }
       export = legacy;
       export interface Person { id: string; }
       export type Id = string;
@@ -210,14 +212,81 @@ describe("createExportsExtractor", () => {
       'export { local as a } from "./a";',
       'export type { User } from "./types";',
       'export * from "./all";',
-      'export default function run(): void {}',
+      "export default function run(): void;",
       "export = legacy;",
       "export interface Person { id: string; }",
       "export type Id = string;",
       "export enum Mode { On }",
-      "export namespace Api { export const version = 1; }",
+      "export namespace Api { ... }",
       "export const value = 1;",
     ]);
+  });
+
+  test("renders exported public APIs compactly", () => {
+    const source = `
+      export function compute(value: string): number {
+        const parsed = Number(value);
+        return parsed + 1;
+      }
+
+      export class Service {
+        constructor(private readonly name: string) {}
+        start(): void {
+          console.log(this.name);
+        }
+      }
+
+      export const config = {
+        endpoint: "/api",
+        retries: 3,
+      };
+
+      export namespace BigApi {
+        export function noisy(): void {
+          console.log("do not include this body");
+        }
+      }
+    `;
+    const extractor = createExportsExtractor();
+    const result = extractor.extract(buildContext(source));
+    const rendered = result.entries.map((entry) => entry.lines.join("\n"));
+
+    expect(result.warnings).toEqual([]);
+    expect(rendered).toEqual([
+      "export function compute(value: string): number;",
+      [
+        "export class Service {",
+        "  constructor(private readonly name: string);",
+        "  start(): void;",
+        "}",
+      ].join("\n"),
+      "export const config = ...;",
+      "export namespace BigApi { ... }",
+    ]);
+    expect(rendered.join("\n")).not.toContain("return parsed + 1");
+    expect(rendered.join("\n")).not.toContain("console.log");
+  });
+
+  test("combines signatures and exports without duplicate function output", () => {
+    const source = `
+      export function run(): void {
+        console.log("body should not render");
+      }
+    `;
+    const adapter = createTsFamilyAdapter({
+      id: "ts",
+      extensions: [".ts"],
+      fenceLang: "ts",
+    });
+    const result = runExtractors({
+      adapter,
+      context: buildContext(source),
+      extractOrder: ["signatures", "exports"],
+    });
+    const rendered = result.entries.flatMap((entry) => entry.lines).join("\n");
+
+    expect(rendered).toBe("export function run(): void;");
+    expect(rendered).not.toContain("console.log");
   });
 
   test("extracts CommonJS export assignments", () => {
