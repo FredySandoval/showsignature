@@ -99,7 +99,6 @@ Markdown files:
 | `md:headings`   | Headings.           |
 | `md:tables`     | Tables.             |
 | `md:codeblocks` | Fenced code blocks. |
-| `md:all`        | Full document.      |
 
 ## Supported files
 

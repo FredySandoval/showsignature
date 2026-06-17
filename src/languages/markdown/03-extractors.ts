@@ -6,7 +6,6 @@ import type {
   SingleExtractResult,
 } from "../../00-core-types.js";
 
-export const MARKDOWN_DOCUMENT_KIND = "md:all" as ExtractKind;
 export const MARKDOWN_HEADINGS_KIND = "md:headings" as ExtractKind;
 export const MARKDOWN_TABLES_KIND = "md:tables" as ExtractKind;
 export const MARKDOWN_CODEBLOCKS_KIND = "md:codeblocks" as ExtractKind;
@@ -131,26 +130,6 @@ function createCodeBlockEntries(context: ParseContext): ExtractEntry[] {
   }
 
   return entries;
-}
-
-export function createDocumentExtractor(): Extractor<ParseContext> {
-  return {
-    kind: MARKDOWN_DOCUMENT_KIND,
-    extract(context: ParseContext): SingleExtractResult {
-      if (context.source.length === 0) {
-        return toResult([]);
-      }
-
-      return toResult([
-        toEntry(
-          MARKDOWN_DOCUMENT_KIND,
-          context.source.split(/\r?\n/u),
-          context.filePath,
-          0,
-        ),
-      ]);
-    },
-  };
 }
 
 export function createHeadingsExtractor(): Extractor<ParseContext> {

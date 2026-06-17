@@ -4,7 +4,6 @@ import { PluginExtractKind } from "@/src/00-core-types.js";
 import { createMarkdownAdapter } from "@/src/languages/markdown/00-adapter.js";
 import {
   MARKDOWN_CODEBLOCKS_KIND,
-  MARKDOWN_DOCUMENT_KIND,
   MARKDOWN_HEADINGS_KIND,
   MARKDOWN_TABLES_KIND,
 } from "@/src/languages/markdown/03-extractors.js";
@@ -25,7 +24,6 @@ describe("createMarkdownAdapter", () => {
     expect(adapter.extensions).toEqual([".md"]);
     expect(adapter.fenceLang).toBe("markdown");
     expect([...adapter.extractors.keys()]).toEqual([
-      MARKDOWN_DOCUMENT_KIND,
       MARKDOWN_HEADINGS_KIND,
       MARKDOWN_TABLES_KIND,
       MARKDOWN_CODEBLOCKS_KIND,
@@ -55,6 +53,8 @@ describe("createMarkdownAdapter", () => {
     });
 
     expect(adapter.supportsKind("md:headings" as PluginExtractKind)).toBe(true);
+    expect(adapter.supportsKind("md:all" as PluginExtractKind)).toBe(false);
+    expect(adapter.supportsKind("md" as PluginExtractKind)).toBe(false);
     expect(adapter.supportsKind("comments")).toBe(false);
     expect(adapter.supportsKind(toPluginExtractKind("custom-kind"))).toBe(
       false,

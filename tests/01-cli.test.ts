@@ -466,7 +466,7 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("renders full markdown documents when md is requested", async () => {
+  test("throws when obsolete markdown full-document options are requested", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -477,13 +477,18 @@ describe("buildCli", () => {
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--file", "README.md", "--show-only=md"]);
+    await expect(
+      buildCli().run(["showcode", "--file", "README.md", "--show-only=md"]),
+    ).rejects.toThrow("Unsupported extract option: md.");
 
-    expect(stdoutBuffer).toBe(
-      ["// README.md", "1 # Title", "  ", "  Body", ""].join("\n"),
-    );
-    expect(stderrBuffer).toBe("");
-    expect(process.exitCode).toBe(0);
+    await expect(
+      buildCli().run([
+        "showcode",
+        "--file",
+        "README.md",
+        "--show-only=md:all",
+      ]),
+    ).rejects.toThrow("Unsupported extract option: md:all.");
   });
 
   test("scans only markdown files when only markdown extract kinds are requested", async () => {
@@ -508,7 +513,7 @@ describe("buildCli", () => {
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--show-only=md"]);
+    await buildCli().run(["showcode", "--show-only=md:headings"]);
 
     expect(stdoutBuffer).toContain("// README.md");
     expect(stdoutBuffer).toContain("// docs/guide.md");

@@ -190,10 +190,6 @@ function normalizeCommanderErrorMessage(message: string): string {
     : message;
 }
 
-function normalizeExtractKindToken(token: string): string {
-  return token === "md" ? "md:all" : token;
-}
-
 function isMarkdownExtractKind(kind: ExtractKind): boolean {
   return kind === "md" || kind.startsWith("md:");
 }
@@ -787,7 +783,7 @@ export function parseExtractOptions(
 ): ExtractKind[] {
   const tokens = rawValue
     .split(",")
-    .map((token) => normalizeExtractKindToken(token.trim().toLowerCase()))
+    .map((token) => token.trim().toLowerCase())
     .filter((token) => token.length > 0);
 
   if (tokens.length === 0) {

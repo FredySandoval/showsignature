@@ -7,7 +7,6 @@ import type {
 import { createMarkdownParseContext } from "./01-context.js";
 import {
   createCodeBlocksExtractor,
-  createDocumentExtractor,
   createHeadingsExtractor,
   createTablesExtractor,
 } from "./03-extractors.js";
@@ -20,7 +19,6 @@ export interface CreateMarkdownAdapterOptions {
 
 function buildExtractors(): ReadonlyMap<ExtractKind, Extractor<ParseContext>> {
   const extractors: Extractor<ParseContext>[] = [
-    createDocumentExtractor(),
     createHeadingsExtractor(),
     createTablesExtractor(),
     createCodeBlocksExtractor(),

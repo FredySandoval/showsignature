@@ -3,37 +3,14 @@ import { describe, expect, test } from "bun:test";
 import { createMarkdownParseContext } from "@/src/languages/markdown/01-context.js";
 import {
   createCodeBlocksExtractor,
-  createDocumentExtractor,
   createHeadingsExtractor,
   createTablesExtractor,
   MARKDOWN_CODEBLOCKS_KIND,
-  MARKDOWN_DOCUMENT_KIND,
   MARKDOWN_HEADINGS_KIND,
   MARKDOWN_TABLES_KIND,
 } from "@/src/languages/markdown/03-extractors.js";
 
 describe("markdown extractors", () => {
-  test("extracts full markdown documents", () => {
-    const context = createMarkdownParseContext({
-      source: ["# Title", "", "Paragraph", ""].join("\n"),
-      filePath: "/tmp/document.md",
-    });
-
-    const result = createDocumentExtractor().extract(context);
-
-    expect(result.warnings).toEqual([]);
-    expect(result.entries).toEqual([
-      {
-        kind: MARKDOWN_DOCUMENT_KIND,
-        lines: ["# Title", "", "Paragraph", ""],
-        metadata: {
-          filePath: "/tmp/document.md",
-          sourcePos: 0,
-        },
-      },
-    ]);
-  });
-
   test("extracts markdown headings", () => {
     const context = createMarkdownParseContext({
       source: ["# Title", "text", "## Subtitle", ""].join("\n"),
