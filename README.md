@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="demo.png" alt="showsignature terminal demo" />
+  <img width="2655" height="560" alt="ShowSignature-header-1" src="https://github.com/user-attachments/assets/44076ae4-006e-4bbb-a949-602222c919dd" />
 </p>
 
 # showsignature
