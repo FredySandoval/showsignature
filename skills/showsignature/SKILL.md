@@ -1,6 +1,22 @@
 ---
 name: showsignature
-description: Fastest path for understanding an unfamiliar codebase by extracting compact structural signatures from key source files; use immediately before summarizing project architecture, entry points, modules, functions/classes, imports, or APIs.
+description: |
+  Fast structural and implementation-oriented overview of source files and markdown.
+  Use this before read when you need to identify what a file is responsible for,
+  exported symbols, imports, classes, functions, methods, constants, and nearby comments.
+  For code files, includes enough context to locate important implementation points such as
+  default constants, constructor parameters, method names, and lifecycle methods.
+  Prefer this over the 'read' tool for first inspection of likely source files after search
+  results; use the 'read' tool only when exact method bodies or full line-by-line code are
+  required.
+
+  Good when you need to know:
+  - "Where is the xxxxxxx implemented?" after locating xxxxxx.xx
+  - "What exports does this file provide?"
+  - "What methods are on this class?"
+  - "What constants/config drive this behavior?"
+
+  Supported extensions: .cjs, .cts, .go, .js, .jsx, .lua, .md, .mjs, .mts, .py, .rs, .ts, .tsx
 license: ISC
 compatibility: Requires Node.js. Written in TypeScript and built to JavaScript; no native binary is bundled.
 metadata:
@@ -29,6 +45,7 @@ Security note: secret-like values are redacted by default.
 ## Basic usage examples
 
 ```sh
+showsignature --version # check version
 showsignature --help # Show available options
 showsignature --file src/01-main.ts # Inspect one file
 showsignature --folder ./src # Inspect a folder
@@ -46,7 +63,6 @@ showsignature --folder . --show-only md:tables # Extract Markdown tables
 
 showsignature --folder . --lang-only py # Process Python files only
 showsignature --folder . --max-depth 2 # Limit recursive scan depth
-showsignature --folder . --ignore-folder dist # Skip a noisy folder
 showsignature --folder src --show-only signatures,imports --output structure.md # Save compact context
 ```
 
@@ -71,7 +87,6 @@ showsignature [options]
 
 Options:
   --include-tests           include files under test directories during discovery (default: false)
-  --ignore-folder <folder>  ignore a folder path or folder name during recursive discovery (repeatable) (default: [])
   --no-line-number         hide source line number prefixes for extracted entries
   -h, --help                display help for command
 ```
