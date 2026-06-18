@@ -8,21 +8,17 @@ A CLI that extracts the useful structure from source files: signatures, imports,
 
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
+
+
+
 ## Installation
 
-### Step 1. Add the skill
+<details id="npm-package">
+<summary>
+<h2>NPM Package</h2>
+</summary>
 
-```bash
-# install in pi
-pi install npm:showsignature
-pi install git:github.com/FredySandoval/showsignature
-pi install https://github.com/FredySandoval/showsignature
-
-# All agents
-npx skills add https://github.com/FredySandoval/showsignature --skill showsignature
-```
-
-### Step 2. Install locally or globally
+### Install locally or globally from the NPM registry
 
 ```bash
 # global install
@@ -32,8 +28,38 @@ npm install -g showsignature
 npm install showsignature
 ```
 
-From source for development:
+</details>
 
+<details id="agent-skill">
+<summary>
+<h2>Agent Skill</h2>
+</summary>
+  
+```bash
+# All agents
+npx skills add https://github.com/FredySandoval/showsignature --skill showsignature
+```
+</details>
+
+<details id="pi-agent-extension">
+<summary>
+<h2>Pi agent extension</h2>
+</summary>
+  
+```bash
+# All agents
+# install in pi
+pi install npm:showsignature
+pi install git:github.com/FredySandoval/showsignature
+pi install https://github.com/FredySandoval/showsignature
+```
+</details>
+
+<details id="from-source">
+<summary>
+<h2>From source code</h2>
+</summary>
+  
 ```bash
 git clone https://github.com/FredySandoval/showsignature.git
 cd showsignature
@@ -41,10 +67,11 @@ pnpm install
 pnpm build
 pnpm link --global
 ```
+</details>
 
+### Help
 ```bash
-# use without installing it
-npx showsignature --help
+showsignature --help
 ```
 
 Requires Node.js 18+.
