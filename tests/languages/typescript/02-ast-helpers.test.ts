@@ -136,6 +136,8 @@ describe("TsAstHelpers.summarizeInitializer", () => {
       const boolValue = true;
       const nullValue = null;
       const callback = () => 1;
+      const factory = function () { return 1; };
+      const InlineClass = class { value = 1; };
       const computed = createThing();
     `);
 
@@ -156,13 +158,16 @@ describe("TsAstHelpers.summarizeInitializer", () => {
       "null",
       "...",
       "...",
+      "...",
+      "createThing()",
     ]);
   });
 
-  test("renders long array and object literal initializers as bounded previews", () => {
+  test("renders long array, object, and call initializers as bounded previews", () => {
     const sourceFile = parse(`
       const arrayValue = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india"];
       const objectValue = { alpha: 1, bravo: 2, charlie: 3, delta: 4, echo: 5, foxtrot: 6, golf: 7, hotel: 8, india: 9 };
+      const callValue = createContext<CardState>({ expanded: false, visits: 0, alpha: 1, bravo: 2, charlie: 3, delta: 4 });
     `);
 
     const declarations = sourceFile.statements
@@ -176,6 +181,7 @@ describe("TsAstHelpers.summarizeInitializer", () => {
     expect(values).toEqual([
       '["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "...]',
       "{ alpha: 1, bravo: 2, charlie: 3, delta: 4, echo: 5, foxtrot: 6, golf: 7, ho...}",
+      "createContext<CardState>({ expanded: false, visits: 0, alpha: 1, bravo: 2, ch...",
     ]);
   });
 });

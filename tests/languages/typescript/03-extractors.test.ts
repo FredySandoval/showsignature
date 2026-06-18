@@ -109,7 +109,10 @@ describe("createVariablesExtractor", () => {
       let cache: Map<string, User> = new Map();
       const settings = { theme: "dark", compact: true };
       const list = [1, 2, 3];
+      const context = createContext<CardState>({ expanded: false, visits: 0 });
       const fn = () => true;
+      const namedFn = function () { return true; };
+      const InlineClass = class { value = true; };
       let deferred: number;
     `;
     const extractor = createVariablesExtractor();
@@ -121,7 +124,10 @@ describe("createVariablesExtractor", () => {
       "let cache: Map<string, User> = ...;",
       'const settings = { theme: "dark", compact: true };',
       "const list = [1, 2, 3];",
+      "const context = createContext<CardState>({ expanded: false, visits: 0 });",
       "const fn = ...;",
+      "const namedFn = ...;",
+      "const InlineClass = ...;",
       "let deferred: number;",
     ]);
   });

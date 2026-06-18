@@ -152,18 +152,19 @@ export namespace TsAstHelpers {
     sourceFile: ts.SourceFile,
   ): string {
     if (
-      ts.isObjectLiteralExpression(initializer) ||
-      ts.isArrayLiteralExpression(initializer)
-    ) {
-      return previewInitializerText(initializer.getText(sourceFile));
-    }
-
-    if (
       ts.isArrowFunction(initializer) ||
       ts.isFunctionExpression(initializer) ||
       ts.isClassExpression(initializer)
     ) {
       return "...";
+    }
+
+    if (
+      ts.isObjectLiteralExpression(initializer) ||
+      ts.isArrayLiteralExpression(initializer) ||
+      ts.isCallExpression(initializer)
+    ) {
+      return previewInitializerText(initializer.getText(sourceFile));
     }
 
     if (
