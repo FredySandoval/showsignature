@@ -3,14 +3,6 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-languages=(
-  go
-  lua
-  python
-  rust
-  typescript
-)
-
 categories=(
   comments
   exports
@@ -21,24 +13,22 @@ categories=(
   variables
 )
 
-declare -A extensions=(
-  [go]=go
-  [lua]=lua
-  [python]=py
-  [rust]=rs
-  [typescript]=ts
-)
+mapfile -t source_files < <(find "$script_dir" -mindepth 2 -maxdepth 2 -type f -name 'basic.*' | sort)
 
-for language in "${languages[@]}"; do
-  language_dir="$script_dir/$language"
-  extension="${extensions[$language]}"
-  source_file="$language_dir/basic.$extension"
+if ((${#source_files[@]} == 0)); then
+  printf 'No basic.* fixture sources found in immediate child folders of %s\n' "$script_dir" >&2
+  exit 1
+fi
 
-  mkdir -p "$language_dir"
+for source_file in "${source_files[@]}"; do
+  language_dir="$(dirname "$source_file")"
+  source_name="$(basename "$source_file")"
+  relative_source="${source_file#"$script_dir/"}"
+  extension="${source_name#basic.}"
 
   for category in "${categories[@]}"; do
     target_file="$language_dir/$category.$extension"
-    showsignature --show-only "$category" --file "$source_file" > "$target_file"
+    (cd "$script_dir" && showsignature --show-only "$category" --file "$relative_source") > "$target_file"
     printf 'Generated %s\n' "$target_file"
   done
 done
