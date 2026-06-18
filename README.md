@@ -78,6 +78,10 @@ Requires Node.js 18+.
 
 ## Why?
 
+<p align="center">
+  <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
+</p>
+
 Large files are noisy. `showsignature` gives you the shape of a project before you read the implementation:
 
 - What functions/classes exist?
