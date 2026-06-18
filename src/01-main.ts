@@ -240,7 +240,9 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
     sections.push(`markdown: ${markdownKinds.sort().join(", ")}`);
   }
 
-  sections.push("default: signatures --line-number");
+  sections.push(
+    "default: signatures (line numbers shown unless --no-line-number is used)",
+  );
   return sections.join("\n");
 }
 
@@ -314,9 +316,8 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       collectOptionValue,
     )
     .option(
-      "-n, --line-number",
-      "prefix each extracted entry with its source line number",
-      true,
+      "--no-line-number",
+      "hide source line number prefixes for extracted entries",
     )
     .exitOverride();
 

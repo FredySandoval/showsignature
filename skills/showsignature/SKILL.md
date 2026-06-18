@@ -72,6 +72,6 @@ showsignature [options]
 Options:
   --include-tests           include files under test directories during discovery (default: false)
   --ignore-folder <folder>  ignore a folder path or folder name during recursive discovery (repeatable) (default: [])
-  -n, --line-number         prefix each extracted entry with its source line number (default: true)
+  --no-line-number         hide source line number prefixes for extracted entries
   -h, --help                display help for command
 ```

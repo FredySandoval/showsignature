@@ -118,6 +118,17 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("advertises the line number opt-out flag in help", async () => {
+    installOutputCapture();
+
+    await buildCli().run(["showsignature", "--help"]);
+
+    expect(stdoutBuffer).toContain("--no-line-number");
+    expect(stdoutBuffer).not.toContain("-n, --line-number");
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("throws for removed --output option", async () => {
     installOutputCapture();
 
@@ -141,7 +152,7 @@ describe("buildCli", () => {
     ).rejects.toThrow("unknown option '--output'");
   });
 
-  test("optionally prints source line numbers", async () => {
+  test("optionally hides source line numbers", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -158,11 +169,11 @@ describe("buildCli", () => {
       "--file",
       "src/app.ts",
       "--show-only=signatures",
-      "--line-number",
+      "--no-line-number",
     ]);
 
     expect(stdoutBuffer).toBe(
-      ["// src/app.ts", "3 function greet(): void;", ""].join("\n"),
+      ["// src/app.ts", "function greet(): void;", ""].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
