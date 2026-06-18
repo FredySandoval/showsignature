@@ -218,15 +218,11 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   const markdownKinds = uniqueKinds.filter(
     (kind) => kind === "md" || kind.startsWith("md:"),
   );
-  const tsxKinds = uniqueKinds.filter((kind) =>
-    ["html", "csshidden"].includes(kind),
-  );
   const otherPluginKinds = uniqueKinds
     .filter(
       (kind) =>
         !BUILT_IN_EXTRACT_KINDS.includes(kind as BuiltInExtractKind) &&
-        !markdownKinds.includes(kind) &&
-        !tsxKinds.includes(kind),
+        !markdownKinds.includes(kind),
     )
     .sort();
 
@@ -234,10 +230,6 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
 
   if (codeKinds.length > 0) {
     sections.push(`code: ${codeKinds.join(", ")}`);
-  }
-
-  if (tsxKinds.length > 0) {
-    sections.push(`tsx/jsx: ${tsxKinds.sort().join(", ")}`);
   }
 
   if (otherPluginKinds.length > 0) {

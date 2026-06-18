@@ -284,7 +284,7 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(1);
   });
 
-  test("supports .tsx files with JSX html extraction", async () => {
+  test("supports .tsx files with default TypeScript extractors", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -300,13 +300,11 @@ describe("buildCli", () => {
       "--file",
       "src/component.tsx",
       "--show-only",
-      "html",
+      "exports,variables",
     ]);
 
     expect(stderrBuffer).toBe("");
-    expect(stdoutBuffer).toContain("<Layout>");
-    expect(stdoutBuffer).toContain("<Header />");
-    expect(stdoutBuffer).toContain("</Layout>");
+    expect(stdoutBuffer).toContain("export const App");
     expect(process.exitCode).toBe(0);
   });
 

@@ -14,7 +14,6 @@ import {
   createTypesExtractor,
   createVariablesExtractor,
 } from "../typescript/03-extractors.js";
-import { createCssHiddenExtractor, createHtmlExtractor } from "./03-extractors.js";
 
 function buildExtractors(): ReadonlyMap<ExtractKind, Extractor<TsParseContext>> {
   const extractors: Extractor<TsParseContext>[] = [
@@ -25,8 +24,6 @@ function buildExtractors(): ReadonlyMap<ExtractKind, Extractor<TsParseContext>> 
     createCommentsExtractor(),
     createImportsExtractor(),
     createExportsExtractor(),
-    createHtmlExtractor(),
-    createCssHiddenExtractor(),
   ];
 
   return new Map(extractors.map((extractor) => [extractor.kind, extractor]));
