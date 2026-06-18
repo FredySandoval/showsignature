@@ -94,7 +94,6 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 | `--show-only <items>`    | Choose extractors.                  |
 | `--include-tests`        | Include test files in folder scans. |
 | `--max-depth <n>`        | Limit folder scan depth.            |
-| `--ignore-folder <name>` | Skip folders.                       |
 
 ## Extractors
 
@@ -160,7 +159,6 @@ showsignature --folder . --lang-only py                     # Process Python fil
 showsignature --folder . --lang-only go --show-only imports,exports # Show Go imports and exported declarations
 showsignature --folder . --lang-only py --show-only imports,exports # Show Python imports and public exports
 showsignature --folder . --max-depth 2                      # Limit recursive scan depth
-showsignature --folder . --ignore-folder dist               # Skip a noisy folder
 showsignature --folder src --show-only signatures,imports > structure.txt # Save compact context
 ```
 

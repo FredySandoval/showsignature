@@ -176,7 +176,6 @@ export type DiscoverFilesOptions =
       folder?: never;
       includeTests?: boolean;
       maxDepth?: number;
-      ignoreFolders?: readonly string[];
     }
   | {
       registry: LanguageRegistry;
@@ -184,7 +183,6 @@ export type DiscoverFilesOptions =
       file?: never;
       includeTests?: boolean;
       maxDepth?: number;
-      ignoreFolders?: readonly string[];
     }
   | {
       registry: LanguageRegistry;
@@ -192,7 +190,6 @@ export type DiscoverFilesOptions =
       folder?: never;
       includeTests?: boolean;
       maxDepth?: number;
-      ignoreFolders?: readonly string[];
     };
 
 export interface RunPipelineOptions {
@@ -256,7 +253,6 @@ export interface ParsedCliArgs {
   langOnly?: string;
   showOnly?: string;
   includeTests: boolean;
-  ignoreFolder?: string[];
   maxDepth?: number;
   lineNumber: boolean;
   redact?: boolean;

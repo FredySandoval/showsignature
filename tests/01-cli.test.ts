@@ -397,25 +397,12 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("ignores folders during recursive discovery with --ignore-folder", async () => {
+  test("throws for removed --ignore-folder option", async () => {
     installOutputCapture();
-    installStdin("");
 
-    const rootDir = await createTempDir();
-    await writeFixtureFile(rootDir, "src/app.ts", "function app(): void {}\n");
-    await writeFixtureFile(
-      rootDir,
-      "src/generated/drop.ts",
-      "function generated(): void {}\n",
-    );
-    process.chdir(rootDir);
-
-    await buildCli().run(["showcode", "--ignore-folder", "generated"]);
-
-    expect(stdoutBuffer).toContain("// src/app.ts");
-    expect(stdoutBuffer).not.toContain("// src/generated/drop.ts");
-    expect(stderrBuffer).toBe("");
-    expect(process.exitCode).toBe(0);
+    await expect(
+      buildCli().run(["showcode", "--ignore-folder", "generated"]),
+    ).rejects.toThrow("unknown option '--ignore-folder'");
   });
 
   test("throws when --max-depth is not a non-negative integer", async () => {
