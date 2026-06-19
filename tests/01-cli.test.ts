@@ -189,7 +189,7 @@ describe("buildCli", () => {
     ).rejects.toThrow("rb not supported");
   });
 
-  test("does not advertise removed file and folder options", async () => {
+  test("does not advertise removed file, folder, and stdin options", async () => {
     installOutputCapture();
 
     await buildCli().run(["showsignature", "--help"]);
@@ -199,13 +199,14 @@ describe("buildCli", () => {
     );
     expect(stdoutBuffer).not.toContain("--file");
     expect(stdoutBuffer).not.toContain("--folder");
+    expect(stdoutBuffer).not.toContain("--stdin");
   });
 
-  test("reads source from stdin when --stdin and --lang-only are provided", async () => {
+  test("reads source from stdin when - and --lang-only are provided", async () => {
     installOutputCapture();
     installStdin("function greet(name: string): string {\n  return name;\n}\n");
 
-    await buildCli().run(["showcode", "--stdin", "--lang-only", "ts"]);
+    await buildCli().run(["showcode", "-", "--lang-only", "ts"]);
 
     expect(stdoutBuffer).toBe(
       ["// <stdin>.ts", "1 function greet(name: string): string;", ""].join(
@@ -216,28 +217,40 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("throws when --stdin is used without --lang-only", async () => {
-    installOutputCapture();
-    installStdin("function greet(): void {}\n");
-
-    await expect(buildCli().run(["showcode", "--stdin"])).rejects.toThrow(
-      "Option --stdin requires --lang-only",
-    );
-  });
-
-  test("throws when --stdin and operands are both provided", async () => {
+  test("throws when removed --stdin option is used", async () => {
     installOutputCapture();
     installStdin("function greet(): void {}\n");
 
     await expect(
-      buildCli().run([
-        "showcode",
-        "--stdin",
-        "--lang-only",
-        "ts",
-        "src/app.ts",
-      ]),
-    ).rejects.toThrow("Option --stdin cannot be used with file operands");
+      buildCli().run(["showcode", "--stdin", "--lang-only", "ts"]),
+    ).rejects.toThrow("unknown option '--stdin'");
+  });
+
+  test("throws when - is used without --lang-only", async () => {
+    installOutputCapture();
+    installStdin("function greet(): void {}\n");
+
+    await expect(buildCli().run(["showcode", "-"])).rejects.toThrow(
+      "Stdin operand '-' requires --lang-only",
+    );
+  });
+
+  test("throws when - and file operands are both provided", async () => {
+    installOutputCapture();
+    installStdin("function greet(): void {}\n");
+
+    await expect(
+      buildCli().run(["showcode", "-", "--lang-only", "ts", "src/app.ts"]),
+    ).rejects.toThrow("Stdin operand '-' cannot be mixed with file operands");
+  });
+
+  test("throws when - is repeated", async () => {
+    installOutputCapture();
+    installStdin("function greet(): void {}\n");
+
+    await expect(
+      buildCli().run(["showcode", "-", "-", "--lang-only", "ts"]),
+    ).rejects.toThrow("Stdin operand '-' may only be provided once");
   });
 
   test("reads piped markdown input without --stdin when extract kinds are markdown-only", async () => {

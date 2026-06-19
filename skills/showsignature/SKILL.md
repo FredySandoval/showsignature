@@ -50,7 +50,7 @@ showsignature --help # Show available options
 showsignature src/01-main.ts # Inspect one file
 showsignature ./src # Inspect a folder
 showsignature . # Inspect the current directory
-cat src/01-main.ts | showsignature --stdin --lang-only ts # Read TypeScript from stdin
+cat src/01-main.ts | showsignature - --lang-only ts # Read TypeScript from stdin
 
 showsignature . --show-only imports # Show imports only
 showsignature ./src --show-only signatures,imports # Show code structure and imports

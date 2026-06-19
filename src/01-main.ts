@@ -296,10 +296,12 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .name(CLI_NAME)
     .usage("[OPTION]... [FILE]...")
     .version(CLI_VERSION)
-    .argument("[paths...]", "files or directories to inspect")
+    .argument(
+      "[paths...]",
+      "files or directories to inspect; use '-' to read stdin",
+    )
     .option("--lang-only <lang>", langOnlyOptionHelp)
     .option("--show-only <options>", showOnlyOptionHelp)
-    .option("--stdin", "read source from standard input", false)
     .option("--no-redact", "disable built-in secret redaction")
     .option(
       "--max-depth <number>",
@@ -346,6 +348,14 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   };
 }
 
+function countStdinOperands(args: ParsedCliArgs): number {
+  return (args.paths ?? []).filter((inputPath) => inputPath === "-").length;
+}
+
+function hasExplicitStdinOperand(args: ParsedCliArgs): boolean {
+  return countStdinOperands(args) > 0;
+}
+
 function validateCliArgs(args: ParsedCliArgs): void {
   if (
     args.maxDepth !== undefined &&
@@ -354,12 +364,20 @@ function validateCliArgs(args: ParsedCliArgs): void {
     throw createCliError("Option --max-depth must be a non-negative integer");
   }
 
-  if (args.stdin && args.paths && args.paths.length > 0) {
-    throw createCliError("Option --stdin cannot be used with file operands");
+  const stdinOperandCount = countStdinOperands(args);
+
+  if (stdinOperandCount > 1) {
+    throw createCliError("Stdin operand '-' may only be provided once");
   }
 
-  if (args.stdin && !args.langOnly?.trim()) {
-    throw createCliError("Option --stdin requires --lang-only");
+  if (stdinOperandCount === 1 && (args.paths?.length ?? 0) > 1) {
+    throw createCliError(
+      "Stdin operand '-' cannot be mixed with file operands",
+    );
+  }
+
+  if (stdinOperandCount === 1 && !args.langOnly?.trim()) {
+    throw createCliError("Stdin operand '-' requires --lang-only");
   }
 }
 
@@ -382,6 +400,10 @@ async function assertPathExists(
 
 async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
   for (const inputPath of args.paths ?? []) {
+    if (inputPath === "-") {
+      continue;
+    }
+
     const resolvedPath = path.resolve(inputPath);
 
     try {
@@ -452,9 +474,7 @@ function toStdinVirtualFilePath(lang: string): string {
 
 function shouldTryImplicitStdin(args: ParsedCliArgs): boolean {
   return (
-    !args.stdin &&
-    (!args.paths || args.paths.length === 0) &&
-    process.stdin.isTTY !== true
+    (!args.paths || args.paths.length === 0) && process.stdin.isTTY !== true
   );
 }
 
@@ -479,7 +499,7 @@ async function resolveInputTarget(
   extractOrder: readonly ExtractKind[],
   explicitLang?: string,
 ): Promise<ResolvedInputTarget> {
-  if (args.stdin) {
+  if (hasExplicitStdinOperand(args)) {
     const stdinLang = explicitLang ?? args.langOnly!.trim();
 
     return {

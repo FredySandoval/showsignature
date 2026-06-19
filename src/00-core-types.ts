@@ -248,7 +248,6 @@ export interface CliProgram {
 
 export interface ParsedCliArgs {
   paths?: string[];
-  stdin: boolean;
   langOnly?: string;
   showOnly?: string;
   includeTests: boolean;
