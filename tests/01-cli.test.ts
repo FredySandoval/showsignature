@@ -107,7 +107,7 @@ describe("buildCli", () => {
 
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--file", "src/app.ts"]);
+    await buildCli().run(["showcode", "src/app.ts"]);
 
     expect(stdoutBuffer).toBe(
       ["// src/app.ts", "1 function greet(name: string): string;", ""].join(
@@ -144,7 +144,6 @@ describe("buildCli", () => {
     await expect(
       buildCli().run([
         "showcode",
-        "--file",
         "src/app.ts",
         "--output",
         "artifacts/output.txt",
@@ -166,10 +165,9 @@ describe("buildCli", () => {
 
     await buildCli().run([
       "showcode",
-      "--file",
-      "src/app.ts",
       "--show-only=signatures",
       "--no-line-number",
+      "src/app.ts",
     ]);
 
     expect(stdoutBuffer).toBe(
@@ -187,16 +185,20 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await expect(
-      buildCli().run(["showcode", "--file", "src/app.ts", "--lang-only", "rb"]),
+      buildCli().run(["showcode", "src/app.ts", "--lang-only", "rb"]),
     ).rejects.toThrow("rb not supported");
   });
 
-  test("throws when file and folder are both provided", async () => {
+  test("does not advertise removed file and folder options", async () => {
     installOutputCapture();
 
-    await expect(
-      buildCli().run(["showcode", "--file", "src/app.ts", "--folder", "src"]),
-    ).rejects.toThrow("Options --file and --folder cannot be used together");
+    await buildCli().run(["showsignature", "--help"]);
+
+    expect(stdoutBuffer).toContain(
+      "Usage: showsignature [OPTION]... [FILE]...",
+    );
+    expect(stdoutBuffer).not.toContain("--file");
+    expect(stdoutBuffer).not.toContain("--folder");
   });
 
   test("reads source from stdin when --stdin and --lang-only are provided", async () => {
@@ -223,7 +225,7 @@ describe("buildCli", () => {
     );
   });
 
-  test("throws when --stdin and --file are both provided", async () => {
+  test("throws when --stdin and operands are both provided", async () => {
     installOutputCapture();
     installStdin("function greet(): void {}\n");
 
@@ -231,12 +233,11 @@ describe("buildCli", () => {
       buildCli().run([
         "showcode",
         "--stdin",
-        "--file",
-        "src/app.ts",
         "--lang-only",
         "ts",
+        "src/app.ts",
       ]),
-    ).rejects.toThrow("Options --stdin and --file cannot be used together");
+    ).rejects.toThrow("Option --stdin cannot be used with file operands");
   });
 
   test("reads piped markdown input without --stdin when extract kinds are markdown-only", async () => {
@@ -287,7 +288,7 @@ describe("buildCli", () => {
     await writeFixtureFile(rootDir, "src/app.txt", "hello");
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--file", "src/app.txt"]);
+    await buildCli().run(["showcode", "src/app.txt"]);
 
     expect(stdoutBuffer).toBe("");
     expect(stderrBuffer).toContain("File is not supported");
@@ -308,7 +309,6 @@ describe("buildCli", () => {
 
     await buildCli().run([
       "showcode",
-      "--file",
       "src/component.tsx",
       "--show-only",
       "exports,variables",
@@ -319,29 +319,63 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("throws when --file points to a directory", async () => {
+  test("discovers files when a directory operand is provided", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
-    await mkdir(path.join(rootDir, "tests", "fixtures"), { recursive: true });
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      "function greet(): void {}\n",
+    );
     process.chdir(rootDir);
 
-    await expect(
-      buildCli().run(["showcode", "--file", "tests/fixtures"]),
-    ).rejects.toThrow(
-      "Option --file expects a file path; use --folder for directories",
+    await buildCli().run(["showcode", "src"]);
+
+    expect(stdoutBuffer).toBe(
+      ["// src/app.ts", "1 function greet(): void;", ""].join("\n"),
     );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
   });
 
-  test("throws a clear error when --file cannot be accessed", async () => {
+  test("processes mixed file and directory operands in operand order", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "b.ts", "function second(): void {}\n");
+    await writeFixtureFile(rootDir, "src/a.ts", "function first(): void {}\n");
+    await writeFixtureFile(rootDir, "src/c.ts", "function third(): void {}\n");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "b.ts", "src"]);
+
+    expect(stdoutBuffer).toBe(
+      [
+        "// b.ts",
+        "1 function second(): void;",
+        "",
+        "// src/a.ts",
+        "1 function first(): void;",
+        "",
+        "// src/c.ts",
+        "1 function third(): void;",
+        "",
+      ].join("\n"),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("throws a clear error when an operand cannot be accessed", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
     process.chdir(rootDir);
 
     await expect(
-      buildCli().run(["showcode", "--file", "src/missing.ts"]),
-    ).rejects.toThrow("Could not access file: src/missing.ts");
+      buildCli().run(["showcode", "src/missing.ts"]),
+    ).rejects.toThrow("Could not access path: src/missing.ts");
   });
 
   test("includes test fixtures when explicitly requested", async () => {
@@ -357,10 +391,9 @@ describe("buildCli", () => {
 
     await buildCli().run([
       "showcode",
-      "--folder",
-      "tests/fixtures",
       "--show-only=signatures",
       "--include-tests",
+      "tests/fixtures",
     ]);
 
     expect(stdoutBuffer).toBe(
@@ -455,7 +488,7 @@ describe("buildCli", () => {
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "--file", "README.md"]);
+    await buildCli().run(["showcode", "README.md"]);
 
     expect(stdoutBuffer).toBe("");
     expect(stderrBuffer).toBe("");
@@ -474,16 +507,11 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await expect(
-      buildCli().run(["showcode", "--file", "README.md", "--show-only=md"]),
+      buildCli().run(["showcode", "README.md", "--show-only=md"]),
     ).rejects.toThrow("Unsupported extract option: md.");
 
     await expect(
-      buildCli().run([
-        "showcode",
-        "--file",
-        "README.md",
-        "--show-only=md:all",
-      ]),
+      buildCli().run(["showcode", "README.md", "--show-only=md:all"]),
     ).rejects.toThrow("Unsupported extract option: md:all.");
   });
 

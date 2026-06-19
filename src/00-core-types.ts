@@ -247,8 +247,7 @@ export interface CliProgram {
 }
 
 export interface ParsedCliArgs {
-  file?: string;
-  folder?: string;
+  paths?: string[];
   stdin: boolean;
   langOnly?: string;
   showOnly?: string;

@@ -51,7 +51,7 @@ afterEach(async () => {
 });
 
 describe("vulnerability discovery", () => {
-  test("fails if --file can read a TypeScript file outside the current working directory", async () => {
+  test("fails if can read a TypeScript file outside the current working directory", async () => {
     const projectDir = await createTempDir("showsignature-vuln-project-");
     const victimDir = await createTempDir("showsignature-vuln-secret-");
     const secretFile = await writeFixtureFile(
@@ -75,7 +75,6 @@ describe("vulnerability discovery", () => {
     try {
       await cli.run([
         "showsignature",
-        "--file",
         secretFile,
         "--show-only",
         "comments,variables",
@@ -87,11 +86,11 @@ describe("vulnerability discovery", () => {
     const output = stdoutChunks.join("");
     expect(
       output,
-      "Security issue discovered: --file should not expose file contents outside the current working directory.",
+      "Security issue discovered: should not expose file contents outside the current working directory.",
     ).not.toContain("SECRET_TOKEN=top-secret");
     expect(
       output,
-      "Security issue discovered: --file should not expose source code from files outside the current working directory.",
+      "Security issue discovered: should not expose source code from files outside the current working directory.",
     ).not.toContain("export const token = 'top-secret';");
     expect(
       output,
@@ -120,7 +119,7 @@ describe("vulnerability discovery", () => {
     process.chdir(projectDir);
 
     try {
-      await buildCli().run(["showsignature", "--file", externalFile]);
+      await buildCli().run(["showsignature", externalFile]);
     } finally {
       process.stdout.write = originalStdoutWrite;
     }
@@ -132,7 +131,7 @@ describe("vulnerability discovery", () => {
     ).not.toContain(`// ../${path.basename(victimDir)}/nested/secret.ts`);
   });
 
-  test("fails if --file follows a symlink inside the project to read a file outside the current working directory", async () => {
+  test("fails if follows a symlink inside the project to read a file outside the current working directory", async () => {
     const projectDir = await createTempDir("showsignature-vuln-project-");
     const victimDir = await createTempDir("showsignature-vuln-symlink-read-");
     const victimFile = await writeFixtureFile(
@@ -157,7 +156,6 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
-        "--file",
         "linked-secret.ts",
         "--show-only",
         "comments,variables",
@@ -169,7 +167,7 @@ describe("vulnerability discovery", () => {
     const output = stdoutChunks.join("");
     expect(
       output,
-      "Security issue discovered: --file should not follow project-local symlinks to source files outside the current working directory.",
+      "Security issue discovered: should not follow project-local symlinks to source files outside the current working directory.",
     ).not.toContain("SYMLINK_SECRET=outside");
     expect(
       output,
@@ -200,7 +198,6 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
-        "--folder",
         victimDir,
         "--show-only",
         "comments,variables",
@@ -247,7 +244,6 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
-        "--folder",
         path.join("..", path.basename(victimParentDir), "nested"),
         "--show-only",
         "variables",
@@ -274,13 +270,7 @@ describe("vulnerability discovery", () => {
     process.chdir(projectDir);
 
     await expect(
-      buildCli().run([
-        "showsignature",
-        "--file",
-        "src/app.ts",
-        "--output",
-        "owned.txt",
-      ]),
+      buildCli().run(["showsignature", "src/app.ts", "--output", "owned.txt"]),
     ).rejects.toThrow("unknown option '--output'");
   });
 
@@ -302,7 +292,6 @@ describe("vulnerability discovery", () => {
     await expect(
       buildCli().run([
         "showsignature",
-        "--file",
         "src/app.ts",
         "--show-only",
         "variables",
@@ -336,7 +325,6 @@ describe("vulnerability discovery", () => {
     await expect(
       buildCli().run([
         "showsignature",
-        "--file",
         "src/app.ts",
         "--show-only",
         "variables",
@@ -361,7 +349,7 @@ describe("vulnerability discovery", () => {
       "bash",
       [
         "-lc",
-        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} --file ${JSON.stringify(fifoPath)}`,
+        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} ${JSON.stringify(fifoPath)}`,
       ],
       { cwd: projectDir },
     ).catch(
@@ -390,7 +378,7 @@ describe("vulnerability discovery", () => {
       "bash",
       [
         "-lc",
-        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} --file src/app.ts --show-only variables --output report.txt`,
+        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} src/app.ts --show-only variables --output report.txt`,
       ],
       { cwd: projectDir },
     ).catch(
@@ -404,12 +392,12 @@ describe("vulnerability discovery", () => {
     ).not.toHaveProperty("code", 124);
   });
 
-  test("fails if --file can block on special device files like /dev/random", async () => {
+  test("fails if can block on special device files like /dev/random", async () => {
     const cliPath = path.join(originalCwd, "dist/02-cli.js");
 
     const result = await execFile(
       "bash",
-      ["-lc", `timeout 1s node ${JSON.stringify(cliPath)} --file /dev/random`],
+      ["-lc", `timeout 1s node ${JSON.stringify(cliPath)} /dev/random`],
       { cwd: originalCwd },
     ).catch(
       (error: NodeJS.ErrnoException & { stdout?: string; stderr?: string }) =>
@@ -445,7 +433,6 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
-        "--file",
         sourceFile,
         "--show-only",
         "comments,signatures",
@@ -481,7 +468,7 @@ describe("vulnerability discovery", () => {
     process.chdir(projectDir);
 
     try {
-      await buildCli().run(["showsignature", "--file", filePath]);
+      await buildCli().run(["showsignature", filePath]);
     } finally {
       process.stdout.write = originalStdoutWrite;
     }
@@ -516,7 +503,6 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
-        "--file",
         filePath,
         "--show-only",
         "variables",
@@ -544,7 +530,7 @@ describe("vulnerability discovery", () => {
     }) as typeof process.stderr.write;
 
     try {
-      await runCli(["showsignature", "--file", payload]);
+      await runCli(["showsignature", payload]);
     } finally {
       process.stderr.write = originalStderrWrite;
     }
@@ -568,7 +554,7 @@ describe("vulnerability discovery", () => {
     }) as typeof process.stderr.write;
 
     try {
-      await runCli(["showsignature", "--file", payload]);
+      await runCli(["showsignature", payload]);
     } finally {
       process.stderr.write = originalStderrWrite;
     }

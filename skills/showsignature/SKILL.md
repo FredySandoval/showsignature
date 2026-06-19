@@ -47,23 +47,23 @@ Security note: secret-like values are redacted by default.
 ```sh
 showsignature --version # check version
 showsignature --help # Show available options
-showsignature --file src/01-main.ts # Inspect one file
-showsignature --folder ./src # Inspect a folder
-showsignature --folder . # Inspect the current directory
+showsignature src/01-main.ts # Inspect one file
+showsignature ./src # Inspect a folder
+showsignature . # Inspect the current directory
 cat src/01-main.ts | showsignature --stdin --lang-only ts # Read TypeScript from stdin
 
-showsignature --folder . --show-only imports # Show imports only
-showsignature --folder ./src --show-only signatures,imports # Show code structure and imports
-showsignature --folder ./src --show-only interfaces,types # Show data shapes
-showsignature --file src/01-main.ts --show-only variables # Show variables
+showsignature . --show-only imports # Show imports only
+showsignature ./src --show-only signatures,imports # Show code structure and imports
+showsignature ./src --show-only interfaces,types # Show data shapes
+showsignature src/01-main.ts --show-only variables # Show variables
 
-showsignature --file README.md --show-only md:headings # Extract Markdown headings
-showsignature --file README.md --show-only md:codeblocks # Extract Markdown code blocks
-showsignature --folder . --show-only md:tables # Extract Markdown tables
+showsignature README.md --show-only md:headings # Extract Markdown headings
+showsignature README.md --show-only md:codeblocks # Extract Markdown code blocks
+showsignature . --show-only md:tables # Extract Markdown tables
 
-showsignature --folder . --lang-only py # Process Python files only
-showsignature --folder . --max-depth 2 # Limit recursive scan depth
-showsignature --folder src --show-only signatures,imports --output structure.md # Save compact context
+showsignature . --lang-only py # Process Python files only
+showsignature . --max-depth 2 # Limit recursive scan depth
+showsignature src --show-only signatures,imports --output structure.md # Save compact context
 ```
 
 ## Pipeline usage
@@ -71,13 +71,13 @@ showsignature --folder src --show-only signatures,imports --output structure.md 
 `showsignature` writes to stdout by default, so it works well with tools like `rg`, `grep`, `fzf`, `less`, `head`, `tee`, and shell redirects.
 
 ```sh
-showsignature --folder src | rg "function|class" # Search extracted structure with ripgrep
-showsignature --folder src --show-only imports | rg "node:" # Find matching imports
-showsignature --folder src --show-only signatures | rg "async" # Find async functions or methods
-showsignature --folder src --show-only comments,signatures | rg -C 2 "ExtractKind" # Search comments/signatures with nearby context
-showsignature --folder src --show-only signatures,imports | less # Page through large output
-showsignature --folder src --show-only signatures | head -50 # Preview the first 50 lines
-showsignature --folder src --show-only signatures,imports | tee structure.md # View and save output
+showsignature src | rg "function|class" # Search extracted structure with ripgrep
+showsignature src --show-only imports | rg "node:" # Find matching imports
+showsignature src --show-only signatures | rg "async" # Find async functions or methods
+showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # Search comments/signatures with nearby context
+showsignature src --show-only signatures,imports | less # Page through large output
+showsignature src --show-only signatures | head -50 # Preview the first 50 lines
+showsignature src --show-only signatures,imports | tee structure.md # View and save output
 ```
 
 ## Other options

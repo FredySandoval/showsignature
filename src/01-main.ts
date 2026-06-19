@@ -176,9 +176,18 @@ async function resolveSafeInputPath(
 
 function stripArgvPrefix(argv: readonly string[]): string[] {
   const args = [...argv];
+  const executableName = args[0] ? path.basename(args[0]) : undefined;
 
-  while (args[0] && !args[0].startsWith("-")) {
-    args.shift();
+  if (
+    args.length >= 2 &&
+    executableName &&
+    ["node", "node.exe", "bun", "bun.exe"].includes(executableName)
+  ) {
+    return args.slice(2);
+  }
+
+  if (args[0] && !args[0].startsWith("-")) {
+    return args.slice(1);
   }
 
   return args;
@@ -285,15 +294,11 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
 
   const program = new Command()
     .name(CLI_NAME)
-    .usage("[options]")
+    .usage("[OPTION]... [FILE]...")
     .version(CLI_VERSION)
+    .argument("[paths...]", "files or directories to inspect")
     .option("--lang-only <lang>", langOnlyOptionHelp)
     .option("--show-only <options>", showOnlyOptionHelp)
-    .option("--file <file>", "process a single file")
-    .option(
-      "--folder <folder>",
-      "process files from a folder (.gitignore files are respected)",
-    )
     .option("--stdin", "read source from standard input", false)
     .option("--no-redact", "disable built-in secret redaction")
     .option(
@@ -332,7 +337,13 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     throw error;
   }
 
-  return program.opts<ParsedCliArgs>();
+  const options = program.opts<Omit<ParsedCliArgs, "paths">>();
+  const paths = program.args;
+
+  return {
+    ...options,
+    ...(paths.length > 0 ? { paths } : {}),
+  };
 }
 
 function validateCliArgs(args: ParsedCliArgs): void {
@@ -343,18 +354,8 @@ function validateCliArgs(args: ParsedCliArgs): void {
     throw createCliError("Option --max-depth must be a non-negative integer");
   }
 
-  if (args.file && args.folder) {
-    throw createCliError("Options --file and --folder cannot be used together");
-  }
-
-  if (args.stdin && args.file) {
-    throw createCliError("Options --stdin and --file cannot be used together");
-  }
-
-  if (args.stdin && args.folder) {
-    throw createCliError(
-      "Options --stdin and --folder cannot be used together",
-    );
+  if (args.stdin && args.paths && args.paths.length > 0) {
+    throw createCliError("Option --stdin cannot be used with file operands");
   }
 
   if (args.stdin && !args.langOnly?.trim()) {
@@ -380,38 +381,14 @@ async function assertPathExists(
 }
 
 async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
-  if (args.file) {
-    const resolvedFilePath = path.resolve(args.file);
+  for (const inputPath of args.paths ?? []) {
+    const resolvedPath = path.resolve(inputPath);
 
     try {
-      const target = await stat(resolvedFilePath);
-      if (target.isDirectory()) {
+      const target = await stat(resolvedPath);
+      if (!target.isFile() && !target.isDirectory()) {
         throw createCliError(
-          "Option --file expects a file path; use --folder for directories",
-        );
-      }
-      if (!target.isFile()) {
-        throw createCliError("Option --file expects a regular file path");
-      }
-    } catch (error) {
-      if (isExitCodeError(error)) {
-        throw error;
-      }
-
-      throw createCliError(
-        `Could not access file: ${args.file} (${stringifyError(error)})`,
-      );
-    }
-  }
-
-  if (args.folder) {
-    const resolvedFolderPath = path.resolve(args.folder);
-
-    try {
-      const target = await stat(resolvedFolderPath);
-      if (!target.isDirectory()) {
-        throw createCliError(
-          "Option --folder expects a directory path; use --file for files",
+          "File operands must be regular files or directories",
         );
       }
     } catch (error) {
@@ -420,7 +397,7 @@ async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
       }
 
       throw createCliError(
-        `Could not access folder: ${args.folder} (${stringifyError(error)})`,
+        `Could not access path: ${inputPath} (${stringifyError(error)})`,
       );
     }
   }
@@ -475,7 +452,9 @@ function toStdinVirtualFilePath(lang: string): string {
 
 function shouldTryImplicitStdin(args: ParsedCliArgs): boolean {
   return (
-    !args.stdin && !args.file && !args.folder && process.stdin.isTTY !== true
+    !args.stdin &&
+    (!args.paths || args.paths.length === 0) &&
+    process.stdin.isTTY !== true
   );
 }
 
@@ -529,33 +508,58 @@ async function resolveInputTarget(
     }
   }
 
-  if (args.file) {
-    const resolvedFilePath = await resolveSafeInputPath(args.file);
-    return { files: resolvedFilePath ? [resolvedFilePath] : [] };
-  }
+  const inputPaths = args.paths ?? [];
 
-  if (args.folder) {
+  if (inputPaths.length > 0) {
     const cwdRealPath = await realpath(process.cwd());
-    const folderRealPath = await realpath(path.resolve(args.folder));
-    if (!isPathWithin(cwdRealPath, folderRealPath)) {
-      return { files: [] };
+    const files: string[] = [];
+
+    for (const inputPath of inputPaths) {
+      const resolvedPath = path.resolve(inputPath);
+      const target = await stat(resolvedPath);
+
+      if (target.isFile()) {
+        const resolvedFilePath = await resolveSafeInputPath(inputPath);
+        if (resolvedFilePath) {
+          files.push(resolvedFilePath);
+        }
+        continue;
+      }
+
+      const folderRealPath = await realpath(resolvedPath);
+      if (!isPathWithin(cwdRealPath, folderRealPath)) {
+        continue;
+      }
+
+      const discoveredFiles = await discoverFiles({
+        registry,
+        folder: inputPath,
+        includeTests: args.includeTests,
+        ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+      });
+      const filteredFiles = explicitLang
+        ? discoveredFiles.filter(
+            (filePath) => registry.inferFromFile(filePath) === explicitLang,
+          )
+        : discoveredFiles;
+
+      files.push(
+        ...(!usesOnlyMarkdownExtractKinds(extractOrder)
+          ? filteredFiles
+          : filteredFiles.filter(
+              (filePath) => registry.inferFromFile(filePath) === "md",
+            )),
+      );
     }
+
+    return { files };
   }
 
-  const discoveredFiles = await discoverFiles(
-    args.folder
-      ? {
-          registry,
-          folder: args.folder,
-          includeTests: args.includeTests,
-          ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
-        }
-      : {
-          registry,
-          includeTests: args.includeTests,
-          ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
-        },
-  );
+  const discoveredFiles = await discoverFiles({
+    registry,
+    includeTests: args.includeTests,
+    ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+  });
 
   const files = explicitLang
     ? discoveredFiles.filter(

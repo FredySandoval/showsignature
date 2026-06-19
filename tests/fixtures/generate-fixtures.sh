@@ -28,7 +28,7 @@ for source_file in "${source_files[@]}"; do
 
   for category in "${categories[@]}"; do
     target_file="$language_dir/$category.$extension"
-    (cd "$script_dir" && showsignature --show-only "$category" --file "$relative_source") > "$target_file"
+    (cd "$script_dir" && showsignature --show-only "$category" "$relative_source") > "$target_file"
     printf 'Generated %s\n' "$target_file"
   done
 done
