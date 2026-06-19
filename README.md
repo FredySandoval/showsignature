@@ -84,15 +84,15 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 ```sh
 showsignature [OPTION]... [FILE]...
 ```
-Inspect [FILE] files—either individual files, paths, or arrays of files—recursively, using the current directory by default.
 
-| OPTION                | Description                                                           |
-| --------------------- | --------------------------------------------------------------------- |
-| `--stdin`             | Read source from stdin.                                               |
-| `--lang-only <lang>`  | Force language, useful with stdin.                                    |
-| `--show-only <items>` | Choose extractors.                                                    |
-| `--include-tests`     | Include test files in folder scans.                                   |
-| `--max-depth <n>`     | Limit folder scan depth.                                              |
+Inspect [FILE] operands—files or directory paths—using the current directory by default.
+
+| OPTION                | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `--lang-only <lang>`  | Force language, required when using `-` to read stdin. |
+| `--show-only <items>` | Choose extractors.                                     |
+| `--include-tests`     | Include test files in folder scans.                    |
+| `--max-depth <n>`     | Limit folder scan depth.                               |
 
 ## Extractors
 
@@ -137,9 +137,9 @@ showsignature --help                                        # Show available opt
 showsignature --version                                     # Show current version
 showsignature src/01-main.ts                                # Inspect one file
 showsignature ./src                                         # Inspect a folder
-cat src/01-main.ts | showsignature --stdin --lang-only ts   # Read TypeScript from stdin
+cat src/01-main.ts | showsignature - --lang-only ts         # Read TypeScript from stdin
 
-showsignature src/main.ts README.md src tests/fixtures      # [FILE] can be a file a path or various paths
+showsignature src/main.ts README.md src tests/fixtures      # [FILE] can be one or more files/directories
 showsignature --show-only imports                           # Show imports only
 showsignature --show-only exports                           # Show exports only
 showsignature --show-only signatures,imports ./src          # Show code structure and imports
