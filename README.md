@@ -81,9 +81,13 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 
 ## Usage
 
-| Option                | Description                                                           |
+```sh
+showsignature [OPTION]... [FILE]...
+```
+Inspect [FILE] files—either individual files, paths, or arrays of files—recursively, using the current directory by default.
+
+| OPTION                | Description                                                           |
 | --------------------- | --------------------------------------------------------------------- |
-| `[FILE]...`           | Inspect files or directories; directories are discovered recursively. |
 | `--stdin`             | Read source from stdin.                                               |
 | `--lang-only <lang>`  | Force language, useful with stdin.                                    |
 | `--show-only <items>` | Choose extractors.                                                    |
@@ -127,34 +131,32 @@ Markdown files:
 
 ## Basic usage examples
 
-```bash
-showsignature [OPTION]... [FILE]...
-```
-
 ```sh
+showsignature                                               # Inspect the current directory
 showsignature --help                                        # Show available options
-showsignature src/01-main.ts                         # Inspect one file
-showsignature ./src                                # Inspect a folder
-showsignature .                                    # Inspect the current directory
+showsignature --version                                     # Show current version
+showsignature src/01-main.ts                                # Inspect one file
+showsignature ./src                                         # Inspect a folder
 cat src/01-main.ts | showsignature --stdin --lang-only ts   # Read TypeScript from stdin
 
-showsignature . --show-only imports                # Show imports only
-showsignature . --show-only exports                # Show exports only
-showsignature ./src --show-only signatures,imports # Show code structure and imports
-showsignature ./src --show-only imports,exports    # Show dependencies and public API
-showsignature ./src --show-only interfaces,types   # Show data shapes
-showsignature src/01-main.ts --show-only variables   # Show variables
-showsignature src/App.tsx --show-only imports,exports # Show TSX/JSX imports and exports
+showsignature src/main.ts README.md src tests/fixtures      # [FILE] can be a file a path or various paths
+showsignature --show-only imports                           # Show imports only
+showsignature --show-only exports                           # Show exports only
+showsignature --show-only signatures,imports ./src          # Show code structure and imports
+showsignature --show-only imports,exports ./src             # Show dependencies and public API
+showsignature --show-only interfaces,types ./src            # Show data shapes
+showsignature src/01-main.ts --show-only variables          # Show variables
+showsignature src/App.tsx --show-only imports,exports       # Show TSX/JSX imports and exports
 
-showsignature README.md --show-only md:headings      # Extract Markdown headings
-showsignature README.md --show-only md:codeblocks    # Extract Markdown code blocks
-showsignature . --show-only md:tables              # Extract Markdown tables
+showsignature README.md --show-only md:headings             # Extract Markdown headings
+showsignature README.md --show-only md:codeblocks           # Extract Markdown code blocks
+showsignature --show-only md:tables                         # Extract Markdown tables
 
-showsignature . --lang-only py                     # Process Python files only
-showsignature . --lang-only go --show-only imports,exports # Show Go imports and exported declarations
-showsignature . --lang-only py --show-only imports,exports # Show Python imports and public exports
-showsignature . --max-depth 2                      # Limit recursive scan depth
-showsignature src --show-only signatures,imports > structure.txt # Save compact context
+showsignature --lang-only py                                # Process Python files only
+showsignature --lang-only go --show-only imports,exports    # Show Go imports and exported declarations
+showsignature --lang-only py --show-only imports,exports    # Show Python imports and public exports
+showsignature --max-depth 2                                 # Limit recursive scan depth
+showsignature --show-only imports > structure.txt           # Save compact context
 ```
 
 Combine modes with commas:
@@ -176,13 +178,10 @@ showsignature src --show-only signatures > structure.txt
 `showsignature` writes to stdout by default, so it works well with tools like `rg`, `grep`, `fzf`, `less`, `head`, `tee`, and shell redirects.
 
 ```sh
-showsignature src | rg "function|class" # Search extracted structure with ripgrep
-showsignature src --show-only imports | rg "node:" # Find matching imports
-showsignature src --show-only signatures | rg "async" # Find async functions or methods
+showsignature src --show-only imports | rg "node"                         # Find matching imports
+showsignature src --show-only signatures | rg "async"                     # Find async functions or methods
 showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # Search comments/signatures with nearby context
-showsignature src --show-only signatures,imports | less # Page through large output
-showsignature src --show-only signatures | head -50 # Preview the first 50 lines
-showsignature src --show-only signatures,imports | tee structure.md # View and save output
+showsignature src --show-only signatures,imports | bat -l js              # Page through large output
 ```
 
 ## Development
@@ -194,12 +193,6 @@ pnpm test
 pnpm typecheck
 pnpm format
 ```
-
-## Troubleshooting
-
-- Command not found? Use `node dist/02-cli.js --help` for local builds, or check your global npm bin path.
-- Folder scan empty? Supported files only are scanned; `.gitignore` is respected; tests are skipped unless `--include-tests` is set.
-- Stdin language unknown? Add `--lang-only ts`, `--lang-only py`, `--lang-only go`, or similar.
 
 ## License
 
