@@ -125,7 +125,7 @@ describe("createVariablesExtractor", () => {
       'const settings = { theme: "dark", compact: true };',
       "const list = [1, 2, 3];",
       "const context = createContext<CardState>({ expanded: false, visits: 0 });",
-      "const fn = ...;",
+      "const fn = () => true;",
       "const namedFn = ...;",
       "const InlineClass = ...;",
       "let deferred: number;",
@@ -140,6 +140,26 @@ describe("createVariablesExtractor", () => {
     expect(result.warnings).toEqual([]);
     expect(result.entries.map((entry) => entry.lines[0])).toEqual([
       'const DEFAULT_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];',
+    ]);
+  });
+
+  test("renders assertion-wrapped objects and expression-bodied arrows as previews", () => {
+    const source = [
+      "const nav = {",
+      "  en: { aria: 'Main', guides: 'Guides', reference: 'Reference', guide: 'Example Guide' },",
+      "  es: { aria: 'Primario', guides: 'Guías', reference: 'Referencia', guide: 'Guía de ejemplo' },",
+      "} as const;",
+      "const prefix = (lang: Lang) => (lang === 'en' ? '' : `/${lang}`);",
+      "const home = (lang: Lang, version: 'v1' | 'v2') => `${prefix(lang)}${version === 'v1' ? '/v1' : ''}/`;",
+    ].join("\n");
+    const extractor = createVariablesExtractor();
+    const result = extractor.extract(buildContext(source));
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      "const nav = { en: { aria: 'Main', guides: 'Guides', reference: 'Reference', gui...} as const;",
+      "const prefix = (lang: Lang) => (lang === 'en' ? '' : `/${lang}`);",
+      "const home = (lang: Lang, version: 'v1' | 'v2') => `${prefix(lang)}${version === 'v1' ? '/...;",
     ]);
   });
 

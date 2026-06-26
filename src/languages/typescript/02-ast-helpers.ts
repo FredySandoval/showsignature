@@ -3,6 +3,7 @@ import * as ts from "typescript";
 import type { Range } from "../../00-core-types.js";
 
 const MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH = 80;
+const MAX_ASSERTION_SUFFIX_PREVIEW_LENGTH = 40;
 
 function closingDelimiterFor(openingDelimiter: string): string {
   switch (openingDelimiter) {
@@ -21,21 +22,90 @@ function closingDelimiterFor(openingDelimiter: string): string {
   }
 }
 
-function previewInitializerText(text: string): string {
-  const normalized = text.replace(/\r?\n/gu, "\\n");
+function normalizePreviewText(text: string): string {
+  return text.replace(/\s+/gu, " ").trim();
+}
 
-  if (normalized.length <= MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH) {
+function previewAssertionSuffix(text: string): string {
+  const normalized = text.replace(/\s+/gu, " ");
+
+  if (normalized.length <= MAX_ASSERTION_SUFFIX_PREVIEW_LENGTH) {
     return normalized;
   }
 
-  const closingDelimiter = closingDelimiterFor(normalized[0] ?? "");
-  const suffix = `...${closingDelimiter}`;
+  return `${normalized.slice(0, MAX_ASSERTION_SUFFIX_PREVIEW_LENGTH - 3)}...`;
+}
+
+function previewInitializerText(
+  text: string,
+  suffix = "",
+  options: { preserveClosingDelimiter?: boolean } = {},
+): string {
+  const normalized = normalizePreviewText(text);
+  const normalizedSuffix = previewAssertionSuffix(suffix);
+
+  if (
+    normalized.length + normalizedSuffix.length <=
+    MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH
+  ) {
+    return `${normalized}${normalizedSuffix}`;
+  }
+
+  const closingDelimiter =
+    options.preserveClosingDelimiter === false
+      ? ""
+      : closingDelimiterFor(normalized[0] ?? "");
+  const previewSuffix = `...${closingDelimiter}${normalizedSuffix}`;
   const previewLength = Math.max(
     0,
-    MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH - suffix.length,
+    MAX_LITERAL_INITIALIZER_PREVIEW_LENGTH - previewSuffix.length,
   );
 
-  return `${normalized.slice(0, previewLength)}${suffix}`;
+  return `${normalized.slice(0, previewLength)}${previewSuffix}`;
+}
+
+function isAssertionLikeExpression(
+  expression: ts.Expression,
+): expression is
+  | ts.AsExpression
+  | ts.TypeAssertion
+  | ts.NonNullExpression
+  | ts.SatisfiesExpression {
+  return (
+    ts.isAsExpression(expression) ||
+    ts.isTypeAssertionExpression(expression) ||
+    ts.isNonNullExpression(expression) ||
+    ts.isSatisfiesExpression(expression)
+  );
+}
+
+function unwrapAssertionLikeExpression(
+  initializer: ts.Expression,
+  sourceFile: ts.SourceFile,
+): { expression: ts.Expression; suffix: string } {
+  let expression = initializer;
+  let suffix = "";
+
+  while (isAssertionLikeExpression(expression)) {
+    const outerExpression = expression;
+    expression = expression.expression;
+
+    let removedParentheses = false;
+    while (ts.isParenthesizedExpression(expression)) {
+      removedParentheses = true;
+      expression = expression.expression;
+    }
+
+    if (!ts.isTypeAssertionExpression(outerExpression)) {
+      const rawSuffix = sourceFile.text.slice(
+        expression.getEnd(),
+        outerExpression.getEnd(),
+      );
+      suffix = `${removedParentheses ? rawSuffix.replace(/^\)/u, "") : rawSuffix}${suffix}`;
+    }
+  }
+
+  return { expression, suffix: suffix.trimEnd() };
 }
 
 function mergeRanges(ranges: Range[]): Range[] {
@@ -151,33 +221,55 @@ export namespace TsAstHelpers {
     initializer: ts.Expression,
     sourceFile: ts.SourceFile,
   ): string {
-    if (
-      ts.isArrowFunction(initializer) ||
-      ts.isFunctionExpression(initializer) ||
-      ts.isClassExpression(initializer)
-    ) {
+    const { expression, suffix } = unwrapAssertionLikeExpression(
+      initializer,
+      sourceFile,
+    );
+
+    if (ts.isArrowFunction(expression)) {
+      if (ts.isBlock(expression.body)) {
+        return "...";
+      }
+
+      const params = expression.parameters
+        .map((param) => param.getText(sourceFile))
+        .join(", ");
+      const expressionText = expression.getText(sourceFile);
+      const paramText =
+        expression.parameters.length === 1 && !expressionText.startsWith("(")
+          ? params
+          : `(${params})`;
+
+      return previewInitializerText(
+        `${paramText} => ${expression.body.getText(sourceFile)}`,
+        suffix,
+        { preserveClosingDelimiter: false },
+      );
+    }
+
+    if (ts.isFunctionExpression(expression) || ts.isClassExpression(expression)) {
       return "...";
     }
 
     if (
-      ts.isObjectLiteralExpression(initializer) ||
-      ts.isArrayLiteralExpression(initializer) ||
-      ts.isCallExpression(initializer)
+      ts.isObjectLiteralExpression(expression) ||
+      ts.isArrayLiteralExpression(expression) ||
+      ts.isCallExpression(expression)
     ) {
-      return previewInitializerText(initializer.getText(sourceFile));
+      return previewInitializerText(expression.getText(sourceFile), suffix);
     }
 
     if (
-      ts.isStringLiteral(initializer) ||
-      ts.isNoSubstitutionTemplateLiteral(initializer) ||
-      ts.isNumericLiteral(initializer) ||
-      ts.isBigIntLiteral(initializer) ||
-      initializer.kind === ts.SyntaxKind.TrueKeyword ||
-      initializer.kind === ts.SyntaxKind.FalseKeyword ||
-      initializer.kind === ts.SyntaxKind.NullKeyword ||
-      ts.isRegularExpressionLiteral(initializer)
+      ts.isStringLiteral(expression) ||
+      ts.isNoSubstitutionTemplateLiteral(expression) ||
+      ts.isNumericLiteral(expression) ||
+      ts.isBigIntLiteral(expression) ||
+      expression.kind === ts.SyntaxKind.TrueKeyword ||
+      expression.kind === ts.SyntaxKind.FalseKeyword ||
+      expression.kind === ts.SyntaxKind.NullKeyword ||
+      ts.isRegularExpressionLiteral(expression)
     ) {
-      return previewInitializerText(initializer.getText(sourceFile));
+      return previewInitializerText(expression.getText(sourceFile), suffix);
     }
 
     return "...";

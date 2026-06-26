@@ -156,7 +156,7 @@ describe("TsAstHelpers.summarizeInitializer", () => {
       "42",
       "true",
       "null",
-      "...",
+      "() => 1",
       "...",
       "...",
       "createThing()",
@@ -183,6 +183,35 @@ describe("TsAstHelpers.summarizeInitializer", () => {
       "{ alpha: 1, bravo: 2, charlie: 3, delta: 4, echo: 5, foxtrot: 6, golf: 7, ho...}",
       "createContext<CardState>({ expanded: false, visits: 0, alpha: 1, bravo: 2, ch...",
     ]);
+  });
+
+  test("unwraps assertion-like initializers before summarizing previews", () => {
+    const sourceFile = parse(`
+      const nav = { home: "/", docs: "/docs" } as const;
+      const route = { path: "/" } satisfies RouteConfig;
+      const legacy = <RouteConfig>{ path: "/legacy" };
+      const selected = maybeRoutes!;
+      const callback = (() => true) as Predicate;
+      const longNav = { alpha: "/alpha", bravo: "/bravo", charlie: "/charlie", delta: "/delta", echo: "/echo", foxtrot: "/foxtrot" } as const;
+    `);
+
+    const declarations = sourceFile.statements
+      .filter(ts.isVariableStatement)
+      .flatMap((statement) => statement.declarationList.declarations);
+
+    const values = declarations.map((decl) =>
+      TsAstHelpers.summarizeInitializer(decl.initializer!, sourceFile),
+    );
+
+    expect(values).toEqual([
+      '{ home: "/", docs: "/docs" } as const',
+      '{ path: "/" } satisfies RouteConfig',
+      '{ path: "/legacy" }',
+      "...",
+      "() => true as Predicate",
+      '{ alpha: "/alpha", bravo: "/bravo", charlie: "/charlie", delta: "/d...} as const',
+    ]);
+    expect(values.at(-1)?.length).toBeLessThanOrEqual(80);
   });
 });
 
