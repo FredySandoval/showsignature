@@ -332,6 +332,38 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("supports .svelte files with default TypeScript extractors", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "src/Component.svelte",
+      [
+        '<script context="module" lang="ts">',
+        "  export interface PageData { title: string }",
+        "</script>",
+        '<script lang="ts">',
+        "  export let title: string;",
+        "</script>",
+        "<h1>{title}</h1>",
+      ].join("\n"),
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode",
+      "src/Component.svelte",
+      "--show-only",
+      "interfaces,variables",
+    ]);
+
+    expect(stderrBuffer).toBe("");
+    expect(stdoutBuffer).toContain("export interface PageData");
+    expect(stdoutBuffer).toContain("export let title: string;");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("discovers files when a directory operand is provided", async () => {
     installOutputCapture();
 

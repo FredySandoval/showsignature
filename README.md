@@ -123,6 +123,7 @@ Markdown files:
 | TypeScript | `.ts`, `.mts`, `.cts` |
 | JavaScript | `.js`, `.mjs`, `.cjs` |
 | TSX/JSX    | `.tsx`, `.jsx`        |
+| Svelte     | `.svelte`             |
 | Go         | `.go`                 |
 | Python     | `.py`                 |
 | Rust       | `.rs`                 |
@@ -147,6 +148,7 @@ showsignature --show-only imports,exports ./src             # Show dependencies 
 showsignature --show-only interfaces,types ./src            # Show data shapes
 showsignature src/01-main.ts --show-only variables          # Show variables
 showsignature src/App.tsx --show-only imports,exports       # Show TSX/JSX imports and exports
+showsignature src/App.svelte --show-only imports,exports    # Show Svelte script imports and exports
 
 showsignature README.md --show-only md:headings             # Extract Markdown headings
 showsignature README.md --show-only md:codeblocks           # Extract Markdown code blocks

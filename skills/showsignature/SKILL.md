@@ -16,7 +16,7 @@ description: |
   - "What methods are on this class?"
   - "What constants/config drive this behavior?"
 
-  Supported extensions: .cjs, .cts, .go, .js, .jsx, .lua, .md, .mjs, .mts, .py, .rs, .ts, .tsx
+  Supported extensions: .cjs, .cts, .go, .js, .jsx, .lua, .md, .mjs, .mts, .py, .rs, .svelte, .ts, .tsx
 license: ISC
 compatibility: Requires Node.js. Written in TypeScript and built to JavaScript; no native binary is bundled.
 metadata:

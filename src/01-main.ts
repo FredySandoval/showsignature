@@ -43,6 +43,7 @@ import { createLuaAdapter } from "./languages/lua/00-adapter.js";
 import { createMarkdownAdapter } from "./languages/markdown/00-adapter.js";
 import { createPythonAdapter } from "./languages/python/00-adapter.js";
 import { createRustAdapter } from "./languages/rust/00-adapter.js";
+import { createSvelteAdapter } from "./languages/svelte/00-adapter.js";
 import { createTsxAdapter } from "./languages/tsx/00-adapter.js";
 import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
@@ -1126,6 +1127,8 @@ export function buildDefaultRegistry(): LanguageRegistry {
   );
 
   registry.register(createTsxAdapter());
+
+  registry.register(createSvelteAdapter());
 
   registry.register(
     createPythonAdapter({
