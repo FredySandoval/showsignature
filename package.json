@@ -14,9 +14,9 @@
   },
   "files": [
     "dist",
-    "skills/showsignature/SKILL.md",
+    "hooks/",
+    "skills/",
     "LICENSE",
-    "README.md"
   ],
   "main": "./dist/03-index.js",
   "types": "./dist/03-index.d.ts",

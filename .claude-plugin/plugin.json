@@ -1,0 +1,10 @@
+{
+  "name": "showsignature",
+  "version": "0.1.8",
+  "description": "Fast structural and implementation-oriented overview of source code files and markdown.",
+  "author": {
+        "name": "Fredy Sandoval",
+        "url": "https://github.com/FredySandoval"
+    },
+  "hooks": "./hooks/claude-codex-hooks.json"
+}
