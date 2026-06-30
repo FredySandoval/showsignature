@@ -6,7 +6,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node hooks/session-start.js"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.js\"; exit 0",
+            "commandWindows": "if (Get-Command node -ErrorAction SilentlyContinue) { node \"$env:CLAUDE_PLUGIN_ROOT\\hooks\\session-start.js\" }",
+            "timeout": 5,
+            "statusMessage": "Loading showsignature..."
           }
         ]
       }
