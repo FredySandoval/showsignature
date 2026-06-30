@@ -16,7 +16,7 @@
     "dist",
     "hooks/",
     "skills/",
-    "LICENSE",
+    "LICENSE"
   ],
   "main": "./dist/03-index.js",
   "types": "./dist/03-index.d.ts",
