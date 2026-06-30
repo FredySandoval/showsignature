@@ -1,6 +1,9 @@
 <p align="center">
-  <img width="2655" height="560" alt="ShowSignature-header-1" src="https://github.com/user-attachments/assets/44076ae4-006e-4bbb-a949-602222c919dd" />
+  <picture>
+    <img  alt="ShowSignature-header-2" src="https://github.com/user-attachments/assets/311e83f7-b2db-4e11-afb7-9d8f6e2e8d25" >
+  </picture>
 </p>
+
 
 # showsignature
 
