@@ -44,49 +44,32 @@ Security note: secret-like values are redacted by default.
 
 ## Basic usage examples
 
-```sh
-showsignature --version # check version
-showsignature --help # Show available options
-showsignature src/01-main.ts # Inspect one file
-showsignature ./src # Inspect a folder
-showsignature . # Inspect the current directory
-cat src/01-main.ts | showsignature - --lang-only ts # Read TypeScript from stdin
-
-showsignature . --show-only imports # Show imports only
-showsignature ./src --show-only signatures,imports # Show code structure and imports
-showsignature ./src --show-only interfaces,types # Show data shapes
-showsignature src/01-main.ts --show-only variables # Show variables
-
-showsignature README.md --show-only md:headings # Extract Markdown headings
-showsignature README.md --show-only md:codeblocks # Extract Markdown code blocks
-showsignature . --show-only md:tables # Extract Markdown tables
-
-showsignature . --lang-only py # Process Python files only
-showsignature . --max-depth 2 # Limit recursive scan depth
-showsignature src --show-only signatures,imports --output structure.md # Save compact context
-```
-
-## Pipeline usage
-
-`showsignature` writes to stdout by default, so it works well with tools like `rg`, `grep`, `fzf`, `less`, `head`, `tee`, and shell redirects.
+`showsignature [OPTION]... [FILE]...`
 
 ```sh
-showsignature src | rg "function|class" # Search extracted structure with ripgrep
-showsignature src --show-only imports | rg "node:" # Find matching imports
-showsignature src --show-only signatures | rg "async" # Find async functions or methods
-showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # Search comments/signatures with nearby context
-showsignature src --show-only signatures,imports | less # Page through large output
-showsignature src --show-only signatures | head -50 # Preview the first 50 lines
-showsignature src --show-only signatures,imports | tee structure.md # View and save output
+showsignature                                               # default: --show-only signatures ./
+showsignature ./src                                         # Inspect a folder
+showsignature src/01-main.ts                                # Inspect one file
+
+showsignature src/main.ts README.md tests/fixtures          # [FILE] can be one or more files/directories
+showsignature --show-only imports,exports                   # Show exports only
+showsignature --show-only signatures,imports,exports ./src  # Show code structure and imports
+showsignature --show-only interfaces,types ./folder         # Show data shapes
+showsignature --show-only variables,comments src/main.ts    # Show variables
+
+showsignature --show-only md:headings                       # Extract Markdown code blocks
+showsignature --show-only md:tables,md:codeblocks           # Extract Markdown tables
+
+# useful when doing migrations from one language to other
+showsignature --lang-only py                                # Process Python files only
+showsignature --lang-only go --show-only imports,exports    # Show Go imports and exported declarations
+showsignature --lang-only py --show-only types,comments     # Show Python imports and public exports
+showsignature --max-depth 4                                 # Limit recursive scan depth
 ```
 
 ## Other options
 
 ```sh
-showsignature [options]
-
 Options:
-  --include-tests           include files under test directories during discovery (default: false)
-  --no-line-number         hide source line number prefixes for extracted entries
-  -h, --help                display help for command
+  --include-tests          include files under test directories during discovery (default: false)
 ```
