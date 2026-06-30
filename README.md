@@ -8,16 +8,15 @@ A CLI that extracts the useful structure from source files: signatures, imports,
 
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
-## Installation
+## Install
 
-<details id="npm-package">
-<summary>
-<h2>NPM Package</h2>
-</summary>
+---
 
-### Install locally or globally from the NPM registry
+### 1. Install locally or globally from the NPM registry
+`showsignature` is executed as a bash tool, so must be available locally or globally.
 
 ```bash
+#npm|pnpm|yarn
 # global install
 npm install -g showsignature
 
@@ -25,6 +24,23 @@ npm install -g showsignature
 npm install showsignature
 ```
 
+### 2. Install for your Agent
+
+<details id="claude-code">
+<summary>
+<h2>Claude Code</h2>
+</summary>
+  
+```bash
+/plugin marketplace add FredySandoval/showsignature
+```
+
+```bash
+/plugin install showsignature@showsignature
+```
+(You have to send two separate prompts for the install to work)
+
+The desktop app has no /plugin command. Install it from the UI instead: Customize, the + by personal plugins, Create plugin and add marketplace, Add from repository, then enter the repo URL.
 </details>
 
 <details id="agent-skill">
