@@ -1,6 +1,6 @@
 {
   "name": "showsignature",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Fast structural and implementation-oriented overview of source code files and markdown.",
   "author": {
         "name": "Fredy Sandoval",
