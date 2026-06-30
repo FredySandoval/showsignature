@@ -10,8 +10,6 @@ Use it to understand a codebase quickly, review files, or create compact context
 
 ## Install
 
----
-
 ### 1. Install locally or globally from the NPM registry
 `showsignature` is executed as a bash tool, so must be available locally or globally.
 
