@@ -3,7 +3,7 @@
   "name": "showsignature",
   "description": "Fast structural and implementation-oriented overview of source code files and markdown.",
   "owner": {
-    "name": "Fredy Sandoval"
+    "name": "Fredy Sandoval",
     "url": "https://github.com/FredySandoval"
   },
   "plugins": [
