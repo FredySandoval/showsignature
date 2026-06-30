@@ -1,6 +1,6 @@
 ---
 name: showsignature
-description: |
+description: >
   Fast structural and implementation-oriented overview of source files and markdown.
   Use this before read when you need to identify what a file is responsible for,
   exported symbols, imports, classes, functions, methods, constants, and nearby comments.
