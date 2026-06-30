@@ -132,33 +132,27 @@ Markdown files:
 
 ## Basic usage examples
 
+`showsignature [OPTION]... [FILE]...`
+
 ```sh
-showsignature                                               # Inspect the current directory
-showsignature --help                                        # Show available options
-showsignature --version                                     # Show current version
-showsignature src/01-main.ts                                # Inspect one file
+showsignature                                               # default: --show-only signatures ./
 showsignature ./src                                         # Inspect a folder
-cat src/01-main.ts | showsignature - --lang-only ts         # Read TypeScript from stdin
+showsignature src/01-main.ts                                # Inspect one file
 
-showsignature src/main.ts README.md src tests/fixtures      # [FILE] can be one or more files/directories
-showsignature --show-only imports                           # Show imports only
-showsignature --show-only exports                           # Show exports only
-showsignature --show-only signatures,imports ./src          # Show code structure and imports
-showsignature --show-only imports,exports ./src             # Show dependencies and public API
-showsignature --show-only interfaces,types ./src            # Show data shapes
-showsignature src/01-main.ts --show-only variables          # Show variables
-showsignature src/App.tsx --show-only imports,exports       # Show TSX/JSX imports and exports
-showsignature src/App.svelte --show-only imports,exports    # Show Svelte script imports and exports
+showsignature src/main.ts README.md tests/fixtures          # [FILE] can be one or more files/directories
+showsignature --show-only imports,exports                   # Show exports only
+showsignature --show-only signatures,imports,exports ./src  # Show code structure and imports
+showsignature --show-only interfaces,types ./folder         # Show data shapes
+showsignature --show-only variables,comments src/main.ts    # Show variables
 
-showsignature README.md --show-only md:headings             # Extract Markdown headings
-showsignature README.md --show-only md:codeblocks           # Extract Markdown code blocks
-showsignature --show-only md:tables                         # Extract Markdown tables
+showsignature --show-only md:headings                       # Extract Markdown code blocks
+showsignature --show-only md:tables,md:codeblocks           # Extract Markdown tables
 
+# useful when doing migrations from one language to other
 showsignature --lang-only py                                # Process Python files only
 showsignature --lang-only go --show-only imports,exports    # Show Go imports and exported declarations
-showsignature --lang-only py --show-only imports,exports    # Show Python imports and public exports
-showsignature --max-depth 2                                 # Limit recursive scan depth
-showsignature --show-only imports > structure.txt           # Save compact context
+showsignature --lang-only py --show-only types,comments     # Show Python imports and public exports
+showsignature --max-depth 4                                 # Limit recursive scan depth
 ```
 
 Combine modes with commas:
