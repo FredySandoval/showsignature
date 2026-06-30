@@ -22,7 +22,7 @@ npm install -g showsignature
 npm install showsignature
 ```
 
-### 2. Install for your Agent
+## 2. Set your AI Agent
 
 <details id="claude-code">
 <summary>
