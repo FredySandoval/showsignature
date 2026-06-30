@@ -58,10 +58,11 @@ npx skills add https://github.com/FredySandoval/showsignature --skill showsignat
 </summary>
   
 ```bash
-# All agents
-# install in pi
+# option 1
 pi install npm:showsignature
+# option 2
 pi install git:github.com/FredySandoval/showsignature
+# option 3
 pi install https://github.com/FredySandoval/showsignature
 ```
 </details>
