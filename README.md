@@ -44,6 +44,23 @@ npm install showsignature
 The desktop app has no /plugin command. Install it from the UI instead: Customize, the + by personal plugins, Create plugin and add marketplace, Add from repository, then enter the repo URL.
 </details>
 
+
+<details id="codex">
+<summary>
+<h2>Codex</h2>
+</summary>
+
+```sh
+codex plugin marketplace add FredySandoval/showsignature
+codex
+``` 
+Open /plugins, select the `showsignature` marketplace, and install `showsignature`. Then open /hooks, review and trust its lifecycle hook, and start a new thread.
+
+This same install also covers the Codex desktop app: restart the app after installing and it picks up the plugin.
+
+</details>
+
+
 <details id="agent-skill">
 <summary>
 <h2>Agent Skill</h2>
