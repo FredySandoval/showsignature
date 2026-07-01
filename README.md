@@ -7,7 +7,7 @@
 
 # showsignature
 
-A CLI that extracts the useful structure from source files: signatures, imports, types, variables, comments, and Markdown sections.
+A CLI that extracts the useful structure from source files: signatures, imports, types, variables, comments, Markdown sections, and JSON shapes.
 
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
@@ -114,6 +114,7 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 - What does each file import/export?
 - What types and interfaces define the data?
 - What headings/tables/code blocks exist in Markdown?
+- What shape does a JSON file have?
 
 ## Usage
 
@@ -144,13 +145,14 @@ Code files:
 | `variables`  | Variables/constants.                                                |
 | `comments`   | Code comments.                                                      |
 
-Markdown files:
+Markdown and JSON files:
 
 | Mode            | Shows               |
 | --------------- | ------------------- |
 | `md:headings`   | Headings.           |
 | `md:tables`     | Tables.             |
 | `md:codeblocks` | Fenced code blocks. |
+| `json:shape`    | JSON value shape.   |
 
 ## Supported files
 
@@ -165,6 +167,7 @@ Markdown files:
 | Rust       | `.rs`                 |
 | Lua        | `.lua`                |
 | Markdown   | `.md`                 |
+| JSON       | `.json`               |
 
 ## Basic usage examples
 
@@ -181,8 +184,9 @@ showsignature --show-only signatures,imports,exports ./src  # Show code structur
 showsignature --show-only interfaces,types ./folder         # Show data shapes
 showsignature --show-only variables,comments src/main.ts    # Show variables
 
-showsignature --show-only md:headings                       # Extract Markdown code blocks
+showsignature --show-only md:headings                       # Extract Markdown headings
 showsignature --show-only md:tables,md:codeblocks           # Extract Markdown tables
+showsignature --show-only json:shape config.json            # Extract JSON shape
 
 # useful when doing migrations from one language to other
 showsignature --lang-only py                                # Process Python files only

@@ -31,6 +31,7 @@ export {
   type FileSection,
   type FormatFinalOutputOptions,
   type GoParseContext,
+  type JsonParseContext,
   type LanguageAdapter,
   type LanguageAdapterMetadata,
   type LanguageRegistry,

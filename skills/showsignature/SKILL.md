@@ -1,7 +1,7 @@
 ---
 name: showsignature
 description: >
-  Fast structural and implementation-oriented overview of source files and markdown.
+  Fast structural and implementation-oriented overview of source files, markdown, and JSON.
   Use this before read when you need to identify what a file is responsible for,
   exported symbols, imports, classes, functions, methods, constants, and nearby comments.
   For code files, includes enough context to locate important implementation points such as
@@ -16,7 +16,7 @@ description: >
   - "What methods are on this class?"
   - "What constants/config drive this behavior?"
 
-  Supported extensions: .cjs, .cts, .go, .js, .jsx, .lua, .md, .mjs, .mts, .py, .rs, .svelte, .ts, .tsx
+  Supported extensions: .cjs, .cts, .go, .js, .json, .jsx, .lua, .md, .mjs, .mts, .py, .rs, .svelte, .ts, .tsx
 license: ISC
 compatibility: Requires Node.js. Written in TypeScript and built to JavaScript; no native binary is bundled.
 metadata:
@@ -28,9 +28,9 @@ allowed-tools: Bash(showsignature:*)
 
 # showsignature skill guide
 
-Use this skill to inspect code or Markdown structure without implementation noise.
+Use this skill to inspect code, Markdown, or JSON structure without implementation noise.
 
-`showsignature` extracts functions, classes, methods, imports, types, interfaces, variables, comments, and Markdown structure.
+`showsignature` extracts functions, classes, methods, imports, types, interfaces, variables, comments, Markdown structure, and JSON shape.
 
 Security note: secret-like values are redacted by default.
 
@@ -40,7 +40,7 @@ Security note: secret-like values are redacted by default.
 - Summarizing a source file or folder
 - Reviewing APIs or data shapes
 - Preparing compact context for another AI tool
-- Extracting Markdown headings, tables, or code blocks
+- Extracting Markdown headings, tables, code blocks, or JSON shape
 
 ## Basic usage examples
 
@@ -57,8 +57,9 @@ showsignature --show-only signatures,imports,exports ./src  # Show code structur
 showsignature --show-only interfaces,types ./folder         # Show data shapes
 showsignature --show-only variables,comments src/main.ts    # Show variables
 
-showsignature --show-only md:headings                       # Extract Markdown code blocks
+showsignature --show-only md:headings                       # Extract Markdown headings
 showsignature --show-only md:tables,md:codeblocks           # Extract Markdown tables
+showsignature --show-only json:shape config.json            # Extract JSON shape
 
 # useful when doing migrations from one language to other
 showsignature --lang-only py                                # Process Python files only

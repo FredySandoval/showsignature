@@ -109,7 +109,7 @@ describe("createLanguageRegistry", () => {
     await expect(registry.getOrLoad("missing")).resolves.toBeUndefined();
   });
 
-  test("default registry includes Go, Lua, and Rust support", () => {
+  test("default registry includes Go, Lua, Rust, and JSON support", () => {
     const registry = buildDefaultRegistry();
 
     expect(registry.has("go")).toBe(true);
@@ -123,5 +123,9 @@ describe("createLanguageRegistry", () => {
     expect(registry.has("rs")).toBe(true);
     expect(registry.inferFromFile("/tmp/lib.rs")).toBe("rs");
     expect(registry.supportedExtensions()).toContain(".rs");
+
+    expect(registry.has("json")).toBe(true);
+    expect(registry.inferFromFile("/tmp/package.json")).toBe("json");
+    expect(registry.supportedExtensions()).toContain(".json");
   });
 });

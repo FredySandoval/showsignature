@@ -39,6 +39,7 @@ import {
   type RunPipelineOptions,
 } from "./00-core-types.js";
 import { createGoAdapter } from "./languages/go/00-adapter.js";
+import { createJsonAdapter } from "./languages/json/00-adapter.js";
 import { createLuaAdapter } from "./languages/lua/00-adapter.js";
 import { createMarkdownAdapter } from "./languages/markdown/00-adapter.js";
 import { createPythonAdapter } from "./languages/python/00-adapter.js";
@@ -1167,6 +1168,14 @@ export function buildDefaultRegistry(): LanguageRegistry {
       id: "md",
       extensions: [".md"],
       fenceLang: "markdown",
+    }),
+  );
+
+  registry.register(
+    createJsonAdapter({
+      id: "json",
+      extensions: [".json"],
+      fenceLang: "json",
     }),
   );
 

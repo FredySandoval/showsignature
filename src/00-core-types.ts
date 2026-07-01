@@ -120,6 +120,8 @@ export interface LuaParseContext extends ParseContext {
   readonly lineStarts: readonly number[];
 }
 
+export interface JsonParseContext extends ParseContext {}
+
 export interface RustParseContext extends ParseContext {
   readonly lines: readonly string[];
   readonly lineStarts: readonly number[];
