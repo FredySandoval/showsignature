@@ -11,6 +11,11 @@ A CLI that extracts the useful structure from source files: signatures, imports,
 
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
 
+
+<p align="center">
+  <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
+</p>
+
 ## Install
 
 ### 1. Install locally or globally from the NPM registry
@@ -100,10 +105,6 @@ pnpm build
 pnpm link --global
 ```
 </details>
-
-<p align="center">
-  <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
-</p>
 
 ## Why?
 
