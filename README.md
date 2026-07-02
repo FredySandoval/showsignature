@@ -7,6 +7,14 @@
 
 # showsignature
 
+Languages:
+- English
+- [简体中文](README.zh-CN.md)
+- [日本語](README.ja.md)
+- [Español](README.es.md)
+- [Русский](README.ru.md)
+- [العربية](README.ar.md)
+
 A CLI that extracts the useful structure from source files: signatures, imports, types, variables, comments, Markdown sections, and JSON shapes.
 
 Use it to understand a codebase quickly, review files, or create compact context for AI assistants.
