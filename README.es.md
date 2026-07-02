@@ -14,7 +14,7 @@ Idiomas:
 - [Русский](README.ru.md)
 - [العربية](README.ar.md)
 
-Una CLI que extrae la estructura útil de los archivos fuente: firmas, imports, tipos, variables, comentarios, secciones de Markdown y formas JSON.
+Una Interfaz de Línea de Comandos. que extrae la estructura útil de los archivos fuente: `signatures`, `imports`, `types`, `variables`, `comments`, secciones de Markdown y formas JSON.
 
 Úsala para entender rápidamente una base de código, revisar archivos o crear contexto compacto para asistentes de IA.
 
@@ -76,7 +76,7 @@ Esta misma instalación también cubre la aplicación de escritorio Codex: reini
 
 <details id="agent-skill">
 <summary>
-<h2>Habilidad de agente</h2>
+<h2>Skill de Agente</h2>
 </summary>
   
 ```bash
@@ -87,7 +87,7 @@ npx skills add https://github.com/FredySandoval/showsignature --skill showsignat
 
 <details id="pi-agent-extension">
 <summary>
-<h2>Extensión de agente Pi</h2>
+<h2>Pi Agente- Extensión </h2>
 </summary>
   
 ```bash
