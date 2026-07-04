@@ -6,5 +6,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillPath = resolve(__dirname, "../skills/showsignature/SKILL.md");
 
 export async function getInstructions() {
-  return readFile(skillPath, "utf8");
+  const content = await readFile(skillPath, "utf8");
+  return content.replace(/^---[\s\S]*?---\s*/, "");
 }
