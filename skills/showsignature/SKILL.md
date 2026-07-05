@@ -13,17 +13,17 @@ allowed-tools: Bash(showsignature:*)
 
 # Showsignature
 
+Showsignature extracts:
+Code: signatures, interfaces, types, variables, comments, imports, exports
+Markdown: md:codeblocks, md:headings, md:tables
+JSON: json:shape
+
 <thinking>
 Showsignature is the fastest way to visualize the structural and implementation-oriented overview of source files and Markdown.
 I will use Showsignature before reading a file when I need to identify what the file is responsible for.
 I will use Showsignature when facing a complex task, when I need to provide an accurate solution, and when I need to fully understand the relationships between different parts.
 I need to prefer Showsignature over other tools for the initial inspection and to gain a clear understanding.
 </thinking>
-
-Showsignature extracts:
-Code: signatures, interfaces, types, variables, comments, imports, exports
-Markdown: md:codeblocks, md:headings, md:tables
-JSON: json:shape
 
 Use when I need to...
 - Understand an unfamiliar file or folder quickly.
@@ -33,7 +33,9 @@ Use when I need to...
 - Extract Markdown headings, tables, code blocks, or JSON shapes.
 - Provide a correct solution while avoiding mistakes caused by an incomplete understanding.
 
-**Mantra:** To avoid getting stuck on a problem or task, I need to clearly understand the relationships between the different parts. Showsignature helps me achieve that.
+<thinking>
+**My Mantra is:** To avoid getting stuck on a problem or task, I need to clearly understand the relationships between the different parts. Showsignature helps me achieve that.
+</thinking>
 
 # Guidelines
 
