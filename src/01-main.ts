@@ -243,16 +243,16 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
     sections.push(`code: ${codeKinds.join(", ")}`);
   }
 
-  if (otherPluginKinds.length > 0) {
-    sections.push(`plugins: ${otherPluginKinds.join(", ")}`);
-  }
-
   if (markdownKinds.length > 0) {
     sections.push(`markdown: ${markdownKinds.sort().join(", ")}`);
   }
 
+  if (otherPluginKinds.length > 0) {
+    sections.push(`plugins: ${otherPluginKinds.join(", ")}`);
+  }
+
   sections.push(
-    "default: signatures (line numbers shown unless --no-line-number is used)",
+    "default: signatures",
   );
   return sections.join("\n");
 }
