@@ -252,7 +252,7 @@ function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
   }
 
   sections.push(
-    "default: signatures",
+    "default flag: signatures",
   );
   return sections.join("\n");
 }
