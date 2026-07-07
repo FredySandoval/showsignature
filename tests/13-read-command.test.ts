@@ -155,12 +155,12 @@ describe("read command", () => {
     expect(stdoutBuffer).toContain(
       '<skeleton region="before" note="signatures only — display context, not file content">',
     );
-    expect(stdoutBuffer).toContain("1→function first(): void;");
+    expect(stdoutBuffer).toContain("1 function first(): void;");
     expect(stdoutBuffer).toContain(
       '<content lines="2-4 of 5">\nfunction second(): void {\n  return;\n}\n</content>',
     );
     expect(stdoutBuffer).toContain('<skeleton region="after"');
-    expect(stdoutBuffer).toContain("5→function third(): void;");
+    expect(stdoutBuffer).toContain("5 function third(): void;");
     expect(stdoutBuffer).toContain(
       "note: showing lines 2-4 of 5; continue with: showsignature read --offset 5 src/app.ts",
     );
@@ -184,7 +184,7 @@ describe("read command", () => {
 
     expect(stdoutBuffer).toContain('<content lines="1-2000 of 2500">');
     expect(stdoutBuffer).toContain('<skeleton region="after"');
-    expect(stdoutBuffer).toContain("2500→function late(): void;");
+    expect(stdoutBuffer).toContain("2500 function late(): void;");
     expect(stdoutBuffer).not.toContain('<skeleton region="before"');
     expect(stdoutBuffer).toContain(
       "note: showing lines 1-2000 of 2500; continue with: showsignature read --offset 2001 big.ts",
@@ -262,12 +262,12 @@ describe("read command", () => {
     ]);
 
     expect(stdoutBuffer).toContain('<skeleton region="before"');
-    expect(stdoutBuffer).toContain("1→def a(): ...");
+    expect(stdoutBuffer).toContain("1 def a(): ...");
     expect(stdoutBuffer).toContain(
       '<content lines="3-4 of 6">\ndef b():\n    pass\n</content>',
     );
     expect(stdoutBuffer).toContain('<skeleton region="after"');
-    expect(stdoutBuffer).toContain("5→def c(): ...");
+    expect(stdoutBuffer).toContain("5 def c(): ...");
     expect(process.exitCode).toBe(0);
   });
 
@@ -328,8 +328,8 @@ describe("read command", () => {
     ]);
 
     expect(stdoutBuffer).toContain("function first(): void;");
-    expect(stdoutBuffer).not.toContain("1→");
-    expect(stdoutBuffer).not.toContain("5→");
+    expect(stdoutBuffer).not.toContain("1 function first");
+    expect(stdoutBuffer).not.toContain("5 function third");
     expect(stdoutBuffer).toContain(
       '<content lines="2-4 of 5">\nfunction second(): void {\n  return;\n}\n</content>',
     );
@@ -368,12 +368,12 @@ describe("read command", () => {
     ]);
 
     expect(stdoutBuffer).toContain('<skeleton region="before"');
-    expect(stdoutBuffer).toContain("1→# Title");
+    expect(stdoutBuffer).toContain("1 # Title");
     expect(stdoutBuffer).toContain(
       '<content lines="3-4 of 9">\nintro text\nmore text\n</content>',
     );
     expect(stdoutBuffer).toContain('<skeleton region="after"');
-    expect(stdoutBuffer).toContain("7→## Section");
+    expect(stdoutBuffer).toContain("7 ## Section");
     expect(process.exitCode).toBe(0);
   });
 

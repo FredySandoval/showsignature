@@ -1220,7 +1220,7 @@ function renderSkeleton(
         ? "    ← window opens inside this"
         : "";
     const prefixed = options.includeLineNumbers
-      ? `${entry.metadata?.sourceLine}→${text}`
+      ? `${entry.metadata?.sourceLine} ${text}`
       : text;
 
     return `${prefixed}${marker}`;
