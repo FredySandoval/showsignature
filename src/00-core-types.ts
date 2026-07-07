@@ -259,6 +259,9 @@ export interface ParsedCliArgs {
   maxDepth?: number;
   lineNumber: boolean;
   redact?: boolean;
+  offset?: number;
+  limit?: number;
+  all?: boolean;
 }
 
 export interface ExitCodeError extends Error {
@@ -287,5 +290,8 @@ export interface ExecutionPlan {
   extractOrder: ExtractKind[];
   input: ResolvedInputTarget;
   output: OutputTarget;
+  entryOffset?: number;
+  entryLimit?: number;
+  uncapped?: boolean;
   notices?: string[];
 }

@@ -566,6 +566,155 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("caps map output and summarizes remaining files with a note trailer", async () => {
+    installOutputCapture();
+
+    const manyFunctions = (prefix: string, count: number): string =>
+      Array.from(
+        { length: count },
+        (_, index) => `function ${prefix}${index}(): void {}`,
+      ).join("\n");
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "a.ts", manyFunctions("a", 1500));
+    await writeFixtureFile(rootDir, "b.ts", manyFunctions("b", 1500));
+    await writeFixtureFile(rootDir, "c.ts", manyFunctions("c", 1500));
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode", "map",
+      "--no-line-number",
+      "a.ts",
+      "b.ts",
+      "c.ts",
+    ]);
+
+    expect(stdoutBuffer).toContain("// a.ts");
+    expect(stdoutBuffer).toContain("function a1499(): void;");
+    expect(stdoutBuffer).toContain("// output capped — remaining files:");
+    expect(stdoutBuffer).toContain("// b.ts (1500 entries)");
+    expect(stdoutBuffer).toContain("// c.ts (1500 entries)");
+    expect(stdoutBuffer).not.toContain("function b0(): void;");
+    expect(stdoutBuffer).toContain(
+      "note: output capped at 2000 lines (2 of 3 files summarized).",
+    );
+    expect(stdoutBuffer).toContain("--all disables the cap");
+    expect(stderrBuffer).toContain("note: output capped at 2000 lines");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("caps a single pathological file by keeping whole entries until the budget is spent", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "big.ts",
+      Array.from(
+        { length: 2500 },
+        (_, index) => `function b${index}(): void {}`,
+      ).join("\n"),
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--no-line-number", "big.ts"]);
+
+    expect(stdoutBuffer).toContain("function b0(): void;");
+    expect(stdoutBuffer).toContain("function b1998(): void;");
+    expect(stdoutBuffer).not.toContain("function b1999(): void;");
+    expect(stdoutBuffer).toContain("// big.ts (501 more entries)");
+    expect(stdoutBuffer).toContain(
+      "note: output capped at 2000 lines (1 of 1 files summarized).",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("--all disables the output caps", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "big.ts",
+      Array.from(
+        { length: 2500 },
+        (_, index) => `function big${index}(): void {}`,
+      ).join("\n"),
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--all", "big.ts"]);
+
+    expect(stdoutBuffer).toContain("function big2499(): void;");
+    expect(stdoutBuffer).not.toContain("note:");
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("windows map entries with --offset and --limit", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      [
+        "function first(): void {}",
+        "function second(): void {}",
+        "function third(): void {}",
+        "function fourth(): void {}",
+      ].join("\n"),
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode", "map",
+      "--offset",
+      "1",
+      "--limit",
+      "2",
+      "src/app.ts",
+    ]);
+
+    expect(stdoutBuffer).not.toContain("function first(): void;");
+    expect(stdoutBuffer).toContain("2 function second(): void;");
+    expect(stdoutBuffer).toContain("3 function third(): void;");
+    expect(stdoutBuffer).not.toContain("function fourth(): void;");
+    expect(stdoutBuffer).toContain(
+      "note: showing entries 2-3 of 4; continue with --offset 3",
+    );
+    expect(stderrBuffer).toContain("note: showing entries 2-3 of 4");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("notes when --offset skips every extracted entry", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "function one(): void {}\n");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--offset", "9", "src/app.ts"]);
+
+    expect(stdoutBuffer).toContain(
+      "note: --offset 9 skips all 1 extracted entries",
+    );
+    expect(stdoutBuffer).not.toContain("function one(): void;");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("rejects invalid --offset and --limit values", async () => {
+    installOutputCapture();
+
+    await expect(
+      buildCli().run(["showcode", "map", "--offset", "-1", "."]),
+    ).rejects.toThrow("Option --offset must be a non-negative integer");
+
+    await expect(
+      buildCli().run(["showcode", "map", "--limit", "0", "."]),
+    ).rejects.toThrow("Option --limit must be a positive integer");
+  });
+
   test("throws for removed --ignore-folder option", async () => {
     installOutputCapture();
 

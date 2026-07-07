@@ -336,6 +336,17 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "--no-line-number",
       "hide source line number prefixes for extracted entries",
     )
+    .option(
+      "--offset <number>",
+      "skip the first N extracted entries (default: 0)",
+      Number,
+    )
+    .option("--limit <number>", "max extracted entries displayed", Number)
+    .option(
+      "--all",
+      "disable every output cap (entry limit and the 2000-line / 50 KB cap)",
+      false,
+    )
     .exitOverride()
     .action(
       (paths: string[], options: Omit<ParsedCliArgs, "command" | "paths">) => {
@@ -405,6 +416,20 @@ function validateCliArgs(args: ParsedCliArgs): void {
     (!Number.isInteger(args.maxDepth) || args.maxDepth < 0)
   ) {
     throw createCliError("Option --max-depth must be a non-negative integer");
+  }
+
+  if (
+    args.offset !== undefined &&
+    (!Number.isInteger(args.offset) || args.offset < 0)
+  ) {
+    throw createCliError("Option --offset must be a non-negative integer");
+  }
+
+  if (
+    args.limit !== undefined &&
+    (!Number.isInteger(args.limit) || args.limit < 1)
+  ) {
+    throw createCliError("Option --limit must be a positive integer");
   }
 
   const stdinOperandCount = countStdinOperands(args);
@@ -548,16 +573,17 @@ async function discoverFilesWithDefaultDepth(options: {
   folder?: string;
   includeTests: boolean;
   maxDepth?: number;
+  disableDefaultDepth?: boolean;
   notices: string[];
 }): Promise<string[]> {
   const { registry, folder, includeTests, maxDepth, notices } = options;
 
-  if (maxDepth !== undefined) {
+  if (maxDepth !== undefined || options.disableDefaultDepth) {
     return discoverFiles({
       registry,
       ...(folder !== undefined ? { folder } : {}),
       includeTests,
-      maxDepth,
+      ...(maxDepth !== undefined ? { maxDepth } : {}),
     });
   }
 
@@ -648,6 +674,7 @@ async function resolveInputTarget(
         folder: inputPath,
         includeTests: args.includeTests,
         ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+        ...(args.all ? { disableDefaultDepth: true } : {}),
         notices,
       });
       const filteredFiles = explicitLang
@@ -672,6 +699,7 @@ async function resolveInputTarget(
     registry,
     includeTests: args.includeTests,
     ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+    ...(args.all ? { disableDefaultDepth: true } : {}),
     notices,
   });
 
@@ -730,7 +758,160 @@ async function resolveExecutionPlan(
       ...(args.lineNumber ? { includeLineNumbers: true } : {}),
       ...(args.redact === false ? { redact: false } : {}),
     },
+    ...(args.offset !== undefined ? { entryOffset: args.offset } : {}),
+    ...(args.limit !== undefined ? { entryLimit: args.limit } : {}),
+    ...(args.all ? { uncapped: true } : {}),
     notices,
+  };
+}
+
+const MAX_OUTPUT_LINES = 2000;
+const MAX_OUTPUT_BYTES = 50 * 1024;
+const MAX_CAP_SUMMARY_FILES = 200;
+
+function countLines(text: string): number {
+  let count = 1;
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === "\n") {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function describeExceededCap(text: string): string | undefined {
+  if (countLines(text) > MAX_OUTPUT_LINES) {
+    return `${MAX_OUTPUT_LINES} lines`;
+  }
+
+  if (Buffer.byteLength(text, "utf8") > MAX_OUTPUT_BYTES) {
+    return `${MAX_OUTPUT_BYTES / 1024} KB`;
+  }
+
+  return undefined;
+}
+
+function windowSectionEntries(
+  sections: FileSection[],
+  offset: number,
+  limit: number | undefined,
+): { sections: FileSection[]; shown: number } {
+  let toSkip = offset;
+  let remaining = limit ?? Number.POSITIVE_INFINITY;
+  let shown = 0;
+  const windowed: FileSection[] = [];
+
+  for (const section of sections) {
+    let entries = section.entries;
+
+    if (toSkip > 0) {
+      const skipNow = Math.min(toSkip, entries.length);
+      entries = entries.slice(skipNow);
+      toSkip -= skipNow;
+    }
+
+    if (entries.length === 0 || remaining <= 0) {
+      continue;
+    }
+
+    if (entries.length > remaining) {
+      entries = entries.slice(0, remaining);
+    }
+
+    remaining -= entries.length;
+    shown += entries.length;
+    windowed.push({ ...section, entries });
+  }
+
+  return { sections: windowed, shown };
+}
+
+function renderCappedSections(
+  sections: FileSection[],
+  options: { includeLineNumbers: boolean; redact: boolean },
+): { output: string; notice?: string } {
+  const visibleSections = sections.filter(
+    (section) => section.entries.length > 0,
+  );
+  const formatOptions = {
+    includeLineNumbers: options.includeLineNumbers,
+    redact: options.redact,
+  };
+
+  let output = "";
+  let capDescription: string | undefined;
+  const summaries: string[] = [];
+
+  for (const section of visibleSections) {
+    const displayPath = toDisplayPath(section.filePath);
+
+    if (capDescription) {
+      summaries.push(`// ${displayPath} (${section.entries.length} entries)`);
+      continue;
+    }
+
+    const chunk = formatPlainOutput([section], formatOptions);
+    const candidate = output ? `${output}\n\n${chunk}` : chunk;
+    const exceeded = describeExceededCap(candidate);
+
+    if (!exceeded) {
+      output = candidate;
+      continue;
+    }
+
+    capDescription = exceeded;
+
+    if (output === "") {
+      // The very first section alone exceeds the cap: keep whole entries
+      // until the budget is spent instead of emitting nothing.
+      let sectionOutput = `// ${displayPath}`;
+      let keptEntries = 0;
+
+      for (const entry of section.entries) {
+        const entryText = formatEntryLines(
+          entry,
+          options.includeLineNumbers,
+          options.redact,
+        );
+        const entryCandidate = `${sectionOutput}\n${entryText}`;
+        if (describeExceededCap(entryCandidate)) {
+          break;
+        }
+        sectionOutput = entryCandidate;
+        keptEntries += 1;
+      }
+
+      output = sectionOutput;
+      summaries.push(
+        `// ${displayPath} (${section.entries.length - keptEntries} more entries)`,
+      );
+      continue;
+    }
+
+    summaries.push(`// ${displayPath} (${section.entries.length} entries)`);
+  }
+
+  if (!capDescription) {
+    return { output };
+  }
+
+  const summarizedFileCount = summaries.length;
+  const shownSummaries = summaries.slice(0, MAX_CAP_SUMMARY_FILES);
+  if (summaries.length > shownSummaries.length) {
+    shownSummaries.push(
+      `// … and ${summaries.length - shownSummaries.length} more files`,
+    );
+  }
+
+  const summaryBlock = [
+    "// output capped — remaining files:",
+    ...shownSummaries,
+  ].join("\n");
+  output = output ? `${output}\n\n${summaryBlock}` : summaryBlock;
+
+  return {
+    output,
+    notice: `output capped at ${capDescription} (${summarizedFileCount} of ${visibleSections.length} files summarized). Narrow the path, or use --show-only / --max-depth / --limit to adjust; --all disables the cap.`,
   };
 }
 
@@ -738,14 +919,55 @@ function renderPipelineOutput(
   plan: ExecutionPlan,
   result: PipelineResult,
 ): string {
-  return formatFinalOutput({
-    registry: plan.registry,
-    sections: result.sections,
-    ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
-    ...(plan.output.includeLineNumbers ? { includeLineNumbers: true } : {}),
-    ...(plan.output.redact === false ? { redact: false } : {}),
-    seenLangs: result.meta.seenLangs,
+  const notices = plan.notices ?? (plan.notices = []);
+  const offset = plan.entryOffset ?? 0;
+  const limit = plan.uncapped ? undefined : plan.entryLimit;
+  const totalEntries = result.sections.reduce(
+    (sum, section) => sum + section.entries.length,
+    0,
+  );
+
+  let sections = result.sections;
+
+  if (offset > 0 || limit !== undefined) {
+    const windowed = windowSectionEntries(sections, offset, limit);
+    sections = windowed.sections;
+
+    if (offset > 0 && offset >= totalEntries && totalEntries > 0) {
+      notices.push(
+        `--offset ${offset} skips all ${totalEntries} extracted entries`,
+      );
+    } else if (
+      limit !== undefined &&
+      offset + windowed.shown < totalEntries
+    ) {
+      notices.push(
+        `showing entries ${offset + 1}-${offset + windowed.shown} of ${totalEntries}; continue with --offset ${offset + windowed.shown}`,
+      );
+    }
+  }
+
+  if (plan.uncapped) {
+    return formatFinalOutput({
+      registry: plan.registry,
+      sections,
+      ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
+      ...(plan.output.includeLineNumbers ? { includeLineNumbers: true } : {}),
+      ...(plan.output.redact === false ? { redact: false } : {}),
+      seenLangs: result.meta.seenLangs,
+    });
+  }
+
+  const capped = renderCappedSections(sections, {
+    includeLineNumbers: plan.output.includeLineNumbers === true,
+    redact: plan.output.redact !== false,
   });
+
+  if (capped.notice) {
+    notices.push(capped.notice);
+  }
+
+  return capped.output;
 }
 
 async function emitPipelineResult(
