@@ -43,7 +43,7 @@ Use when I need to...
 showsignature can be called like any other bash command. It has two commands:
 
 - `showsignature map  [OPTION]... [FILE]...` — cheap structural overview (signatures and other entries)
-- `showsignature read [OPTION] <FILE>` — windowed literal read of exactly one file, framed by a signature skeleton
+- `showsignature read [OPTION]... <FILE>` — windowed literal read of exactly one file, framed by a signature skeleton
 
 My workflow: `map` first to see what exists, then `read` to drill into the exact lines.
 Output may end with a single `note:` trailer — I must act on it: it tells me when output
