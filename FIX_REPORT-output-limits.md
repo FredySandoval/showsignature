@@ -273,7 +273,7 @@ The trailer names the exact next call (stdout, per conventions).
    entry semantics; skeleton trigger matrix (offset-only, limit-only, default cap,
    full-file).
 
-## Follow-up docs (same PR or after)
+## Follow-up docs
 
 - **Migrate every example to subcommand form** — READMEs (all languages) and `skills/`
   docs: `showsignature <path>` → `showsignature map <path>`. While at it, remove or
@@ -283,5 +283,10 @@ The trailer names the exact next call (stdout, per conventions).
 - Document `--offset`/`--limit` in each command's own `--help` (entries for `map`,
   lines for `read`) and show both forms side by side in the README — same flag names
   with per-command meanings is the likeliest point of user/agent confusion.
-- Release as **v0.2.0** with a changelog entry that leads with the breaking change and
-  the one-line migration rule ("prefix your invocation with `map`").
+
+IMPORTANT: the working area is clean, for you to start working.
+after any meaninful change like completing fix 1 for example, do `git add .` and `git commit -m "completed step bla bla"`
+this is important because is a point of return if something is wrongly implemented.
+we need to be able to go back to a state where something worked, if something crashes. Don't push to production please.
+
+
