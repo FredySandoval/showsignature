@@ -17,15 +17,22 @@ make the default behavior safe, not to forbid it.
 
 ## Global conventions (read first — these resolve ambiguities across all fixes)
 
-**Two modes.** *Signature mode* (default, current behavior) and *read mode* (`--read`,
-new, Fix 4).
+**Two commands, not one flag.** *Signature mode* stays the default command
+(`showsignature [OPTION]... [FILE]...`, multi-path as today). *Read mode* becomes a
+subcommand — `showsignature read [OPTION] <FILE>` — rather than a `--read` boolean.
+Rationale: the subcommand's `<FILE>` positional enforces "exactly one file" in the
+parser itself (no late validation against a variadic `[FILE]...`), and it eliminates
+mode-dependent flag meanings entirely — each command declares and documents its own
+`--offset`/`--limit`:
 
-**`--offset` / `--limit` are mode-dependent. Document this explicitly in `--help`:**
-
-| flag | signature mode | read mode (`--read`) |
+| flag | `showsignature` (signature mode) | `showsignature read` |
 |---|---|---|
 | `--offset <n>` | skip the first N extracted **entries** (default 0) | first **line** to show, 1-indexed (default 1) |
 | `--limit <n>` | max extracted **entries** displayed | max **lines** shown in the window |
+
+Same names for familiarity, but no single flag ever has two meanings within one
+command's `--help`. (Files literally named `read` are addressed as `./read`, per
+standard CLI convention; stdin is `showsignature read -`.)
 
 **Hard caps.** 2000 lines or 50 KB of rendered output, whichever is hit first. These
 values are hard-coded constants for now (not configurable numbers); the flags below are
@@ -35,7 +42,7 @@ given: omitting `--limit` never means "everything", it means "up to the cap".
 **One escape hatch.** `--all` turns off every cap at once — the entry limit and the
 2000-line / 50 KB cap — giving you the full, unbounded output the tool produces today.
 This is the only escape-hatch flag. An earlier draft also mentioned `--no-output-cap`;
-that flag is dropped — do not implement it, if you see
+that flag is dropped — do not implement it.
 
 **Notice routing.** Anything the reader must *act on* — truncation trailers with
 continuation instructions — is emitted at the **end of stdout** as a single structured
@@ -92,20 +99,31 @@ mode — silently acting on a partial listing — into a recoverable one.
 ```
 
 Combined with `--limit`, this allows paginating through a large signature listing.
-(For line-based continuation of a single file's *content*, see `--read`, Fix 4.)
+(For line-based continuation of a single file's *content*, see the `read` subcommand,
+Fix 4.)
 
-## Fix 4 — add `--read` (windowed literal read with skeleton frame)
+## Fix 4 — add `read` subcommand (windowed literal read with skeleton frame)
 
-`--read` switches to read mode: output the **literal content** of a file.
+`showsignature read [OPTION] <FILE>` outputs the **literal content** of a file.
 
-**Exactly one file target.** The CLI accepts `[FILE]...` (multiple paths), but read mode
-requires exactly one:
-- `--read <directory>` → `error: --read requires a file target; run without --read for a directory overview.`
-- `--read <file1> <file2>` → `error: --read accepts exactly one file; run one invocation per file.`
-- `--read -` (stdin) is allowed: input is slurped fully, so `lines="X-Y of N"` still works.
-  Skeletons require a parser and stdin has no extension — emit skeletons only when
-  `--lang-only <lang>` is given; otherwise frame the window without skeletons (still with
-  the `<content>` range and trailer).
+**Exactly one file target — enforced by the parser.** The subcommand's positional is
+`<FILE>` (required, single), so arity violations are parse errors, not runtime checks:
+- `showsignature read <directory>` → `error: 'read' requires a file target; run 'showsignature <dir>' for a directory overview.`
+- `showsignature read <file1> <file2>` → rejected by the parser (`<FILE>` takes one argument); error suggests one invocation per file.
+
+*Why single-file (recorded decision):* multi-file reads make `--offset`/`--limit`,
+partial failures, and continuation ambiguous, and they reintroduce the unbounded-blob
+problem this report exists to fix. Agents batch fine without it — parallel tool calls
+for tool schemas, `;`-chained invocations in one bash call for the CLI — and signature
+mode already serves the "many files at once" need. *Deferred v2, only if real demand
+appears:* accept multiple files only when `--offset`/`--limit` are absent, share the
+2000-line/50 KB budget across them, and degrade as in Fix 2 (whole files until the
+budget is spent, then summarize the remainder).
+
+`showsignature read -` (stdin) is allowed: input is slurped fully, so `lines="X-Y of N"`
+still works. Skeletons require a parser and stdin has no extension — emit skeletons only
+when `--lang-only <lang>` is given; otherwise frame the window without skeletons (still
+with the `<content>` range and trailer).
 
 **Window defaults** (per conventions): no `--offset` → start at line 1; no `--limit` →
 read up to the hard cap (2000 lines / 50 KB, whichever first). Omitting `--limit` means
@@ -162,7 +180,7 @@ they are optimized for model reading comprehension, not parsing):
 <skeleton region="after" note="signatures only — display context, not file content">
 701→def main():
 </skeleton>
-note: showing lines 200-700 of 1843; continue with --read --offset 701
+note: showing lines 200-700 of 1843; continue with: showsignature read --offset 701 <file>
 ```
 
 The trailer names the exact next call (stdout, per conventions).
@@ -178,14 +196,15 @@ The trailer names the exact next call (stdout, per conventions).
 4. `--all` restores current unbounded behavior in both modes.
 5. stdout contains data plus at most one structured `note:` trailer; notices are
    mirrored to stderr.
-6. `--read <dir>` and `--read` with multiple paths error with hints; `--read <file>`
-   with no flags shows lines 1..cap; `--offset`/`--limit` window correctly; `--read -`
-   works, with skeletons iff `--lang-only` is given.
+6. `showsignature read <dir>` errors with the hint; `read` with two paths is a parse
+   error; `showsignature read <file>` with no flags shows lines 1..cap;
+   `--offset`/`--limit` window correctly; `showsignature read -` works, with skeletons
+   iff `--lang-only` is given.
 7. Skeletons appear iff a region is elided (including the default-cap case), carry real
    line numbers, respect the 50/side budget with depth-based degradation, and always
    include the window's enclosing scope. Content between the `<content>` tags is
    byte-literal with no line numbers.
-8. A `--read` that covers the whole file emits no skeletons and a `<content>` tag whose
+8. A `read` that covers the whole file emits no skeletons and a `<content>` tag whose
    range equals the full file (e.g. `lines="1-843 of 843"`).
 8a. Read-mode content with `--no-redact` is byte-identical to the source window; with
     default redaction active and a secret in-window, `redacted="true"` appears on the
@@ -203,5 +222,7 @@ The trailer names the exact next call (stdout, per conventions).
   showsignature on the repo root with no depth flag (e.g. bare `showsignature`,
   `showsignature ./`) in favor of scoped-directory examples; where a repo-wide overview
   is shown, pair it with `--max-depth`.
-- Document the mode-dependent meaning of `--offset`/`--limit` prominently in `--help`
-  and README — this is the likeliest point of user/agent confusion.
+- Document `--offset`/`--limit` in each command's own `--help` (entries for
+  `showsignature`, lines for `showsignature read`) and show both forms side by side in
+  the README — same flag names with per-command meanings is the likeliest point of
+  user/agent confusion.
