@@ -291,6 +291,8 @@ const CLI_EXAMPLES = [
   `  $ ${CLI_NAME} map src/app.ts                   signatures from one file`,
   `  $ ${CLI_NAME} map --show-only imports,exports ./src`,
   `  $ ${CLI_NAME} map --show-only md:headings README.md`,
+  `  $ ${CLI_NAME} read src/app.ts                  literal file window with a signature skeleton`,
+  `  $ ${CLI_NAME} read --offset 200 --limit 100 src/app.ts`,
 ].join("\n");
 
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
@@ -354,6 +356,53 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
           command: "map",
           ...options,
           ...(paths.length > 0 ? { paths } : {}),
+        };
+      },
+    );
+
+  program
+    .command("read")
+    .usage("[OPTION]... <FILE>")
+    .description(
+      "windowed literal read of one file, framed by a signature skeleton",
+    )
+    .argument("<file>", "file to read; use '-' to read stdin")
+    .argument("[extra...]")
+    .option(
+      "--offset <number>",
+      "first line to show, 1-indexed (default: 1)",
+      Number,
+    )
+    .option("--limit <number>", "max lines shown in the window", Number)
+    .option(
+      "--all",
+      "disable every output cap (the 2000-line / 50 KB window cap)",
+      false,
+    )
+    .option("--lang-only <lang>", langOnlyOptionHelp)
+    .option("--show-only <options>", showOnlyOptionHelp)
+    .option("--no-redact", "disable built-in secret redaction")
+    .option(
+      "--no-line-number",
+      "hide line number prefixes on skeleton lines (content never has them)",
+    )
+    .exitOverride()
+    .action(
+      (
+        file: string,
+        extra: string[],
+        options: Omit<ParsedCliArgs, "command" | "paths">,
+      ) => {
+        if (extra.length > 0) {
+          throw createCliError(
+            "'read' takes exactly one file; run one invocation per file",
+          );
+        }
+
+        parsed = {
+          command: "read",
+          ...options,
+          paths: [file],
         };
       },
     );
@@ -1042,10 +1091,374 @@ async function runPlannedPipeline(
   });
 }
 
+// ============================================================================
+// Read Command                          [windowed literal read + skeleton]
+// ============================================================================
+const READ_SKELETON_BUDGET_PER_SIDE = 50;
+const SKELETON_NOTE = "signatures only — display context, not file content";
+
+function splitLinesKeepEnds(source: string): string[] {
+  if (source === "") {
+    return [];
+  }
+
+  return source.split(/(?<=\n)/u);
+}
+
+function countOccurrences(text: string, needle: string): number {
+  let count = 0;
+  let index = text.indexOf(needle);
+
+  while (index !== -1) {
+    count += 1;
+    index = text.indexOf(needle, index + needle.length);
+  }
+
+  return count;
+}
+
+function entryFirstLine(entry: ExtractEntry): string {
+  // Entries may carry embedded newlines; the skeleton only shows the first
+  // physical line (the one entry.metadata.sourceLine points at).
+  return (entry.lines[0] ?? "").split("\n", 1)[0] ?? "";
+}
+
+function entryIndentWidth(entry: ExtractEntry): number {
+  const firstLine = entryFirstLine(entry);
+  let width = 0;
+
+  while (width < firstLine.length) {
+    const char = firstLine[width];
+    if (char !== " " && char !== "\t") {
+      break;
+    }
+    width += 1;
+  }
+
+  return width;
+}
+
+// Chain of definitions the window start sits inside, approximated from the
+// indentation of the signatures that precede it (an indent stack).
+export function buildEnclosingChain(beforeEntries: readonly ExtractEntry[]): {
+  chain: Set<ExtractEntry>;
+  deepest?: ExtractEntry;
+} {
+  const stack: ExtractEntry[] = [];
+
+  for (const entry of beforeEntries) {
+    const indent = entryIndentWidth(entry);
+
+    while (
+      stack.length > 0 &&
+      entryIndentWidth(stack[stack.length - 1]!) >= indent
+    ) {
+      stack.pop();
+    }
+
+    stack.push(entry);
+  }
+
+  const deepest = stack[stack.length - 1];
+  return {
+    chain: new Set(stack),
+    ...(deepest ? { deepest } : {}),
+  };
+}
+
+// Over budget: drop the most nested entries first (methods before top-level
+// symbols) so the skeleton stays a complete, shallow table of contents. The
+// enclosing scope chain is exempt. Never cut positionally: if every remaining
+// entry sits at the shallowest depth, keep them all.
+export function degradeSkeletonByDepth(
+  entries: readonly ExtractEntry[],
+  chain: ReadonlySet<ExtractEntry>,
+): ExtractEntry[] {
+  let kept = [...entries];
+
+  if (kept.length <= READ_SKELETON_BUDGET_PER_SIDE) {
+    return kept;
+  }
+
+  const droppableIndents = [
+    ...new Set(
+      kept
+        .filter((entry) => !chain.has(entry))
+        .map((entry) => entryIndentWidth(entry)),
+    ),
+  ].sort((left, right) => right - left);
+
+  for (const indent of droppableIndents.slice(0, -1)) {
+    if (kept.length <= READ_SKELETON_BUDGET_PER_SIDE) {
+      break;
+    }
+
+    kept = kept.filter(
+      (entry) => chain.has(entry) || entryIndentWidth(entry) < indent,
+    );
+  }
+
+  return kept;
+}
+
+function renderSkeleton(
+  region: "before" | "after",
+  entries: readonly ExtractEntry[],
+  options: {
+    includeLineNumbers: boolean;
+    redact: boolean;
+    deepestChainEntry?: ExtractEntry;
+  },
+): string {
+  const lines = entries.map((entry) => {
+    const text = sanitizeAndMaybeRedactForDisplay(
+      entryFirstLine(entry),
+      options.redact,
+    );
+    const marker =
+      entry === options.deepestChainEntry
+        ? "    ← window opens inside this"
+        : "";
+    const prefixed = options.includeLineNumbers
+      ? `${entry.metadata?.sourceLine}→${text}`
+      : text;
+
+    return `${prefixed}${marker}`;
+  });
+
+  return [
+    `<skeleton region="${region}" note="${SKELETON_NOTE}">`,
+    ...lines,
+    `</skeleton>`,
+  ].join("\n");
+}
+
+async function resolveReadSource(
+  target: string,
+  explicitLangRaw: string | undefined,
+): Promise<{ source: string; filePath: string; isStdin: boolean }> {
+  if (target === "-") {
+    return {
+      source: await readStdin(),
+      filePath: explicitLangRaw ? toStdinVirtualFilePath(explicitLangRaw) : "<stdin>",
+      isStdin: true,
+    };
+  }
+
+  const resolvedPath = path.resolve(target);
+  let targetStats;
+
+  try {
+    targetStats = await stat(resolvedPath);
+  } catch (error) {
+    throw createCliError(
+      `Could not access path: ${target} (${stringifyError(error)})`,
+    );
+  }
+
+  if (targetStats.isDirectory()) {
+    throw createCliError(
+      `'read' requires a file target; run '${CLI_NAME} map ${target}' for a directory overview.`,
+    );
+  }
+
+  const safePath = await resolveSafeInputPath(target);
+  if (!safePath) {
+    throw createCliError(
+      `Could not access path: ${target} (must be a regular file inside the current working directory)`,
+    );
+  }
+
+  return {
+    source: await readFile(safePath, "utf8"),
+    filePath: safePath,
+    isStdin: false,
+  };
+}
+
+async function executeRead(args: ParsedCliArgs): Promise<void> {
+  if (
+    args.offset !== undefined &&
+    (!Number.isInteger(args.offset) || args.offset < 1)
+  ) {
+    throw createCliError(
+      "Option --offset must be a positive integer (1-indexed first line)",
+    );
+  }
+
+  if (
+    args.limit !== undefined &&
+    (!Number.isInteger(args.limit) || args.limit < 1)
+  ) {
+    throw createCliError("Option --limit must be a positive integer");
+  }
+
+  const registry = buildDefaultRegistry();
+  const rawLang = args.langOnly?.trim();
+  const explicitLang = rawLang
+    ? resolveLanguageId(registry, rawLang)
+    : undefined;
+
+  if (rawLang && !explicitLang) {
+    throw createCliError(`${rawLang} not supported`);
+  }
+
+  const extractOrder = args.showOnly
+    ? parseExtractOptions(args.showOnly, listSupportedExtractKinds(registry))
+    : DEFAULT_EXTRACT_ORDER;
+
+  const { source, filePath, isStdin } = await resolveReadSource(
+    args.paths![0]!,
+    rawLang,
+  );
+
+  const lineSegments = splitLinesKeepEnds(source);
+  const totalLines = lineSegments.length;
+  const startLine = args.offset ?? 1;
+
+  if (totalLines > 0 && startLine > totalLines) {
+    throw createCliError(
+      `--offset ${startLine} is beyond the end of the input (${totalLines} lines)`,
+    );
+  }
+
+  const uncapped = args.all === true;
+  const maxWindowLines = uncapped
+    ? (args.limit ?? Number.POSITIVE_INFINITY)
+    : Math.min(args.limit ?? MAX_OUTPUT_LINES, MAX_OUTPUT_LINES);
+
+  let endLine = Math.min(startLine - 1 + maxWindowLines, totalLines);
+
+  if (!uncapped) {
+    // Trim trailing lines that push the window past the byte cap, but always
+    // keep at least the first line so a single huge line still makes progress.
+    let usedBytes = 0;
+    let cappedEnd = startLine - 1;
+
+    for (let index = startLine - 1; index < endLine; index += 1) {
+      const lineBytes = Buffer.byteLength(lineSegments[index]!, "utf8");
+
+      if (usedBytes + lineBytes > MAX_OUTPUT_BYTES && cappedEnd >= startLine) {
+        break;
+      }
+
+      usedBytes += lineBytes;
+      cappedEnd = index + 1;
+
+      if (usedBytes > MAX_OUTPUT_BYTES) {
+        break;
+      }
+    }
+
+    endLine = cappedEnd;
+  }
+
+  const rawContent = lineSegments.slice(startLine - 1, endLine).join("");
+  const redactEnabled = args.redact !== false;
+  const content = redactEnabled ? redactSecrets(rawContent) : rawContent;
+  const redactionApplied = content !== rawContent;
+
+  // Skeletons need a parser: for stdin only --lang-only provides one.
+  const skeletonLang = isStdin
+    ? explicitLang
+    : (explicitLang ?? registry.inferFromFile(filePath));
+  const adapter = skeletonLang
+    ? await registry.getOrLoad(skeletonLang)
+    : undefined;
+
+  let entries: ExtractEntry[] = [];
+
+  if (adapter) {
+    const extracted = extractFromSource({
+      adapter,
+      filePath,
+      source,
+      extractOrder,
+    });
+    entries = extracted.entries.filter(
+      (entry) => entry.metadata?.sourceLine !== undefined,
+    );
+    emitDiagnostics(extracted.warnings, redactEnabled);
+  }
+
+  const includeLineNumbers = args.lineNumber !== false;
+  const outputParts: string[] = [];
+
+  if (adapter && startLine > 1) {
+    const beforeEntries = entries.filter(
+      (entry) => entry.metadata!.sourceLine! < startLine,
+    );
+    const { chain, deepest } = buildEnclosingChain(beforeEntries);
+    const skeletonEntries = degradeSkeletonByDepth(beforeEntries, chain);
+
+    outputParts.push(
+      renderSkeleton("before", skeletonEntries, {
+        includeLineNumbers,
+        redact: redactEnabled,
+        ...(deepest ? { deepestChainEntry: deepest } : {}),
+      }),
+    );
+  }
+
+  const rangeText =
+    totalLines === 0 ? "0-0 of 0" : `${startLine}-${endLine} of ${totalLines}`;
+  const contentOpenTag = `<content lines="${rangeText}"${redactionApplied ? ' redacted="true"' : ""}>`;
+  const contentBody =
+    content === "" || content.endsWith("\n") ? content : `${content}\n`;
+  outputParts.push(`${contentOpenTag}\n${contentBody}</content>`);
+
+  if (adapter && endLine < totalLines) {
+    const afterEntries = entries.filter(
+      (entry) => entry.metadata!.sourceLine! > endLine,
+    );
+    const skeletonEntries = degradeSkeletonByDepth(afterEntries, new Set());
+
+    outputParts.push(
+      renderSkeleton("after", skeletonEntries, {
+        includeLineNumbers,
+        redact: redactEnabled,
+      }),
+    );
+  }
+
+  process.stdout.write(`${outputParts.join("\n")}\n`);
+
+  const notes: string[] = [];
+
+  if (endLine < totalLines) {
+    const displayTarget = isStdin ? "-" : toDisplayPath(filePath);
+    notes.push(
+      `showing lines ${startLine}-${endLine} of ${totalLines}; continue with: ${CLI_NAME} read --offset ${endLine + 1} ${displayTarget}`,
+    );
+  }
+
+  if (redactionApplied) {
+    const redactedCount = Math.max(
+      1,
+      countOccurrences(content, REDACTED_SECRET) -
+        countOccurrences(rawContent, REDACTED_SECRET),
+    );
+    notes.push(
+      `${redactedCount} secret${redactedCount === 1 ? "" : "s"} redacted; pass --no-redact for literal bytes`,
+    );
+  }
+
+  if (notes.length > 0) {
+    const trailer = `note: ${notes.join(" | ")}`;
+    process.stdout.write(`${trailer}\n`);
+    process.stderr.write(`${trailer}\n`);
+  }
+}
+
 async function execute(argv: readonly string[]): Promise<void> {
   const args = parseCliArgs(argv);
 
   if (!args) {
+    return;
+  }
+
+  if (args.command === "read") {
+    await executeRead(args);
     return;
   }
 
