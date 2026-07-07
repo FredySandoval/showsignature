@@ -503,6 +503,69 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("applies a default max depth of 2 to directory scans and notes the truncation", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "top.ts", "function top(): void {}\n");
+    await writeFixtureFile(rootDir, "src/one.ts", "function one(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "src/nested/two.ts",
+      "function two(): void {}\n",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "."]);
+
+    expect(stdoutBuffer).toContain("// top.ts");
+    expect(stdoutBuffer).toContain("// src/one.ts");
+    expect(stdoutBuffer).not.toContain("two.ts");
+    expect(stdoutBuffer).toContain(
+      "note: directory scan depth-limited to 2 by default; pass --max-depth <n> to go deeper",
+    );
+    expect(stderrBuffer).toContain(
+      "note: directory scan depth-limited to 2 by default",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("emits no depth notice when the default depth is not hit", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "top.ts", "function top(): void {}\n");
+    await writeFixtureFile(rootDir, "src/one.ts", "function one(): void {}\n");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "."]);
+
+    expect(stdoutBuffer).toContain("// top.ts");
+    expect(stdoutBuffer).toContain("// src/one.ts");
+    expect(stdoutBuffer).not.toContain("note:");
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("explicit --max-depth overrides the default without a notice", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "src/nested/deep/three.ts",
+      "function three(): void {}\n",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--max-depth", "5", "."]);
+
+    expect(stdoutBuffer).toContain("// src/nested/deep/three.ts");
+    expect(stdoutBuffer).not.toContain("note:");
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("throws for removed --ignore-folder option", async () => {
     installOutputCapture();
 

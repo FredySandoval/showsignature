@@ -324,7 +324,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .option("--no-redact", "disable built-in secret redaction")
     .option(
       "--max-depth <number>",
-      "maximum folder discovery depth for recursive scans",
+      `maximum folder discovery depth for recursive scans (default: ${DEFAULT_DIRECTORY_MAX_DEPTH} for directory targets)`,
       Number,
     )
     .option(
@@ -536,10 +536,59 @@ function inferImplicitStdinLanguage(
   return undefined;
 }
 
+const DEFAULT_DIRECTORY_MAX_DEPTH = 2;
+const DEPTH_LIMIT_NOTICE = `directory scan depth-limited to ${DEFAULT_DIRECTORY_MAX_DEPTH} by default; pass --max-depth <n> to go deeper`;
+
+function pathDepthWithin(baseDir: string, filePath: string): number {
+  return path.relative(baseDir, filePath).split(path.sep).length;
+}
+
+async function discoverFilesWithDefaultDepth(options: {
+  registry: LanguageRegistry;
+  folder?: string;
+  includeTests: boolean;
+  maxDepth?: number;
+  notices: string[];
+}): Promise<string[]> {
+  const { registry, folder, includeTests, maxDepth, notices } = options;
+
+  if (maxDepth !== undefined) {
+    return discoverFiles({
+      registry,
+      ...(folder !== undefined ? { folder } : {}),
+      includeTests,
+      maxDepth,
+    });
+  }
+
+  // Probe one level past the default so a truncated scan is detectable.
+  const probed = await discoverFiles({
+    registry,
+    ...(folder !== undefined ? { folder } : {}),
+    includeTests,
+    maxDepth: DEFAULT_DIRECTORY_MAX_DEPTH + 1,
+  });
+  const baseDir = folder !== undefined ? path.resolve(folder) : process.cwd();
+  const withinDefault = probed.filter(
+    (filePath) =>
+      pathDepthWithin(baseDir, filePath) <= DEFAULT_DIRECTORY_MAX_DEPTH,
+  );
+
+  if (
+    withinDefault.length < probed.length &&
+    !notices.includes(DEPTH_LIMIT_NOTICE)
+  ) {
+    notices.push(DEPTH_LIMIT_NOTICE);
+  }
+
+  return withinDefault;
+}
+
 async function resolveInputTarget(
   args: ParsedCliArgs,
   registry: LanguageRegistry,
   extractOrder: readonly ExtractKind[],
+  notices: string[],
   explicitLang?: string,
 ): Promise<ResolvedInputTarget> {
   if (hasExplicitStdinOperand(args)) {
@@ -594,11 +643,12 @@ async function resolveInputTarget(
         continue;
       }
 
-      const discoveredFiles = await discoverFiles({
+      const discoveredFiles = await discoverFilesWithDefaultDepth({
         registry,
         folder: inputPath,
         includeTests: args.includeTests,
         ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+        notices,
       });
       const filteredFiles = explicitLang
         ? discoveredFiles.filter(
@@ -618,10 +668,11 @@ async function resolveInputTarget(
     return { files };
   }
 
-  const discoveredFiles = await discoverFiles({
+  const discoveredFiles = await discoverFilesWithDefaultDepth({
     registry,
     includeTests: args.includeTests,
     ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
+    notices,
   });
 
   const files = explicitLang
@@ -661,10 +712,12 @@ async function resolveExecutionPlan(
     ? parseExtractOptions(args.showOnly, listSupportedExtractKinds(registry))
     : DEFAULT_EXTRACT_ORDER;
 
+  const notices: string[] = [];
   const input = await resolveInputTarget(
     args,
     registry,
     extractOrder,
+    notices,
     explicitLang,
   );
 
@@ -677,6 +730,7 @@ async function resolveExecutionPlan(
       ...(args.lineNumber ? { includeLineNumbers: true } : {}),
       ...(args.redact === false ? { redact: false } : {}),
     },
+    notices,
   };
 }
 
@@ -701,6 +755,13 @@ async function emitPipelineResult(
 ): Promise<void> {
   if (formattedOutput) {
     process.stdout.write(`${formattedOutput}\n`);
+  }
+
+  const notices = plan.notices ?? [];
+  if (notices.length > 0) {
+    const trailer = `note: ${notices.join(" | ")}`;
+    process.stdout.write(`${trailer}\n`);
+    process.stderr.write(`${trailer}\n`);
   }
 
   emitDiagnostics(result.diagnostics.warnings, plan.output.redact !== false);

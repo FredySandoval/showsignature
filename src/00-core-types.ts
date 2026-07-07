@@ -287,4 +287,5 @@ export interface ExecutionPlan {
   extractOrder: ExtractKind[];
   input: ResolvedInputTarget;
   output: OutputTarget;
+  notices?: string[];
 }
