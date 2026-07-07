@@ -1,0 +1,143 @@
+1. `showsignature --help` (also printed when run with no command, exit code 1)
+This is the primary --help desing that must be implemented:
+
+```
+showsignature — extract the useful structure from source files
+ 
+Usage:
+  showsignature map  [OPTION]... [FILE]...
+  showsignature read [OPTION]... <FILE>
+ 
+Commands:
+  map     Structural overview of files or directories: signatures, imports,
+          exports, types, variables, comments, Markdown sections, JSON shapes.
+  read    Windowed literal read of exactly one file, framed by a signature
+          skeleton for orientation.
+ 
+Extractors (for --show-only):
+    signatures     Functions, classes, methods, constructors
+    imports        Import statements/declarations
+    exports        JS/TS exports, exported Go decls, Python public exports
+    interfaces     TypeScript/Go interfaces
+    types          Type aliases/declarations
+    variables      Variables/constants
+    comments       Code comments
+    md:headings    Markdown Headings
+    md:tables      Markdown Tables
+    md:codeblocks  Markdown Fenced code blocks
+    json:shape     JSON value shape
+ 
+Global options:
+  -h, --help       Show help. Use `showsignature <command> --help` for
+                   command-specific options and examples.
+  -v, --version    Print version and exit.
+ 
+Getting started:
+  showsignature map ./src                                      Overview of a folder
+  showsignature map --show-only imports ./src                  One extractor only
+  showsignature read --offset 200 --limit 200 ./src/main.ts    Read from line 200
+ 
+Output is capped at 2000 lines / 50 KB. 
+When a cap kicks in, a trailing `note:` names the exact flags or follow-up call to continue.
+```
+
+2. `showsignature map --help`
+
+```
+showsignature map — structural overview of files and directories
+
+Usage:
+  showsignature map [OPTION]... [FILE]...
+
+  FILE may be one or more files or directories (default: current directory).
+
+Options:
+  --show-only <items>    Comma-separated extractors to run (default: all
+                         applicable). See "Extractors" below.
+  --lang-only <lang>     Only process files of this language; required when
+                         reading stdin. Example: ts, js, tsx, jsx, svelte,
+                         go, py, rs, lua, md, json
+  --include-tests        Include test files in folder scans.
+  --max-depth <n>        Limit folder scan depth (default: 2).
+  --offset <n>           Skip the first N extracted entries (default: 0).
+  --limit <n>            Maximum extracted entries displayed.
+  --all                  Disable every output cap (entry limit and the
+                         2000-line / 50 KB cap).
+  --no-redact            Disable built-in secrets redaction.
+  --no-line-number       Hide source line-number prefixes.
+  -h, --help             Show this help.
+
+Extractors (for --show-only):
+    signatures     Functions, classes, methods, constructors
+    imports        Import statements/declarations
+    exports        JS/TS exports, exported Go decls, Python public exports
+    interfaces     TypeScript/Go interfaces
+    types          Type aliases/declarations
+    variables      Variables/constants
+    comments       Code comments
+    md:headings    Markdown Headings
+    md:tables      Markdown Tables
+    md:codeblocks  Markdown Fenced code blocks
+    json:shape     JSON value shape
+
+Examples:
+  showsignature map ./src
+  showsignature map src/main.py README.md tests/fixtures
+  showsignature map --show-only signatures,imports,exports ./src
+  showsignature map --show-only md:headings
+  showsignature map --show-only json:shape config.json
+  showsignature map --lang-only go --show-only imports,exports
+  showsignature map --offset 40 --limit 40 ./src
+  showsignature map src --show-only imports | rg "node"
+
+Note: --offset and --limit count extracted ENTRIES in `map`
+      (they count LINES in `read`).
+```
+
+3. `showsignature read --help`
+
+```
+showsignature read — windowed literal read of one file, with a map skeleton before and after.
+
+Usage:
+  showsignature read [OPTION]... <FILE>
+
+  Reads exactly one file.
+  Content between <content> tags is raw bytes with no
+  line-number prefixes, safe to copy into exact-match edit tools.
+
+Options:
+  --offset <n>           First line to show, 1-indexed (default: 1).
+  --limit <n>            Maximum lines shown in the window.
+  --all                  Disable the 2000-line / 50 KB window cap.
+  --show-only <items>    Extractors used for the skeleton
+                         (default: signatures).
+  --no-line-number       Hide line-number prefixes on skeleton lines
+                         (content never has them).
+  --no-redact            Disable secret redaction for literal bytes
+                         (redaction is disclosed otherwise).
+  -h, --help             Show this help.
+
+Extractors (for --show-only):
+    signatures     Functions, classes, methods, constructors
+    imports        Import statements/declarations
+    exports        JS/TS exports, exported Go decls, Python public exports
+    interfaces     TypeScript/Go interfaces
+    types          Type aliases/declarations
+    variables      Variables/constants
+    comments       Code comments
+    md:headings    Markdown Headings
+    md:tables      Markdown Tables
+    md:codeblocks  Markdown Fenced code blocks
+    json:shape     JSON value shape
+
+Examples:
+  showsignature read src/01-main.ts
+  showsignature read --offset 200 --limit 100 src/main.py
+  showsignature read src/config.ts --limit 50
+
+Tip: skeleton lines carry real line numbers, so you can jump anywhere with
+     `showsignature read --offset <line> <file>`.
+
+Note: --offset and --limit count LINES in `read` (they count ENTRIES in `map`).
+```
