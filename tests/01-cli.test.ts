@@ -101,12 +101,25 @@ describe("buildCli", () => {
     await buildCli().run(["showsignature"]);
 
     expect(stdoutBuffer).toContain(
-      "Usage: showsignature <command> [OPTION]... [FILE]...",
+      "showsignature — extract the useful structure from source files",
     );
-    expect(stdoutBuffer).toContain("map");
-    expect(stdoutBuffer).toContain("Examples:");
+    expect(stdoutBuffer).toContain("showsignature map  [OPTION]... [FILE]...");
+    expect(stdoutBuffer).toContain("Getting started:");
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(1);
+  });
+
+  test("root, map, and read help match their snapshots", async () => {
+    const helps: Record<string, string> = {};
+
+    for (const args of [["--help"], ["map", "--help"], ["read", "--help"]]) {
+      installOutputCapture();
+      await buildCli().run(["showsignature", ...args]);
+      helps[args.join(" ")] = stdoutBuffer;
+      expect(stderrBuffer).toBe("");
+    }
+
+    expect(helps).toMatchSnapshot();
   });
 
   test("suggests the map command for old-form invocations", async () => {
@@ -222,9 +235,7 @@ describe("buildCli", () => {
 
     await buildCli().run(["showsignature", "map", "--help"]);
 
-    expect(stdoutBuffer).toContain(
-      "Usage: showsignature map [OPTION]... [FILE]...",
-    );
+    expect(stdoutBuffer).toContain("showsignature map [OPTION]... [FILE]...");
     expect(stdoutBuffer).not.toContain("--file");
     expect(stdoutBuffer).not.toContain("--folder");
     expect(stdoutBuffer).not.toContain("--stdin");
