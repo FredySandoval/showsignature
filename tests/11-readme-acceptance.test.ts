@@ -115,7 +115,7 @@ describe("README acceptance", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode",
+      "showcode", "map",
       "src",
       "--show-only=imports,comments,interfaces,types,variables,signatures",
     ]);

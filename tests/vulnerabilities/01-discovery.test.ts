@@ -75,6 +75,7 @@ describe("vulnerability discovery", () => {
     try {
       await cli.run([
         "showsignature",
+        "map",
         secretFile,
         "--show-only",
         "comments,variables",
@@ -119,7 +120,7 @@ describe("vulnerability discovery", () => {
     process.chdir(projectDir);
 
     try {
-      await buildCli().run(["showsignature", externalFile]);
+      await buildCli().run(["showsignature", "map", externalFile]);
     } finally {
       process.stdout.write = originalStdoutWrite;
     }
@@ -156,6 +157,7 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
+        "map",
         "linked-secret.ts",
         "--show-only",
         "comments,variables",
@@ -198,6 +200,7 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
+        "map",
         victimDir,
         "--show-only",
         "comments,variables",
@@ -244,6 +247,7 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
+        "map",
         path.join("..", path.basename(victimParentDir), "nested"),
         "--show-only",
         "variables",
@@ -270,7 +274,7 @@ describe("vulnerability discovery", () => {
     process.chdir(projectDir);
 
     await expect(
-      buildCli().run(["showsignature", "src/app.ts", "--output", "owned.txt"]),
+      buildCli().run(["showsignature", "map", "src/app.ts", "--output", "owned.txt"]),
     ).rejects.toThrow("unknown option '--output'");
   });
 
@@ -292,6 +296,7 @@ describe("vulnerability discovery", () => {
     await expect(
       buildCli().run([
         "showsignature",
+        "map",
         "src/app.ts",
         "--show-only",
         "variables",
@@ -325,6 +330,7 @@ describe("vulnerability discovery", () => {
     await expect(
       buildCli().run([
         "showsignature",
+        "map",
         "src/app.ts",
         "--show-only",
         "variables",
@@ -349,7 +355,7 @@ describe("vulnerability discovery", () => {
       "bash",
       [
         "-lc",
-        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} ${JSON.stringify(fifoPath)}`,
+        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} map ${JSON.stringify(fifoPath)}`,
       ],
       { cwd: projectDir },
     ).catch(
@@ -378,7 +384,7 @@ describe("vulnerability discovery", () => {
       "bash",
       [
         "-lc",
-        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} src/app.ts --show-only variables --output report.txt`,
+        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} map src/app.ts --show-only variables --output report.txt`,
       ],
       { cwd: projectDir },
     ).catch(
@@ -397,7 +403,7 @@ describe("vulnerability discovery", () => {
 
     const result = await execFile(
       "bash",
-      ["-lc", `timeout 1s node ${JSON.stringify(cliPath)} /dev/random`],
+      ["-lc", `timeout 1s node ${JSON.stringify(cliPath)} map /dev/random`],
       { cwd: originalCwd },
     ).catch(
       (error: NodeJS.ErrnoException & { stdout?: string; stderr?: string }) =>
@@ -433,6 +439,7 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
+        "map",
         sourceFile,
         "--show-only",
         "comments,signatures",
@@ -468,7 +475,7 @@ describe("vulnerability discovery", () => {
     process.chdir(projectDir);
 
     try {
-      await buildCli().run(["showsignature", filePath]);
+      await buildCli().run(["showsignature", "map", filePath]);
     } finally {
       process.stdout.write = originalStdoutWrite;
     }
@@ -503,6 +510,7 @@ describe("vulnerability discovery", () => {
     try {
       await buildCli().run([
         "showsignature",
+        "map",
         filePath,
         "--show-only",
         "variables",
@@ -530,7 +538,7 @@ describe("vulnerability discovery", () => {
     }) as typeof process.stderr.write;
 
     try {
-      await runCli(["showsignature", payload]);
+      await runCli(["showsignature", "map", payload]);
     } finally {
       process.stderr.write = originalStderrWrite;
     }
@@ -554,7 +562,7 @@ describe("vulnerability discovery", () => {
     }) as typeof process.stderr.write;
 
     try {
-      await runCli(["showsignature", payload]);
+      await runCli(["showsignature", "map", payload]);
     } finally {
       process.stderr.write = originalStderrWrite;
     }

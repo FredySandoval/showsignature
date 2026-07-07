@@ -285,6 +285,14 @@ function formatUnsupportedFileMessage(
   return `File is not supported: could not infer a language from the file name. Supported extensions: ${supportedExtensions}`;
 }
 
+const CLI_EXAMPLES = [
+  "Examples:",
+  `  $ ${CLI_NAME} map ./src                        structural overview of a folder`,
+  `  $ ${CLI_NAME} map src/app.ts                   signatures from one file`,
+  `  $ ${CLI_NAME} map --show-only imports,exports ./src`,
+  `  $ ${CLI_NAME} map --show-only md:headings README.md`,
+].join("\n");
+
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   const registry = buildDefaultRegistry();
   const showOnlyOptionHelp = buildShowOnlyOptionHelp(
@@ -294,10 +302,19 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     registry.supportedExtensions(),
   );
 
+  let parsed: ParsedCliArgs | undefined;
+
   const program = new Command()
     .name(CLI_NAME)
-    .usage("[OPTION]... [FILE]...")
+    .usage("<command> [OPTION]... [FILE]...")
     .version(CLI_VERSION)
+    .addHelpText("after", `\n${CLI_EXAMPLES}`)
+    .exitOverride();
+
+  program
+    .command("map")
+    .usage("[OPTION]... [FILE]...")
+    .description("structural overview: extract signatures and other entries")
     .argument(
       "[paths...]",
       "files or directories to inspect; use '-' to read stdin",
@@ -319,10 +336,40 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "--no-line-number",
       "hide source line number prefixes for extracted entries",
     )
-    .exitOverride();
+    .exitOverride()
+    .action(
+      (paths: string[], options: Omit<ParsedCliArgs, "command" | "paths">) => {
+        parsed = {
+          command: "map",
+          ...options,
+          ...(paths.length > 0 ? { paths } : {}),
+        };
+      },
+    );
+
+  const userArgs = stripArgvPrefix(argv);
+
+  if (userArgs.length === 0) {
+    process.stdout.write(`${program.helpInformation()}\n${CLI_EXAMPLES}\n`);
+    process.exitCode = 1;
+    return null;
+  }
+
+  const firstToken = userArgs[0]!;
+  const knownCommands = new Set([
+    "help",
+    ...program.commands.map((command) => command.name()),
+  ]);
+  const looksLikeOption = firstToken.startsWith("-") && firstToken !== "-";
+
+  if (!looksLikeOption && !knownCommands.has(firstToken)) {
+    throw createCliError(
+      `unknown command '${firstToken}'. Did you mean: ${CLI_NAME} map ${firstToken}?`,
+    );
+  }
 
   try {
-    program.parse(stripArgvPrefix(argv), { from: "user" });
+    program.parse(userArgs, { from: "user" });
   } catch (error) {
     if (error instanceof CommanderError) {
       if (
@@ -341,13 +388,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     throw error;
   }
 
-  const options = program.opts<Omit<ParsedCliArgs, "paths">>();
-  const paths = program.args;
-
-  return {
-    ...options,
-    ...(paths.length > 0 ? { paths } : {}),
-  };
+  return parsed ?? null;
 }
 
 function countStdinOperands(args: ParsedCliArgs): number {

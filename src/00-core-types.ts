@@ -248,7 +248,10 @@ export interface CliProgram {
   run(argv?: readonly string[]): Promise<void>;
 }
 
+export type CliCommandName = "map" | "read";
+
 export interface ParsedCliArgs {
+  command: CliCommandName;
   paths?: string[];
   langOnly?: string;
   showOnly?: string;
