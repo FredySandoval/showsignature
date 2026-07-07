@@ -149,6 +149,8 @@ Options for `showsignature map`:
 | `--offset <n>`        | Skip the first N extracted **entries** (default: 0).                         |
 | `--limit <n>`         | Max extracted **entries** displayed.                                         |
 | `--all`               | Disable every output cap (entry limit and the 2000-line / 50 KB cap).        |
+| `--no-redact`         | Disable built-in secret redaction.                                           |
+| `--no-line-number`    | Hide source line-number prefixes.                                            |
 
 Options for `showsignature read`:
 
@@ -160,6 +162,7 @@ Options for `showsignature read`:
 | `--lang-only <lang>` | Language for the skeleton; enables skeletons when reading stdin (`-`).        |
 | `--show-only <items>`| Extractors used for the skeleton (default: `signatures`).                     |
 | `--no-line-number`   | Hide line-number prefixes on skeleton lines (content never has them).         |
+| `--no-redact`        | Disable secret redaction for literal bytes (redaction is disclosed otherwise).|
 
 Note: `--offset`/`--limit` mean **entries** in `map` but **lines** in `read`.
 
@@ -214,7 +217,7 @@ showsignature map ./src                                         # Inspect a fold
 showsignature map src/01-main.ts                                # Inspect one file
 
 showsignature map src/main.ts README.md tests/fixtures          # [FILE] can be one or more files/directories
-showsignature map --show-only imports,exports                   # Show exports only
+showsignature map --show-only imports,exports ./src            # Show imports and exports only
 showsignature map --show-only signatures,imports,exports ./src  # Show code structure and imports
 showsignature map --show-only interfaces,types ./folder         # Show data shapes
 showsignature map --show-only variables,comments src/main.ts    # Show variables

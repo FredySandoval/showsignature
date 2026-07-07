@@ -131,14 +131,44 @@ showsignature map  [OPTION]... [FILE]...
 showsignature read [OPTION] <FILE>
 ```
 
-[FILE] オペランド（ファイルまたはディレクトリパス）を検査します。既定では現在のディレクトリを使用します。
+2 つのコマンドがあります:
+
+- `map` — 構造の概要: シグネチャなどの抽出エントリ。[FILE] オペランド（ファイルまたはディレクトリパス）を検査します。既定では現在のディレクトリを使用します。
+- `read` — ちょうど 1 つのファイルをウィンドウ指定でそのまま読み取り、シグネチャのスケルトンで位置付けを示します。
+
+コマンドなしで `showsignature` を実行するとヘルプを表示し、終了コード 1 で終了します。
+
+`showsignature map` のオプション:
 
 | OPTION                | 説明                                                  |
 | --------------------- | ----------------------------------------------------- |
 | `--lang-only <lang>`  | 言語を強制します。`-` で stdin を読む場合に必須です。 |
 | `--show-only <items>` | extractors を選択します。                             |
 | `--include-tests`     | フォルダスキャンにテストファイルを含めます。          |
-| `--max-depth <n>`     | フォルダスキャンの深さを制限します。                  |
+| `--max-depth <n>`     | スキャンの深さを制限します（ディレクトリの既定値は `2`）。 |
+| `--offset <n>`        | 抽出された**エントリ**の先頭 N 件をスキップします（既定: 0）。 |
+| `--limit <n>`         | 表示する抽出**エントリ**の上限。                      |
+| `--all`               | すべての出力上限を無効化します（エントリ上限と 2000 行 / 50 KB の上限）。 |
+| `--no-redact`         | 組み込みのシークレット秘匿を無効化します。            |
+| `--no-line-number`    | ソース行番号のプレフィックスを非表示にします。        |
+
+`showsignature read` のオプション:
+
+| OPTION               | 説明                                                      |
+| -------------------- | --------------------------------------------------------- |
+| `--offset <n>`       | 表示する最初の**行**（1 始まり、既定: 1）。               |
+| `--limit <n>`        | ウィンドウに表示する**行**数の上限。                      |
+| `--all`              | 2000 行 / 50 KB のウィンドウ上限を無効化します。          |
+| `--lang-only <lang>` | スケルトンの言語。stdin（`-`）読み取り時にスケルトンを有効化します。 |
+| `--show-only <items>`| スケルトンに使う extractors（既定: `signatures`）。       |
+| `--no-line-number`   | スケルトン行の行番号プレフィックスを非表示にします（本文には元々付きません）。 |
+| `--no-redact`        | シークレット秘匿を無効化してリテラルなバイト列を得ます。  |
+
+注意: `--offset`/`--limit` は `map` では**エントリ**、`read` では**行**を意味します。
+
+出力は既定で 2000 行 / 50 KB に制限されます。上限や既定のスキャン深さが働いた場合、
+出力の末尾に単一の `note:` トレーラーが付き（stderr にも複製されます）、続行に必要な
+正確なフラグや次のコマンドを示します。
 
 ## Extractors
 
@@ -201,7 +231,23 @@ showsignature map --lang-only py                                # Python ファ�
 showsignature map --lang-only go --show-only imports,exports    # Go imports と exported declarations を表示
 showsignature map --lang-only py --show-only types,comments     # Python imports と public exports を表示
 showsignature map --max-depth 4                                 # 再帰スキャンの深さを制限
+
+showsignature map --offset 40 --limit 40 ./src                  # 大きなエントリ一覧をページング
+showsignature map --all ./src                                   # 出力上限を無効化
 ```
+
+ファイルをそのまま読み取り、シグネチャのスケルトンで囲みます:
+
+```sh
+showsignature read src/01-main.ts                               # ファイル先頭の行（上限まで）
+showsignature read --offset 200 --limit 100 src/01-main.ts      # 200-299 行目、ウィンドウの前後にスケルトン
+showsignature read --no-redact src/config.ts                    # リテラルなバイト列（シークレット秘匿なし）
+cat snippet.py | showsignature read - --lang-only py            # stdin。--lang-only でスケルトンを有効化
+```
+
+スケルトン行には実際の行番号が付くため、`showsignature read --offset <行> <ファイル>` で
+どこへでもジャンプできます。`<content>` タグの間の内容は行番号プレフィックスのない生の
+テキストで、完全一致の編集ツールに安全にコピーできます。
 
 モードはカンマで組み合わせます:
 

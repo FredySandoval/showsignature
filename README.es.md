@@ -131,14 +131,44 @@ showsignature map  [OPTION]... [FILE]...
 showsignature read [OPTION] <FILE>
 ```
 
-Inspecciona operandos [FILE] —archivos o rutas de directorios— usando el directorio actual de forma predeterminada.
+Dos comandos:
+
+- `map` — vista estructural: firmas y otras entradas extraídas. Inspecciona operandos [FILE] —archivos o rutas de directorios— usando el directorio actual de forma predeterminada.
+- `read` — lectura literal en ventana de exactamente un archivo, enmarcada por un esqueleto de firmas para orientarte.
+
+Ejecutar `showsignature` sin comando imprime la ayuda y sale con código 1.
+
+Opciones de `showsignature map`:
 
 | OPTION                | Descripción                                                        |
 | --------------------- | ------------------------------------------------------------------ |
 | `--lang-only <lang>`  | Fuerza el lenguaje; es obligatorio al usar `-` para leer de stdin. |
 | `--show-only <items>` | Elige extractores.                                                 |
 | `--include-tests`     | Incluye archivos de prueba en los escaneos de carpetas.            |
-| `--max-depth <n>`     | Limita la profundidad del escaneo de carpetas.                     |
+| `--max-depth <n>`     | Limita la profundidad del escaneo (los directorios usan `2` por defecto). |
+| `--offset <n>`        | Omite las primeras N **entradas** extraídas (por defecto: 0).      |
+| `--limit <n>`         | Máximo de **entradas** extraídas mostradas.                        |
+| `--all`               | Desactiva todos los límites de salida (límite de entradas y el tope de 2000 líneas / 50 KB). |
+| `--no-redact`         | Desactiva la redacción de secretos integrada.                      |
+| `--no-line-number`    | Oculta los prefijos de número de línea.                            |
+
+Opciones de `showsignature read`:
+
+| OPTION               | Descripción                                                         |
+| -------------------- | ------------------------------------------------------------------- |
+| `--offset <n>`       | Primera **línea** a mostrar, indexada desde 1 (por defecto: 1).     |
+| `--limit <n>`        | Máximo de **líneas** mostradas en la ventana.                       |
+| `--all`              | Desactiva el tope de 2000 líneas / 50 KB de la ventana.             |
+| `--lang-only <lang>` | Lenguaje del esqueleto; habilita esqueletos al leer stdin (`-`).    |
+| `--show-only <items>`| Extractores usados para el esqueleto (por defecto: `signatures`).   |
+| `--no-line-number`   | Oculta los números de línea del esqueleto (el contenido nunca los lleva). |
+| `--no-redact`        | Desactiva la redacción de secretos para obtener bytes literales.    |
+
+Nota: `--offset`/`--limit` significan **entradas** en `map` pero **líneas** en `read`.
+
+La salida está limitada a 2000 líneas / 50 KB por defecto; cuando un límite o la
+profundidad de escaneo predeterminada actúan, la salida termina con un único trailer
+`note:` (reflejado en stderr) que indica los flags exactos o la llamada siguiente para continuar.
 
 ## Extractores
 
@@ -201,7 +231,24 @@ showsignature map --lang-only py                                # Procesar solo 
 showsignature map --lang-only go --show-only imports,exports    # Mostrar imports de Go y declaraciones exportadas
 showsignature map --lang-only py --show-only types,comments     # Mostrar imports de Python y exports públicos
 showsignature map --max-depth 4                                 # Limitar la profundidad del escaneo recursivo
+
+showsignature map --offset 40 --limit 40 ./src                  # Paginar un listado grande de entradas
+showsignature map --all ./src                                   # Desactivar los límites de salida
 ```
+
+Lee un archivo literalmente, enmarcado por un esqueleto de firmas:
+
+```sh
+showsignature read src/01-main.ts                               # Primeras líneas del archivo (hasta el tope)
+showsignature read --offset 200 --limit 100 src/01-main.ts      # Líneas 200-299, esqueletos alrededor de la ventana
+showsignature read --no-redact src/config.ts                    # Bytes literales, sin redacción de secretos
+cat snippet.py | showsignature read - --lang-only py            # Stdin; --lang-only habilita el esqueleto
+```
+
+Las líneas del esqueleto llevan números de línea reales, así que puedes saltar a cualquier
+punto con `showsignature read --offset <línea> <archivo>`. El contenido entre las etiquetas
+`<content>` es crudo —sin prefijos de número de línea—, seguro para herramientas de edición
+por coincidencia exacta.
 
 Combina modos con comas:
 
