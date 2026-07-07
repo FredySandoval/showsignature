@@ -32,8 +32,10 @@ values are hard-coded constants for now (not configurable numbers); the flags be
 the only overrides. Caps apply in both modes and are the implicit `--limit` when none is
 given: omitting `--limit` never means "everything", it means "up to the cap".
 
-**One escape hatch.** `--all` disables both the entry limit and the line/byte cap,
-restoring current unbounded behavior.
+**One escape hatch.** `--all` turns off every cap at once — the entry limit and the
+2000-line / 50 KB cap — giving you the full, unbounded output the tool produces today.
+This is the only escape-hatch flag. An earlier draft also mentioned `--no-output-cap`;
+that flag is dropped — do not implement it, if you see
 
 **Notice routing.** Anything the reader must *act on* — truncation trailers with
 continuation instructions — is emitted at the **end of stdout** as a single structured
@@ -96,17 +98,38 @@ Combined with `--limit`, this allows paginating through a large signature listin
 
 `--read` switches to read mode: output the **literal content** of a file.
 
-**File targets only.** `--read <directory>` is an error:
-`error: --read requires a file target; run without --read for a directory overview.`
+**Exactly one file target.** The CLI accepts `[FILE]...` (multiple paths), but read mode
+requires exactly one:
+- `--read <directory>` → `error: --read requires a file target; run without --read for a directory overview.`
+- `--read <file1> <file2>` → `error: --read accepts exactly one file; run one invocation per file.`
+- `--read -` (stdin) is allowed: input is slurped fully, so `lines="X-Y of N"` still works.
+  Skeletons require a parser and stdin has no extension — emit skeletons only when
+  `--lang-only <lang>` is given; otherwise frame the window without skeletons (still with
+  the `<content>` range and trailer).
 
 **Window defaults** (per conventions): no `--offset` → start at line 1; no `--limit` →
 read up to the hard cap (2000 lines / 50 KB, whichever first). Omitting `--limit` means
 "up to the cap", not "the whole file". To read a full large file, continue with
 `--offset` until complete.
 
-**Content is raw — no line numbers.** Literal bytes, unmodified, so the output is safe
-to copy into exact-match edit tools and safe to pipe. Orientation comes from the frame
-and the skeleton instead (both of which DO carry line numbers).
+**Content is raw — no line numbers.** No prefixes, no reformatting, so the output is
+safe to copy into exact-match edit tools and safe to pipe. Orientation comes from the
+frame and the skeleton instead (both of which DO carry line numbers).
+
+**Redaction caveat.** Built-in secret redaction is ON by default (existing behavior;
+`--no-redact` disables it), and it applies in read mode too — so "literal" means
+*byte-identical except where redaction fired*. Because a redacted span will make an
+exact-match edit against the real file fail, the frame must disclose it: when redaction
+modified anything inside the window, emit `<content lines="..." redacted="true">` and
+mention it in the trailer (`note: N secrets redacted; pass --no-redact for literal bytes`).
+
+**Interactions with existing flags.**
+- `--no-line-number` in read mode affects the **skeleton prefixes only** (content never
+  has them). Advise against it for agent use — it removes the navigation index.
+- The skeleton reuses the extract-kind machinery: it honors `--show-only` (default:
+  `signatures`), which makes read mode work beyond code for free — `md:headings` frames
+  a markdown window, `json:shape` frames a JSON window.
+- `--lang-only` filters as usual and, for stdin, is what enables skeletons (above).
 
 **Skeleton rule.** A skeleton is rendered for **any elided region**, regardless of which
 mechanism caused the elision:
@@ -155,14 +178,20 @@ The trailer names the exact next call (stdout, per conventions).
 4. `--all` restores current unbounded behavior in both modes.
 5. stdout contains data plus at most one structured `note:` trailer; notices are
    mirrored to stderr.
-6. `--read <dir>` errors with the hint; `--read <file>` with no flags shows lines
-   1..cap; `--offset`/`--limit` window correctly.
+6. `--read <dir>` and `--read` with multiple paths error with hints; `--read <file>`
+   with no flags shows lines 1..cap; `--offset`/`--limit` window correctly; `--read -`
+   works, with skeletons iff `--lang-only` is given.
 7. Skeletons appear iff a region is elided (including the default-cap case), carry real
    line numbers, respect the 50/side budget with depth-based degradation, and always
    include the window's enclosing scope. Content between the `<content>` tags is
    byte-literal with no line numbers.
 8. A `--read` that covers the whole file emits no skeletons and a `<content>` tag whose
    range equals the full file (e.g. `lines="1-843 of 843"`).
+8a. Read-mode content with `--no-redact` is byte-identical to the source window; with
+    default redaction active and a secret in-window, `redacted="true"` appears on the
+    `<content>` tag and the trailer mentions it.
+8b. `--no-line-number` strips prefixes from skeleton lines only; skeleton honors
+    `--show-only` (markdown file → `md:headings` skeleton).
 9. Tests cover: default depth applied / not applied; cap hit mid-file-list; both escape
    paths (`--limit`, `--all`); read-mode offset/limit semantics vs signature-mode
    entry semantics; skeleton trigger matrix (offset-only, limit-only, default cap,
