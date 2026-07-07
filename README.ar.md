@@ -127,7 +127,8 @@ pnpm link --global
 ## الاستخدام
 
 ```sh
-showsignature [OPTION]... [FILE]...
+showsignature map  [OPTION]... [FILE]...
+showsignature read [OPTION] <FILE>
 ```
 
 يفحص معاملات [FILE] — ملفات أو مسارات أدلة — باستخدام الدليل الحالي افتراضيًا.
@@ -179,34 +180,33 @@ showsignature [OPTION]... [FILE]...
 
 ## أمثلة استخدام أساسية
 
-`showsignature [OPTION]... [FILE]...`
+`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
 
 ```sh
-showsignature                                               # الافتراضي: --show-only signatures ./
-showsignature ./src                                         # فحص مجلد
-showsignature src/01-main.ts                                # فحص ملف واحد
+showsignature map ./src                                         # فحص مجلد
+showsignature map src/01-main.ts                                # فحص ملف واحد
 
-showsignature src/main.ts README.md tests/fixtures          # يمكن أن يكون [FILE] ملفًا/دليلًا واحدًا أو أكثر
-showsignature --show-only imports,exports                   # عرض exports فقط
-showsignature --show-only signatures,imports,exports ./src  # عرض بنية الكود و imports
-showsignature --show-only interfaces,types ./folder         # عرض أشكال البيانات
-showsignature --show-only variables,comments src/main.ts    # عرض variables
+showsignature map src/main.ts README.md tests/fixtures          # يمكن أن يكون [FILE] ملفًا/دليلًا واحدًا أو أكثر
+showsignature map --show-only imports,exports                   # عرض exports فقط
+showsignature map --show-only signatures,imports,exports ./src  # عرض بنية الكود و imports
+showsignature map --show-only interfaces,types ./folder         # عرض أشكال البيانات
+showsignature map --show-only variables,comments src/main.ts    # عرض variables
 
-showsignature --show-only md:headings                       # استخراج Markdown headings
-showsignature --show-only md:tables,md:codeblocks           # استخراج Markdown tables
-showsignature --show-only json:shape config.json            # استخراج JSON shape
+showsignature map --show-only md:headings                       # استخراج Markdown headings
+showsignature map --show-only md:tables,md:codeblocks           # استخراج Markdown tables
+showsignature map --show-only json:shape config.json            # استخراج JSON shape
 
 # مفيد عند إجراء عمليات ترحيل من لغة إلى أخرى
-showsignature --lang-only py                                # معالجة ملفات Python فقط
-showsignature --lang-only go --show-only imports,exports    # عرض Go imports والتصريحات المصدّرة
-showsignature --lang-only py --show-only types,comments     # عرض Python imports و public exports
-showsignature --max-depth 4                                 # حد عمق الفحص التكراري
+showsignature map --lang-only py                                # معالجة ملفات Python فقط
+showsignature map --lang-only go --show-only imports,exports    # عرض Go imports والتصريحات المصدّرة
+showsignature map --lang-only py --show-only types,comments     # عرض Python imports و public exports
+showsignature map --max-depth 4                                 # حد عمق الفحص التكراري
 ```
 
 اجمع الأوضاع بفواصل:
 
 ```bash
-showsignature src --show-only signatures,imports,comments
+showsignature map src --show-only signatures,imports,comments
 ```
 
 ## الإخراج
@@ -214,7 +214,7 @@ showsignature src --show-only signatures,imports,comments
 يطبع `showsignature` إخراجًا نصيًا مضغوطًا. استخدم إعادة توجيه shell لحفظ الإخراج في ملف:
 
 ```bash
-showsignature src --show-only signatures > structure.txt
+showsignature map src --show-only signatures > structure.txt
 ```
 
 ## الاستخدام في pipeline
@@ -222,10 +222,10 @@ showsignature src --show-only signatures > structure.txt
 يكتب `showsignature` إلى stdout افتراضيًا، لذلك يعمل جيدًا مع أدوات مثل `rg` و `grep` و `fzf` و `less` و `head` و `tee` وإعادات توجيه shell.
 
 ```sh
-showsignature src --show-only imports | rg "node"                         # العثور على imports مطابقة
-showsignature src --show-only signatures | rg "async"                     # العثور على وظائف أو طرق async
-showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # البحث في comments/signatures مع سياق قريب
-showsignature src --show-only signatures,imports | bat -l js              # تصفح إخراج كبير على صفحات
+showsignature map src --show-only imports | rg "node"                         # العثور على imports مطابقة
+showsignature map src --show-only signatures | rg "async"                     # العثور على وظائف أو طرق async
+showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # البحث في comments/signatures مع سياق قريب
+showsignature map src --show-only signatures,imports | bat -l js              # تصفح إخراج كبير على صفحات
 ```
 
 ## التطوير

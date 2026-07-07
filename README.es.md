@@ -127,7 +127,8 @@ Los archivos grandes generan ruido. `showsignature` te da la forma de un proyect
 ## Uso
 
 ```sh
-showsignature [OPTION]... [FILE]...
+showsignature map  [OPTION]... [FILE]...
+showsignature read [OPTION] <FILE>
 ```
 
 Inspecciona operandos [FILE] —archivos o rutas de directorios— usando el directorio actual de forma predeterminada.
@@ -179,34 +180,33 @@ Archivos Markdown y JSON:
 
 ## Ejemplos básicos de uso
 
-`showsignature [OPTION]... [FILE]...`
+`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
 
 ```sh
-showsignature                                               # predeterminado: --show-only signatures ./
-showsignature ./src                                         # Inspeccionar una carpeta
-showsignature src/01-main.ts                                # Inspeccionar un archivo
+showsignature map ./src                                         # Inspeccionar una carpeta
+showsignature map src/01-main.ts                                # Inspeccionar un archivo
 
-showsignature src/main.ts README.md tests/fixtures          # [FILE] puede ser uno o más archivos/directorios
-showsignature --show-only imports,exports                   # Mostrar solo exports
-showsignature --show-only signatures,imports,exports ./src  # Mostrar estructura de código e imports
-showsignature --show-only interfaces,types ./folder         # Mostrar formas de datos
-showsignature --show-only variables,comments src/main.ts    # Mostrar variables
+showsignature map src/main.ts README.md tests/fixtures          # [FILE] puede ser uno o más archivos/directorios
+showsignature map --show-only imports,exports                   # Mostrar solo exports
+showsignature map --show-only signatures,imports,exports ./src  # Mostrar estructura de código e imports
+showsignature map --show-only interfaces,types ./folder         # Mostrar formas de datos
+showsignature map --show-only variables,comments src/main.ts    # Mostrar variables
 
-showsignature --show-only md:headings                       # Extraer encabezados de Markdown
-showsignature --show-only md:tables,md:codeblocks           # Extraer tablas de Markdown
-showsignature --show-only json:shape config.json            # Extraer forma JSON
+showsignature map --show-only md:headings                       # Extraer encabezados de Markdown
+showsignature map --show-only md:tables,md:codeblocks           # Extraer tablas de Markdown
+showsignature map --show-only json:shape config.json            # Extraer forma JSON
 
 # útil al hacer migraciones de un lenguaje a otro
-showsignature --lang-only py                                # Procesar solo archivos Python
-showsignature --lang-only go --show-only imports,exports    # Mostrar imports de Go y declaraciones exportadas
-showsignature --lang-only py --show-only types,comments     # Mostrar imports de Python y exports públicos
-showsignature --max-depth 4                                 # Limitar la profundidad del escaneo recursivo
+showsignature map --lang-only py                                # Procesar solo archivos Python
+showsignature map --lang-only go --show-only imports,exports    # Mostrar imports de Go y declaraciones exportadas
+showsignature map --lang-only py --show-only types,comments     # Mostrar imports de Python y exports públicos
+showsignature map --max-depth 4                                 # Limitar la profundidad del escaneo recursivo
 ```
 
 Combina modos con comas:
 
 ```bash
-showsignature src --show-only signatures,imports,comments
+showsignature map src --show-only signatures,imports,comments
 ```
 
 ## Salida
@@ -214,7 +214,7 @@ showsignature src --show-only signatures,imports,comments
 `showsignature` imprime una salida de texto compacta. Usa redirección de shell para guardar la salida en un archivo:
 
 ```bash
-showsignature src --show-only signatures > structure.txt
+showsignature map src --show-only signatures > structure.txt
 ```
 
 ## Uso en pipelines
@@ -222,10 +222,10 @@ showsignature src --show-only signatures > structure.txt
 `showsignature` escribe en stdout de forma predeterminada, así que funciona bien con herramientas como `rg`, `grep`, `fzf`, `less`, `head`, `tee` y redirecciones de shell.
 
 ```sh
-showsignature src --show-only imports | rg "node"                         # Encontrar imports coincidentes
-showsignature src --show-only signatures | rg "async"                     # Encontrar funciones o métodos async
-showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # Buscar comentarios/firmas con contexto cercano
-showsignature src --show-only signatures,imports | bat -l js              # Paginar salidas grandes
+showsignature map src --show-only imports | rg "node"                         # Encontrar imports coincidentes
+showsignature map src --show-only signatures | rg "async"                     # Encontrar funciones o métodos async
+showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # Buscar comentarios/firmas con contexto cercano
+showsignature map src --show-only signatures,imports | bat -l js              # Paginar salidas grandes
 ```
 
 ## Desarrollo

@@ -127,7 +127,8 @@ pnpm link --global
 ## 用法
 
 ```sh
-showsignature [OPTION]... [FILE]...
+showsignature map  [OPTION]... [FILE]...
+showsignature read [OPTION] <FILE>
 ```
 
 检查 [FILE] 操作数——文件或目录路径——默认使用当前目录。
@@ -179,34 +180,33 @@ Markdown 和 JSON 文件：
 
 ## 基本用法示例
 
-`showsignature [OPTION]... [FILE]...`
+`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
 
 ```sh
-showsignature                                               # 默认：--show-only signatures ./
-showsignature ./src                                         # 检查文件夹
-showsignature src/01-main.ts                                # 检查单个文件
+showsignature map ./src                                         # 检查文件夹
+showsignature map src/01-main.ts                                # 检查单个文件
 
-showsignature src/main.ts README.md tests/fixtures          # [FILE] 可以是一个或多个文件/目录
-showsignature --show-only imports,exports                   # 仅显示 exports
-showsignature --show-only signatures,imports,exports ./src  # 显示代码结构和 imports
-showsignature --show-only interfaces,types ./folder         # 显示数据形状
-showsignature --show-only variables,comments src/main.ts    # 显示变量
+showsignature map src/main.ts README.md tests/fixtures          # [FILE] 可以是一个或多个文件/目录
+showsignature map --show-only imports,exports                   # 仅显示 exports
+showsignature map --show-only signatures,imports,exports ./src  # 显示代码结构和 imports
+showsignature map --show-only interfaces,types ./folder         # 显示数据形状
+showsignature map --show-only variables,comments src/main.ts    # 显示变量
 
-showsignature --show-only md:headings                       # 提取 Markdown 标题
-showsignature --show-only md:tables,md:codeblocks           # 提取 Markdown 表格
-showsignature --show-only json:shape config.json            # 提取 JSON 形状
+showsignature map --show-only md:headings                       # 提取 Markdown 标题
+showsignature map --show-only md:tables,md:codeblocks           # 提取 Markdown 表格
+showsignature map --show-only json:shape config.json            # 提取 JSON 形状
 
 # 在从一种语言迁移到另一种语言时很有用
-showsignature --lang-only py                                # 仅处理 Python 文件
-showsignature --lang-only go --show-only imports,exports    # 显示 Go imports 和导出声明
-showsignature --lang-only py --show-only types,comments     # 显示 Python imports 和 public exports
-showsignature --max-depth 4                                 # 限制递归扫描深度
+showsignature map --lang-only py                                # 仅处理 Python 文件
+showsignature map --lang-only go --show-only imports,exports    # 显示 Go imports 和导出声明
+showsignature map --lang-only py --show-only types,comments     # 显示 Python imports 和 public exports
+showsignature map --max-depth 4                                 # 限制递归扫描深度
 ```
 
 用逗号组合模式：
 
 ```bash
-showsignature src --show-only signatures,imports,comments
+showsignature map src --show-only signatures,imports,comments
 ```
 
 ## 输出
@@ -214,7 +214,7 @@ showsignature src --show-only signatures,imports,comments
 `showsignature` 打印紧凑的文本输出。使用 shell 重定向将输出保存到文件：
 
 ```bash
-showsignature src --show-only signatures > structure.txt
+showsignature map src --show-only signatures > structure.txt
 ```
 
 ## Pipeline 用法
@@ -222,10 +222,10 @@ showsignature src --show-only signatures > structure.txt
 `showsignature` 默认写入 stdout，因此可以很好地配合 `rg`、`grep`、`fzf`、`less`、`head`、`tee` 和 shell 重定向使用。
 
 ```sh
-showsignature src --show-only imports | rg "node"                         # 查找匹配的 imports
-showsignature src --show-only signatures | rg "async"                     # 查找 async 函数或方法
-showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # 搜索注释/签名并显示附近上下文
-showsignature src --show-only signatures,imports | bat -l js              # 分页查看大量输出
+showsignature map src --show-only imports | rg "node"                         # 查找匹配的 imports
+showsignature map src --show-only signatures | rg "async"                     # 查找 async 函数或方法
+showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # 搜索注释/签名并显示附近上下文
+showsignature map src --show-only signatures,imports | bat -l js              # 分页查看大量输出
 ```
 
 ## 开发

@@ -127,7 +127,8 @@ pnpm link --global
 ## 使い方
 
 ```sh
-showsignature [OPTION]... [FILE]...
+showsignature map  [OPTION]... [FILE]...
+showsignature read [OPTION] <FILE>
 ```
 
 [FILE] オペランド（ファイルまたはディレクトリパス）を検査します。既定では現在のディレクトリを使用します。
@@ -179,34 +180,33 @@ Markdown と JSON ファイル:
 
 ## 基本的な使用例
 
-`showsignature [OPTION]... [FILE]...`
+`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
 
 ```sh
-showsignature                                               # 既定: --show-only signatures ./
-showsignature ./src                                         # フォルダを検査
-showsignature src/01-main.ts                                # 1 つのファイルを検査
+showsignature map ./src                                         # フォルダを検査
+showsignature map src/01-main.ts                                # 1 つのファイルを検査
 
-showsignature src/main.ts README.md tests/fixtures          # [FILE] は 1 つ以上のファイル/ディレクトリにできます
-showsignature --show-only imports,exports                   # exports のみ表示
-showsignature --show-only signatures,imports,exports ./src  # コード構造と imports を表示
-showsignature --show-only interfaces,types ./folder         # データ shape を表示
-showsignature --show-only variables,comments src/main.ts    # variables を表示
+showsignature map src/main.ts README.md tests/fixtures          # [FILE] は 1 つ以上のファイル/ディレクトリにできます
+showsignature map --show-only imports,exports                   # exports のみ表示
+showsignature map --show-only signatures,imports,exports ./src  # コード構造と imports を表示
+showsignature map --show-only interfaces,types ./folder         # データ shape を表示
+showsignature map --show-only variables,comments src/main.ts    # variables を表示
 
-showsignature --show-only md:headings                       # Markdown headings を抽出
-showsignature --show-only md:tables,md:codeblocks           # Markdown tables を抽出
-showsignature --show-only json:shape config.json            # JSON shape を抽出
+showsignature map --show-only md:headings                       # Markdown headings を抽出
+showsignature map --show-only md:tables,md:codeblocks           # Markdown tables を抽出
+showsignature map --show-only json:shape config.json            # JSON shape を抽出
 
 # ある言語から別の言語へ移行するときに便利
-showsignature --lang-only py                                # Python ファイルのみ処理
-showsignature --lang-only go --show-only imports,exports    # Go imports と exported declarations を表示
-showsignature --lang-only py --show-only types,comments     # Python imports と public exports を表示
-showsignature --max-depth 4                                 # 再帰スキャンの深さを制限
+showsignature map --lang-only py                                # Python ファイルのみ処理
+showsignature map --lang-only go --show-only imports,exports    # Go imports と exported declarations を表示
+showsignature map --lang-only py --show-only types,comments     # Python imports と public exports を表示
+showsignature map --max-depth 4                                 # 再帰スキャンの深さを制限
 ```
 
 モードはカンマで組み合わせます:
 
 ```bash
-showsignature src --show-only signatures,imports,comments
+showsignature map src --show-only signatures,imports,comments
 ```
 
 ## 出力
@@ -214,7 +214,7 @@ showsignature src --show-only signatures,imports,comments
 `showsignature` はコンパクトなテキスト出力を表示します。shell リダイレクトを使って出力をファイルに保存できます:
 
 ```bash
-showsignature src --show-only signatures > structure.txt
+showsignature map src --show-only signatures > structure.txt
 ```
 
 ## Pipeline での使用
@@ -222,10 +222,10 @@ showsignature src --show-only signatures > structure.txt
 `showsignature` は既定で stdout に書き込むため、`rg`、`grep`、`fzf`、`less`、`head`、`tee`、shell リダイレクトなどのツールとうまく連携します。
 
 ```sh
-showsignature src --show-only imports | rg "node"                         # 一致する imports を探す
-showsignature src --show-only signatures | rg "async"                     # async 関数またはメソッドを探す
-showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # 近くのコンテキスト付きで comments/signatures を検索
-showsignature src --show-only signatures,imports | bat -l js              # 大きな出力をページ表示
+showsignature map src --show-only imports | rg "node"                         # 一致する imports を探す
+showsignature map src --show-only signatures | rg "async"                     # async 関数またはメソッドを探す
+showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # 近くのコンテキスト付きで comments/signatures を検索
+showsignature map src --show-only signatures,imports | bat -l js              # 大きな出力をページ表示
 ```
 
 ## 開発

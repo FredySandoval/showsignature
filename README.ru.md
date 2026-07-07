@@ -127,7 +127,8 @@ pnpm link --global
 ## Использование
 
 ```sh
-showsignature [OPTION]... [FILE]...
+showsignature map  [OPTION]... [FILE]...
+showsignature read [OPTION] <FILE>
 ```
 
 Проверяет операнды [FILE] — файлы или пути к каталогам — по умолчанию используя текущий каталог.
@@ -179,34 +180,33 @@ showsignature [OPTION]... [FILE]...
 
 ## Базовые примеры использования
 
-`showsignature [OPTION]... [FILE]...`
+`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
 
 ```sh
-showsignature                                               # по умолчанию: --show-only signatures ./
-showsignature ./src                                         # Проверить папку
-showsignature src/01-main.ts                                # Проверить один файл
+showsignature map ./src                                         # Проверить папку
+showsignature map src/01-main.ts                                # Проверить один файл
 
-showsignature src/main.ts README.md tests/fixtures          # [FILE] может быть одним или несколькими файлами/каталогами
-showsignature --show-only imports,exports                   # Показать только exports
-showsignature --show-only signatures,imports,exports ./src  # Показать структуру кода и imports
-showsignature --show-only interfaces,types ./folder         # Показать формы данных
-showsignature --show-only variables,comments src/main.ts    # Показать variables
+showsignature map src/main.ts README.md tests/fixtures          # [FILE] может быть одним или несколькими файлами/каталогами
+showsignature map --show-only imports,exports                   # Показать только exports
+showsignature map --show-only signatures,imports,exports ./src  # Показать структуру кода и imports
+showsignature map --show-only interfaces,types ./folder         # Показать формы данных
+showsignature map --show-only variables,comments src/main.ts    # Показать variables
 
-showsignature --show-only md:headings                       # Извлечь Markdown headings
-showsignature --show-only md:tables,md:codeblocks           # Извлечь Markdown tables
-showsignature --show-only json:shape config.json            # Извлечь JSON shape
+showsignature map --show-only md:headings                       # Извлечь Markdown headings
+showsignature map --show-only md:tables,md:codeblocks           # Извлечь Markdown tables
+showsignature map --show-only json:shape config.json            # Извлечь JSON shape
 
 # полезно при миграциях с одного языка на другой
-showsignature --lang-only py                                # Обрабатывать только файлы Python
-showsignature --lang-only go --show-only imports,exports    # Показать Go imports и exported declarations
-showsignature --lang-only py --show-only types,comments     # Показать Python imports и public exports
-showsignature --max-depth 4                                 # Ограничить глубину рекурсивного сканирования
+showsignature map --lang-only py                                # Обрабатывать только файлы Python
+showsignature map --lang-only go --show-only imports,exports    # Показать Go imports и exported declarations
+showsignature map --lang-only py --show-only types,comments     # Показать Python imports и public exports
+showsignature map --max-depth 4                                 # Ограничить глубину рекурсивного сканирования
 ```
 
 Комбинируйте режимы через запятые:
 
 ```bash
-showsignature src --show-only signatures,imports,comments
+showsignature map src --show-only signatures,imports,comments
 ```
 
 ## Вывод
@@ -214,7 +214,7 @@ showsignature src --show-only signatures,imports,comments
 `showsignature` печатает компактный текстовый вывод. Используйте перенаправление shell, чтобы сохранить вывод в файл:
 
 ```bash
-showsignature src --show-only signatures > structure.txt
+showsignature map src --show-only signatures > structure.txt
 ```
 
 ## Использование в pipeline
@@ -222,10 +222,10 @@ showsignature src --show-only signatures > structure.txt
 `showsignature` по умолчанию пишет в stdout, поэтому хорошо работает с такими инструментами, как `rg`, `grep`, `fzf`, `less`, `head`, `tee`, и перенаправлениями shell.
 
 ```sh
-showsignature src --show-only imports | rg "node"                         # Найти совпадающие imports
-showsignature src --show-only signatures | rg "async"                     # Найти async функции или методы
-showsignature src --show-only comments,signatures | rg -C 2 "ExtractKind" # Искать comments/signatures с ближайшим контекстом
-showsignature src --show-only signatures,imports | bat -l js              # Просматривать большой вывод постранично
+showsignature map src --show-only imports | rg "node"                         # Найти совпадающие imports
+showsignature map src --show-only signatures | rg "async"                     # Найти async функции или методы
+showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # Искать comments/signatures с ближайшим контекстом
+showsignature map src --show-only signatures,imports | bat -l js              # Просматривать большой вывод постранично
 ```
 
 ## Разработка
