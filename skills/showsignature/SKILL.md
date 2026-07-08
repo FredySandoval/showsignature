@@ -20,35 +20,38 @@ allowed-tools: Bash(showsignature:*)
 
 # Showsignature
 
-Two commands:
+Two commands (run `showsignature <command> --help` for the full option reference):
 
-- `showsignature map [OPTION]... [PATH]...` — structural overview of files or directories: signatures, imports, exports, types, interfaces, variables, comments, Markdown headings/tables/code blocks (`md:*`), JSON shapes (`json:shape`).
-- `showsignature read [OPTION]... <FILE>` — literal windowed read of exactly one file, with an optional structural outline (real line numbers) around the window.
+- `showsignature map [OPTION]... [PATH]...` — structural overview of files or directories. Paginates in **ENTRIES**: `--skip <n>` / `--take <n>`.
+- `showsignature read [OPTION]... <FILE>` — literal windowed read of exactly one file, with a structural outline (real line numbers) around the window. Windows in **LINES**: `--offset <line>` / `--limit <n>`.
 
-Run `showsignature <command> --help` for the full option reference; the summaries below cover the decision rules and the flags you will actually reach for.
+Supported files: `.ts/.mts/.cts`, `.js/.mjs/.cjs`, `.tsx/.jsx`, `.svelte`, `.go`, `.py`, `.rs`, `.lua`, `.md`, `.json`. For anything else, use Read/Grep directly — don't spend a call finding out.
 
 ## When to use
 
-Run `showsignature map` BEFORE opening any file with Read, cat, head, or grep. The map tells you what the file or folder is responsible for at a fraction of the token cost, and the entries carry real line numbers so the follow-up is always precise.
+Run `showsignature map` BEFORE opening any supported file with Read, cat, head, or grep. The map tells you what the file or folder is responsible for at a fraction of the token cost, and every entry carries its real source line number, so the follow-up is always precise.
 
 - First look at any unfamiliar file or folder → `map` it.
-- Need the actual lines → `read` with `--offset`/`--limit`, jumping to a line number the map gave you.
+- Need the actual lines → `read --offset <line> --limit <n>`, jumping to a line number the map gave you.
 - Reviewing an API or data shape → `map --only interfaces,types` (or `json:shape` for JSON).
 - Migrating between languages → `map --lang <lang>` to inspect one language at a time.
 - Preparing compact context for another tool or agent → pipe `map` output.
 
-Fall back to Read/Grep only when: showsignature reports the file type is unsupported, you are searching for a string pattern rather than structure, or you already know the exact lines you need and have no need for orientation.
+Fall back to Read/Grep only when: the file type is unsupported (list above), you are searching for a string pattern rather than structure, or you already know the exact lines you need and have no need for orientation.
 
 ## Workflow
 
 1. `map` the folder or file to see what exists.
-2. Act on the trailing `note:` if one appears — it means output was capped or depth-limited, and it names the exact flags or follow-up call to continue. Never ignore it.
+2. Act on the trailing `note:` if one appears — it means output was capped, depth-limited, or filtered, and it names the exact flags or follow-up call to continue. Never ignore it.
 3. `read` the specific region: `showsignature read --offset <line> --limit <n> <file>`.
 
-Two properties to rely on:
+Defaults to know (so you don't pass redundant flags or get surprised):
 
-- In `read`, everything between the `<content>` tags is raw bytes with no line-number prefixes — safe to copy into exact-match edit tools. The outline above and below the window lists elided signatures with their real line numbers, so you can jump anywhere next. Pass `--framing none` for a plain read (content only: no tags, no outline).
-- Remember the split: `map` works in **ENTRIES** (`--skip`/`--take`); `read` works in **LINES** (`--offset`/`--limit`).
+- `map` extractors default to `signatures,imports` for code, `md:*` for Markdown, `json:shape` for JSON. Pass `--only` to see exports, types, interfaces, variables, or comments.
+- Folder scans default to `--max-depth 2` and **exclude test files**; use `--include-tests` when hunting for tests.
+- The `read` outline defaults to the `signatures` extractor; pick others with `--outline`.
+- In `read`, everything between the `<content>` tags is raw bytes with no line-number prefixes — safe to copy into exact-match edit tools. Pass `--framing none` for a plain read (content only: no tags, no outline).
+- Secrets are redacted by default (disclosed in the `note:`); `--no-redact` returns literal bytes.
 
 ## Canonical examples
 
@@ -62,8 +65,8 @@ showsignature map src/01-main.ts
 # Several targets at once (files and/or directories)
 showsignature map src/main.ts README.md tests/fixtures/
 
-# Directory scans default to --max-depth 2; go deeper explicitly
-showsignature map --max-depth 4 ./
+# Go deeper than the default depth of 2, and include test files
+showsignature map --max-depth 4 --include-tests ./
 
 # Narrow to specific extractors
 showsignature map --only imports,exports ./src
@@ -74,20 +77,16 @@ showsignature map --only json:shape config.json
 # One language at a time (useful for migrations)
 showsignature map --lang go --only imports,exports ./src
 
-# Page through a large listing, or lift every cap
+# Page through a large ENTRY listing, or lift every cap
 showsignature map --skip 40 --take 40 ./src
 showsignature map --all ./src
 
-# Read literal content, windowed (--offset is the first line, 1-indexed)
-showsignature read src/01-main.ts
+# Read literal LINES, windowed (--offset is the first line, 1-indexed)
 showsignature read --offset 200 --limit 100 src/01-main.ts
 
 # Choose the outline extractors, or drop the framing entirely
 showsignature read --outline imports,signatures src/01-main.ts
 showsignature read --framing none src/01-main.ts
-
-# Secrets are redacted by default and the note discloses it; get literal bytes with
-showsignature read --no-redact src/config.ts
 
 # stdin works too; the outline appears only when --lang names the language
 cat snippet.py | showsignature read - --lang py
