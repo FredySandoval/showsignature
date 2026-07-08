@@ -168,6 +168,41 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("--framing none emits the content only: no tags, no outline", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", WINDOW_FIXTURE);
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode",
+      "read",
+      "--offset",
+      "2",
+      "--limit",
+      "3",
+      "--framing",
+      "none",
+      "src/app.ts",
+    ]);
+
+    expect(stdoutBuffer).toBe(
+      "function second(): void {\n  return;\n}\nnote: showing lines 2-4 of 5; continue with: showsignature read --offset 5 src/app.ts\n",
+    );
+    expect(stdoutBuffer).not.toContain("<content");
+    expect(stdoutBuffer).not.toContain("<skeleton");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("rejects an unknown --framing mode", async () => {
+    installOutputCapture();
+
+    await expect(
+      buildCli().run(["showcode", "read", "--framing", "bogus", "a.ts"]),
+    ).rejects.toThrow("Option --framing must be one of: tags, none (got 'bogus')");
+  });
+
   test("applies the default cap with an after-skeleton and continuation note", async () => {
     installOutputCapture();
 
@@ -229,7 +264,7 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("reads stdin without --lang-only: frame and note, no skeletons", async () => {
+  test("reads stdin without --lang: frame and note, no skeletons", async () => {
     installOutputCapture();
     installStdin("line one\nline two\nline three\n");
 
@@ -245,7 +280,7 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("reads stdin with --lang-only: skeletons frame the window", async () => {
+  test("reads stdin with --lang: skeletons frame the window", async () => {
     installOutputCapture();
     installStdin("def a():\n    pass\ndef b():\n    pass\ndef c():\n    pass\n");
 
@@ -253,7 +288,7 @@ describe("read command", () => {
       "showcode",
       "read",
       "-",
-      "--lang-only",
+      "--lang",
       "py",
       "--offset",
       "3",
@@ -336,7 +371,7 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("skeleton honors --show-only for markdown windows", async () => {
+  test("skeleton honors --outline for markdown windows", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -358,7 +393,7 @@ describe("read command", () => {
     await buildCli().run([
       "showcode",
       "read",
-      "--show-only",
+      "--outline",
       "md:headings",
       "--offset",
       "3",

@@ -77,7 +77,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         secretFile,
-        "--show-only",
+        "--only",
         "comments,variables",
       ]);
     } finally {
@@ -159,7 +159,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         "linked-secret.ts",
-        "--show-only",
+        "--only",
         "comments,variables",
       ]);
     } finally {
@@ -202,7 +202,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         victimDir,
-        "--show-only",
+        "--only",
         "comments,variables",
       ]);
     } finally {
@@ -249,7 +249,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         path.join("..", path.basename(victimParentDir), "nested"),
-        "--show-only",
+        "--only",
         "variables",
       ]);
     } finally {
@@ -298,7 +298,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         "src/app.ts",
-        "--show-only",
+        "--only",
         "variables",
         "--output",
         victimFile,
@@ -332,7 +332,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         "src/app.ts",
-        "--show-only",
+        "--only",
         "variables",
         "--output",
         "report.txt",
@@ -384,7 +384,7 @@ describe("vulnerability discovery", () => {
       "bash",
       [
         "-lc",
-        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} map src/app.ts --show-only variables --output report.txt`,
+        `mkfifo ${JSON.stringify(fifoPath)} && timeout 1s node ${JSON.stringify(cliPath)} map src/app.ts --only variables --output report.txt`,
       ],
       { cwd: projectDir },
     ).catch(
@@ -441,7 +441,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         sourceFile,
-        "--show-only",
+        "--only",
         "comments,signatures",
       ]);
     } finally {
@@ -512,7 +512,7 @@ describe("vulnerability discovery", () => {
         "showsignature",
         "map",
         filePath,
-        "--show-only",
+        "--only",
         "variables",
       ]);
     } finally {

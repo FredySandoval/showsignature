@@ -117,7 +117,7 @@ describe("README acceptance", () => {
     await buildCli().run([
       "showcode", "map",
       "src",
-      "--show-only=imports,comments,interfaces,types,variables,signatures",
+      "--only=imports,comments,interfaces,types,variables,signatures",
     ]);
 
     expect(stdoutBuffer).toBe(

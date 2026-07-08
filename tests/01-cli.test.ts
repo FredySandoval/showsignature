@@ -103,7 +103,7 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain(
       "showsignature — extract the useful structure from source files",
     );
-    expect(stdoutBuffer).toContain("showsignature map  [OPTION]... [FILE]...");
+    expect(stdoutBuffer).toContain("showsignature map  [OPTION]... [PATH]...");
     expect(stdoutBuffer).toContain("Getting started:");
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(1);
@@ -206,7 +206,7 @@ describe("buildCli", () => {
 
     await buildCli().run([
       "showcode", "map",
-      "--show-only=signatures",
+      "--only=signatures",
       "--no-line-number",
       "src/app.ts",
     ]);
@@ -226,7 +226,7 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await expect(
-      buildCli().run(["showcode", "map", "src/app.ts", "--lang-only", "rb"]),
+      buildCli().run(["showcode", "map", "src/app.ts", "--lang", "rb"]),
     ).rejects.toThrow("rb not supported");
   });
 
@@ -235,17 +235,17 @@ describe("buildCli", () => {
 
     await buildCli().run(["showsignature", "map", "--help"]);
 
-    expect(stdoutBuffer).toContain("showsignature map [OPTION]... [FILE]...");
+    expect(stdoutBuffer).toContain("showsignature map [OPTION]... [PATH]...");
     expect(stdoutBuffer).not.toContain("--file");
     expect(stdoutBuffer).not.toContain("--folder");
     expect(stdoutBuffer).not.toContain("--stdin");
   });
 
-  test("reads source from stdin when - and --lang-only are provided", async () => {
+  test("reads source from stdin when - and --lang are provided", async () => {
     installOutputCapture();
     installStdin("function greet(name: string): string {\n  return name;\n}\n");
 
-    await buildCli().run(["showcode", "map", "-", "--lang-only", "ts"]);
+    await buildCli().run(["showcode", "map", "-", "--lang", "ts"]);
 
     expect(stdoutBuffer).toBe(
       ["// <stdin>.ts", "1 function greet(name: string): string;", ""].join(
@@ -261,16 +261,16 @@ describe("buildCli", () => {
     installStdin("function greet(): void {}\n");
 
     await expect(
-      buildCli().run(["showcode", "map", "--stdin", "--lang-only", "ts"]),
+      buildCli().run(["showcode", "map", "--stdin", "--lang", "ts"]),
     ).rejects.toThrow("unknown option '--stdin'");
   });
 
-  test("throws when - is used without --lang-only", async () => {
+  test("throws when - is used without --lang", async () => {
     installOutputCapture();
     installStdin("function greet(): void {}\n");
 
     await expect(buildCli().run(["showcode", "map", "-"])).rejects.toThrow(
-      "Stdin operand '-' requires --lang-only",
+      "Stdin operand '-' requires --lang",
     );
   });
 
@@ -279,7 +279,7 @@ describe("buildCli", () => {
     installStdin("function greet(): void {}\n");
 
     await expect(
-      buildCli().run(["showcode", "map", "-", "--lang-only", "ts", "src/app.ts"]),
+      buildCli().run(["showcode", "map", "-", "--lang", "ts", "src/app.ts"]),
     ).rejects.toThrow("Stdin operand '-' cannot be mixed with file operands");
   });
 
@@ -288,7 +288,7 @@ describe("buildCli", () => {
     installStdin("function greet(): void {}\n");
 
     await expect(
-      buildCli().run(["showcode", "map", "-", "-", "--lang-only", "ts"]),
+      buildCli().run(["showcode", "map", "-", "-", "--lang", "ts"]),
     ).rejects.toThrow("Stdin operand '-' may only be provided once");
   });
 
@@ -296,7 +296,7 @@ describe("buildCli", () => {
     installOutputCapture();
     installStdin("# Hello\n\n## World\n");
 
-    await buildCli().run(["showcode", "map", "--show-only", "md:headings"]);
+    await buildCli().run(["showcode", "map", "--only", "md:headings"]);
 
     expect(stdoutBuffer).toBe(
       ["// <stdin>.md", "1 # Hello", "3 ## World", ""].join("\n"),
@@ -313,7 +313,7 @@ describe("buildCli", () => {
     await writeFixtureFile(rootDir, "README.md", "# Title\n\n## Install\n");
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "map", "--show-only", "md:headings"]);
+    await buildCli().run(["showcode", "map", "--only", "md:headings"]);
 
     expect(stdoutBuffer).toBe(
       ["// README.md", "1 # Title", "3 ## Install", ""].join("\n"),
@@ -327,9 +327,9 @@ describe("buildCli", () => {
     installStdin("function greet(): void {}\n");
 
     await expect(
-      buildCli().run(["showcode", "map", "--show-only", "signatures"]),
+      buildCli().run(["showcode", "map", "--only", "signatures"]),
     ).rejects.toThrow(
-      "Could not infer stdin language. Please use --lang-only. Example: --lang-only .ts",
+      "Could not infer stdin language. Please use --lang. Example: --lang ts",
     );
   });
 
@@ -362,7 +362,7 @@ describe("buildCli", () => {
     await buildCli().run([
       "showcode", "map",
       "src/component.tsx",
-      "--show-only",
+      "--only",
       "exports,variables",
     ]);
 
@@ -393,7 +393,7 @@ describe("buildCli", () => {
     await buildCli().run([
       "showcode", "map",
       "src/Component.svelte",
-      "--show-only",
+      "--only",
       "interfaces,variables",
     ]);
 
@@ -475,7 +475,7 @@ describe("buildCli", () => {
 
     await buildCli().run([
       "showcode", "map",
-      "--show-only=signatures",
+      "--only=signatures",
       "--include-tests",
       "tests/fixtures",
     ]);
@@ -662,7 +662,7 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("windows map entries with --offset and --limit", async () => {
+  test("windows map entries with --skip and --take", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -680,9 +680,9 @@ describe("buildCli", () => {
 
     await buildCli().run([
       "showcode", "map",
-      "--offset",
+      "--skip",
       "1",
-      "--limit",
+      "--take",
       "2",
       "src/app.ts",
     ]);
@@ -692,38 +692,38 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain("3 function third(): void;");
     expect(stdoutBuffer).not.toContain("function fourth(): void;");
     expect(stdoutBuffer).toContain(
-      "note: showing entries 2-3 of 4; continue with --offset 3",
+      "note: showing entries 2-3 of 4; continue with --skip 3",
     );
     expect(stderrBuffer).toContain("note: showing entries 2-3 of 4");
     expect(process.exitCode).toBe(0);
   });
 
-  test("notes when --offset skips every extracted entry", async () => {
+  test("notes when --skip skips every extracted entry", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
     await writeFixtureFile(rootDir, "src/app.ts", "function one(): void {}\n");
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "map", "--offset", "9", "src/app.ts"]);
+    await buildCli().run(["showcode", "map", "--skip", "9", "src/app.ts"]);
 
     expect(stdoutBuffer).toContain(
-      "note: --offset 9 skips all 1 extracted entries",
+      "note: --skip 9 skips all 1 extracted entries",
     );
     expect(stdoutBuffer).not.toContain("function one(): void;");
     expect(process.exitCode).toBe(0);
   });
 
-  test("rejects invalid --offset and --limit values", async () => {
+  test("rejects invalid --skip and --take values", async () => {
     installOutputCapture();
 
     await expect(
-      buildCli().run(["showcode", "map", "--offset", "-1", "."]),
-    ).rejects.toThrow("Option --offset must be a non-negative integer");
+      buildCli().run(["showcode", "map", "--skip", "-1", "."]),
+    ).rejects.toThrow("Option --skip must be a non-negative integer");
 
     await expect(
-      buildCli().run(["showcode", "map", "--limit", "0", "."]),
-    ).rejects.toThrow("Option --limit must be a positive integer");
+      buildCli().run(["showcode", "map", "--take", "0", "."]),
+    ).rejects.toThrow("Option --take must be a positive integer");
   });
 
   test("throws for removed --ignore-folder option", async () => {
@@ -758,7 +758,7 @@ describe("buildCli", () => {
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "map", "--lang-only", "ts"]);
+    await buildCli().run(["showcode", "map", "--lang", "ts"]);
 
     expect(stdoutBuffer).toBe(
       ["// src/app.ts", "1 export function greet(): void;", ""].join("\n"),
@@ -803,11 +803,11 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await expect(
-      buildCli().run(["showcode", "map", "README.md", "--show-only=md"]),
+      buildCli().run(["showcode", "map", "README.md", "--only=md"]),
     ).rejects.toThrow("Unsupported extract option: md.");
 
     await expect(
-      buildCli().run(["showcode", "map", "README.md", "--show-only=md:all"]),
+      buildCli().run(["showcode", "map", "README.md", "--only=md:all"]),
     ).rejects.toThrow("Unsupported extract option: md:all.");
   });
 
@@ -833,7 +833,7 @@ describe("buildCli", () => {
     );
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "map", "--show-only=md:headings"]);
+    await buildCli().run(["showcode", "map", "--only=md:headings"]);
 
     expect(stdoutBuffer).toContain("// README.md");
     expect(stdoutBuffer).toContain("// docs/guide.md");

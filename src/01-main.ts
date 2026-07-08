@@ -221,7 +221,7 @@ function listSupportedExtractKinds(registry: LanguageRegistry): ExtractKind[] {
   return [...kinds];
 }
 
-function buildShowOnlyOptionHelp(kinds: readonly string[]): string {
+function buildExtractorsOptionHelp(kinds: readonly string[]): string {
   const uniqueKinds = [...new Set(kinds)];
   const codeKinds = BUILT_IN_EXTRACT_KINDS.filter((kind) =>
     uniqueKinds.includes(kind),
@@ -261,7 +261,7 @@ function formatSupportedExtensionsHelp(extensions: readonly string[]): string {
   return [...extensions].sort().join(", ");
 }
 
-function buildLangOnlyOptionHelp(extensions: readonly string[]): string {
+function buildLangOptionHelp(extensions: readonly string[]): string {
   return [
     "only process files for the provided language",
     "(optional) inferred from file extension if not provided",
@@ -289,128 +289,156 @@ const DEFAULT_DIRECTORY_MAX_DEPTH = 2;
 
 // Static help texts. These are the product spec for the CLI surface (see
 // REPORT.md); update them by hand whenever a command or option changes.
-const HELP_EXTRACTORS = `Extractors (for --show-only):
-    signatures     Functions, classes, methods, constructors
+const HELP_EXTRACTORS_BODY = `    signatures     Functions, classes, methods, constructors
     imports        Import statements/declarations
     exports        JS/TS exports, exported Go decls, Python public exports
     interfaces     TypeScript/Go interfaces
     types          Type aliases/declarations
     variables      Variables/constants
     comments       Code comments
-    md:headings    Markdown Headings
-    md:tables      Markdown Tables
-    md:codeblocks  Markdown Fenced code blocks
+    md:headings    Markdown headings
+    md:tables      Markdown tables
+    md:codeblocks  Markdown fenced code blocks
     json:shape     JSON value shape`;
 
 const ROOT_HELP = `${CLI_NAME} — extract the useful structure from source files
 
 Usage:
-  ${CLI_NAME} map  [OPTION]... [FILE]...
+  ${CLI_NAME} map  [OPTION]... [PATH]...
   ${CLI_NAME} read [OPTION]... <FILE>
 
 Commands:
   map     Structural overview of files or directories: signatures, imports,
           exports, types, variables, comments, Markdown sections, JSON shapes.
-  read    Windowed literal read of exactly one file, framed by a signature
-          skeleton for orientation.
+  read    Literal windowed read of exactly one file, with an optional
+          structural outline around the window for orientation.
 
-${HELP_EXTRACTORS}
+Extractors (for map --only and read --outline):
+${HELP_EXTRACTORS_BODY}
 
-Global options:
+Global options (accepted by both commands):
+  --all            Lift all output caps (2000 lines / 50 KB).
+  --no-redact      Disable built-in secrets redaction.
+  --lang <l>       Restrict/declare language; required when reading stdin.
+                   Example: ts, js, tsx, jsx, svelte, go, py, rs, lua, md, json
   -h, --help       Show help. Use \`${CLI_NAME} <command> --help\` for
                    command-specific options and examples.
   -v, --version    Print version and exit.
 
+Remember the split:
+  map  works in ENTRIES:  --skip <n> / --take <n>
+  read works in LINES:    --offset <line> / --limit <n>
+
 Getting started:
-  ${CLI_NAME} map ./src                                      Overview of a folder
-  ${CLI_NAME} map --show-only imports ./src                  One extractor only
-  ${CLI_NAME} read --offset 200 --limit 200 ./src/main.ts    Read from line 200
+  ${CLI_NAME} map ./src                                Overview of a folder
+  ${CLI_NAME} map --only imports ./src                 One extractor only
+  ${CLI_NAME} read --offset 200 --limit 100 file.ext   Read lines 200–299
+  ${CLI_NAME} read --framing none file.ext             Plain read, no outline
+
 
 Output is capped at 2000 lines / 50 KB.
-When a cap kicks in, a trailing \`note:\` names the exact flags or follow-up call to continue.
+When a cap kicks in, a trailing \`note:\` names the exact flags or
+follow-up call to continue.
 `;
 
 const MAP_HELP = `${CLI_NAME} map — structural overview of files and directories
 
 Usage:
-  ${CLI_NAME} map [OPTION]... [FILE]...
+  ${CLI_NAME} map [OPTION]... [PATH]...
 
-  FILE may be one or more files or directories (default: current directory).
+  PATH may be one or more files or directories (default: current directory).
+
+Output is a list of extracted ENTRIES (one signature, import, heading,
+etc. per entry), each prefixed with its real source line number.
 
 Options:
-  --show-only <items>    Comma-separated extractors to run (default: all
+  --only <extractors>    Comma-separated extractors to run (default: all
                          applicable). See "Extractors" below.
-  --lang-only <lang>     Only process files of this language; required when
-                         reading stdin. Example: ts, js, tsx, jsx, svelte,
-                         go, py, rs, lua, md, json
+  --skip <n>             Skip the first N entries (default: 0).
+  --take <n>             Show at most N entries.
+  --max-depth <n>        Folder scan depth (default: ${DEFAULT_DIRECTORY_MAX_DEPTH}).
   --include-tests        Include test files in folder scans.
-  --max-depth <n>        Limit folder scan depth (default: ${DEFAULT_DIRECTORY_MAX_DEPTH}).
-  --offset <n>           Skip the first N extracted entries (default: 0).
-  --limit <n>            Maximum extracted entries displayed.
-  --all                  Disable every output cap (entry limit and the
-                         2000-line / 50 KB cap).
-  --no-redact            Disable built-in secrets redaction.
   --no-line-number       Hide source line-number prefixes.
   -h, --help             Show this help.
 
-${HELP_EXTRACTORS}
+Global options:
+  --all                  Lift all output caps (entry limit and the
+                         2000-line / 50 KB cap).
+  --no-redact            Disable built-in secrets redaction.
+  --lang <l>             Only process files of this language; required when
+                         reading stdin. Example: ts, go, py, rs, md, json
+
+Extractors (for --only):
+${HELP_EXTRACTORS_BODY}
 
 Examples:
   ${CLI_NAME} map ./src
   ${CLI_NAME} map src/main.py README.md tests/fixtures
-  ${CLI_NAME} map --show-only signatures,imports,exports ./src
-  ${CLI_NAME} map --show-only md:headings
-  ${CLI_NAME} map --show-only json:shape config.json
-  ${CLI_NAME} map --lang-only go --show-only imports,exports
-  ${CLI_NAME} map --offset 40 --limit 40 ./src
-  ${CLI_NAME} map src --show-only imports | rg "node"
+  ${CLI_NAME} map --only signatures,imports,exports ./src
+  ${CLI_NAME} map --only md:headings
+  ${CLI_NAME} map --only json:shape config.json
+  ${CLI_NAME} map --lang go --only imports,exports
+  ${CLI_NAME} map --skip 40 --take 40 ./src
 
-Note: --offset and --limit count extracted ENTRIES in \`map\`
-      (they count LINES in \`read\`).
+Note: map paginates ENTRIES (--skip/--take).
+      To read LINES from one file, use \`${CLI_NAME} read --offset/--limit\`.
 `;
 
-const READ_HELP = `${CLI_NAME} read — windowed literal read of one file, with a map skeleton before and after.
+const READ_HELP = `${CLI_NAME} read — windowed literal read of one file, with an optional outline
 
 Usage:
   ${CLI_NAME} read [OPTION]... <FILE>
 
   Reads exactly one file.
-  Content between <content> tags is raw bytes with no
-  line-number prefixes, safe to copy into exact-match edit tools.
+  The content window is wrapped in <content> tags by default and has no
+  line-number prefixes, making it safe to copy into exact-match edit
+  tools. A structural outline is shown around the window.
 
 Options:
-  --offset <n>           First line to show, 1-indexed (default: 1).
-  --limit <n>            Maximum lines shown in the window.
-  --all                  Disable the 2000-line / 50 KB window cap.
-  --show-only <items>    Extractors used for the skeleton
-                         (default: signatures).
-  --no-line-number       Hide line-number prefixes on skeleton lines
-                         (content never has them).
-  --no-redact            Disable secret redaction for literal bytes
-                         (redaction is disclosed otherwise).
-  -h, --help             Show this help.
+  --offset <line>         First line to show, 1-indexed (default: 1).
+  --limit <n>             Maximum lines shown in the window.
+  --outline <extractors>  Extractors used for the outline (default:
+                          signatures).
+  --framing <mode>        How the content window is wrapped (default:
+                          tags). One of: tags, none.
+  --no-line-number        Hide line-number prefixes on outline lines
+                          (content never has them).
+  -h, --help              Show this help.
 
-${HELP_EXTRACTORS}
+Global options:
+  --all                   Lift the 2000-line / 50 KB window cap.
+  --no-redact             Disable secret redaction for literal bytes
+                          (redaction is disclosed otherwise).
+  --lang <l>              Declare the file's language; required when
+                          reading stdin.
+
+Extractors (for --outline):
+${HELP_EXTRACTORS_BODY}
+
+Framing modes:
+    tags           Wrap content in <content>...</content> (default)
+    none           Emit the content only
 
 Examples:
   ${CLI_NAME} read src/01-main.ts
-  ${CLI_NAME} read --offset 200 --limit 100 src/main.py
-  ${CLI_NAME} read src/config.ts --limit 50
+  ${CLI_NAME} read --offset 200 --limit 100 src/main.ext
+  ${CLI_NAME} read --outline imports,signatures src/config.ext
+  ${CLI_NAME} read --outline types src/config.ext
+  ${CLI_NAME} read --outline interfaces --framing none src/data.ext
 
-Tip: skeleton lines carry real line numbers, so you can jump anywhere with
-     \`${CLI_NAME} read --offset <line> <file>\`.
+Tip: outline lines carry real line numbers, so you can jump anywhere
+     with \`${CLI_NAME} read --offset <line> <file>\`.
 
-Note: --offset and --limit count LINES in \`read\` (they count ENTRIES in \`map\`).
+Note: read windows LINES (--offset/--limit).
+      To page through structural ENTRIES, use \`${CLI_NAME} map --skip/--take\`.
 `;
 
 function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
   const registry = buildDefaultRegistry();
-  const showOnlyOptionHelp = buildShowOnlyOptionHelp(
+  const extractorsOptionHelp = buildExtractorsOptionHelp(
     listSupportedExtractKinds(registry),
   );
-  const langOnlyOptionHelp = buildLangOnlyOptionHelp(
-    registry.supportedExtensions(),
-  );
+  const langOptionHelp = buildLangOptionHelp(registry.supportedExtensions());
 
   let parsed: ParsedCliArgs | undefined;
 
@@ -430,8 +458,8 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "[paths...]",
       "files or directories to inspect; use '-' to read stdin",
     )
-    .option("--lang-only <lang>", langOnlyOptionHelp)
-    .option("--show-only <options>", showOnlyOptionHelp)
+    .option("--lang <lang>", langOptionHelp)
+    .option("--only <extractors>", extractorsOptionHelp)
     .option("--no-redact", "disable built-in secret redaction")
     .option(
       "--max-depth <number>",
@@ -448,14 +476,14 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "hide source line number prefixes for extracted entries",
     )
     .option(
-      "--offset <number>",
+      "--skip <number>",
       "skip the first N extracted entries (default: 0)",
       Number,
     )
-    .option("--limit <number>", "max extracted entries displayed", Number)
+    .option("--take <number>", "max extracted entries displayed", Number)
     .option(
       "--all",
-      "disable every output cap (entry limit and the 2000-line / 50 KB cap)",
+      "lift all output caps (entry limit and the 2000-line / 50 KB cap)",
       false,
     )
     .exitOverride()
@@ -474,7 +502,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .configureHelp({ formatHelp: () => READ_HELP })
     .usage("[OPTION]... <FILE>")
     .description(
-      "windowed literal read of one file, framed by a signature skeleton",
+      "windowed literal read of one file, with an optional outline",
     )
     .argument("<file>", "file to read; use '-' to read stdin")
     .argument("[extra...]")
@@ -485,16 +513,20 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     )
     .option("--limit <number>", "max lines shown in the window", Number)
     .option(
+      "--framing <mode>",
+      "how the content window is wrapped (default: tags). One of: tags, none",
+    )
+    .option(
       "--all",
-      "disable every output cap (the 2000-line / 50 KB window cap)",
+      "lift the 2000-line / 50 KB window cap",
       false,
     )
-    .option("--lang-only <lang>", langOnlyOptionHelp)
-    .option("--show-only <options>", showOnlyOptionHelp)
+    .option("--lang <lang>", langOptionHelp)
+    .option("--outline <extractors>", extractorsOptionHelp)
     .option("--no-redact", "disable built-in secret redaction")
     .option(
       "--no-line-number",
-      "hide line number prefixes on skeleton lines (content never has them)",
+      "hide line number prefixes on outline lines (content never has them)",
     )
     .exitOverride()
     .action(
@@ -578,17 +610,17 @@ function validateCliArgs(args: ParsedCliArgs): void {
   }
 
   if (
-    args.offset !== undefined &&
-    (!Number.isInteger(args.offset) || args.offset < 0)
+    args.skip !== undefined &&
+    (!Number.isInteger(args.skip) || args.skip < 0)
   ) {
-    throw createCliError("Option --offset must be a non-negative integer");
+    throw createCliError("Option --skip must be a non-negative integer");
   }
 
   if (
-    args.limit !== undefined &&
-    (!Number.isInteger(args.limit) || args.limit < 1)
+    args.take !== undefined &&
+    (!Number.isInteger(args.take) || args.take < 1)
   ) {
-    throw createCliError("Option --limit must be a positive integer");
+    throw createCliError("Option --take must be a positive integer");
   }
 
   const stdinOperandCount = countStdinOperands(args);
@@ -603,8 +635,8 @@ function validateCliArgs(args: ParsedCliArgs): void {
     );
   }
 
-  if (stdinOperandCount === 1 && !args.langOnly?.trim()) {
-    throw createCliError("Stdin operand '-' requires --lang-only");
+  if (stdinOperandCount === 1 && !args.lang?.trim()) {
+    throw createCliError("Stdin operand '-' requires --lang");
   }
 }
 
@@ -776,7 +808,7 @@ async function resolveInputTarget(
   explicitLang?: string,
 ): Promise<ResolvedInputTarget> {
   if (hasExplicitStdinOperand(args)) {
-    const stdinLang = explicitLang ?? args.langOnly!.trim();
+    const stdinLang = explicitLang ?? args.lang!.trim();
 
     return {
       files: [],
@@ -792,7 +824,7 @@ async function resolveInputTarget(
       const stdinLang = inferImplicitStdinLanguage(extractOrder, explicitLang);
       if (!stdinLang) {
         throw createCliError(
-          "Could not infer stdin language. Please use --lang-only. Example: --lang-only .ts",
+          "Could not infer stdin language. Please use --lang. Example: --lang ts",
         );
       }
 
@@ -885,7 +917,7 @@ async function resolveExecutionPlan(
   await validateInputPaths(args);
 
   const registry = buildDefaultRegistry();
-  const rawLang = args.langOnly?.trim();
+  const rawLang = args.lang?.trim();
   const explicitLang = rawLang
     ? resolveLanguageId(registry, rawLang)
     : undefined;
@@ -894,8 +926,8 @@ async function resolveExecutionPlan(
     throw createCliError(`${rawLang} not supported`);
   }
 
-  const extractOrder = args.showOnly
-    ? parseExtractOptions(args.showOnly, listSupportedExtractKinds(registry))
+  const extractOrder = args.only
+    ? parseExtractOptions(args.only, listSupportedExtractKinds(registry))
     : DEFAULT_EXTRACT_ORDER;
 
   const notices: string[] = [];
@@ -916,8 +948,8 @@ async function resolveExecutionPlan(
       ...(args.lineNumber ? { includeLineNumbers: true } : {}),
       ...(args.redact === false ? { redact: false } : {}),
     },
-    ...(args.offset !== undefined ? { entryOffset: args.offset } : {}),
-    ...(args.limit !== undefined ? { entryLimit: args.limit } : {}),
+    ...(args.skip !== undefined ? { entryOffset: args.skip } : {}),
+    ...(args.take !== undefined ? { entryLimit: args.take } : {}),
     ...(args.all ? { uncapped: true } : {}),
     notices,
   };
@@ -1069,7 +1101,7 @@ function renderCappedSections(
 
   return {
     output,
-    notice: `output capped at ${capDescription} (${summarizedFileCount} of ${visibleSections.length} files summarized). Narrow the path, or use --show-only / --max-depth / --limit to adjust; --all disables the cap.`,
+    notice: `output capped at ${capDescription} (${summarizedFileCount} of ${visibleSections.length} files summarized). Narrow the path, or use --only / --max-depth / --take to adjust; --all disables the cap.`,
   };
 }
 
@@ -1093,14 +1125,14 @@ function renderPipelineOutput(
 
     if (offset > 0 && offset >= totalEntries && totalEntries > 0) {
       notices.push(
-        `--offset ${offset} skips all ${totalEntries} extracted entries`,
+        `--skip ${offset} skips all ${totalEntries} extracted entries`,
       );
     } else if (
       limit !== undefined &&
       offset + windowed.shown < totalEntries
     ) {
       notices.push(
-        `showing entries ${offset + 1}-${offset + windowed.shown} of ${totalEntries}; continue with --offset ${offset + windowed.shown}`,
+        `showing entries ${offset + 1}-${offset + windowed.shown} of ${totalEntries}; continue with --skip ${offset + windowed.shown}`,
       );
     }
   }
@@ -1402,8 +1434,16 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     throw createCliError("Option --limit must be a positive integer");
   }
 
+  const framing = args.framing ?? "tags";
+
+  if (framing !== "tags" && framing !== "none") {
+    throw createCliError(
+      `Option --framing must be one of: tags, none (got '${args.framing}')`,
+    );
+  }
+
   const registry = buildDefaultRegistry();
-  const rawLang = args.langOnly?.trim();
+  const rawLang = args.lang?.trim();
   const explicitLang = rawLang
     ? resolveLanguageId(registry, rawLang)
     : undefined;
@@ -1412,8 +1452,8 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     throw createCliError(`${rawLang} not supported`);
   }
 
-  const extractOrder = args.showOnly
-    ? parseExtractOptions(args.showOnly, listSupportedExtractKinds(registry))
+  const extractOrder = args.outline
+    ? parseExtractOptions(args.outline, listSupportedExtractKinds(registry))
     : DEFAULT_EXTRACT_ORDER;
 
   const { source, filePath, isStdin } = await resolveReadSource(
@@ -1467,7 +1507,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   const content = redactEnabled ? redactSecrets(rawContent) : rawContent;
   const redactionApplied = content !== rawContent;
 
-  // Skeletons need a parser: for stdin only --lang-only provides one.
+  // Outlines need a parser: for stdin only --lang provides one.
   const skeletonLang = isStdin
     ? explicitLang
     : (explicitLang ?? registry.inferFromFile(filePath));
@@ -1491,9 +1531,10 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   }
 
   const includeLineNumbers = args.lineNumber !== false;
+  const includeOutline = framing !== "none";
   const outputParts: string[] = [];
 
-  if (adapter && startLine > 1) {
+  if (includeOutline && adapter && startLine > 1) {
     const beforeEntries = entries.filter(
       (entry) => entry.metadata!.sourceLine! < startLine,
     );
@@ -1511,12 +1552,17 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
 
   const rangeText =
     totalLines === 0 ? "0-0 of 0" : `${startLine}-${endLine} of ${totalLines}`;
-  const contentOpenTag = `<content lines="${rangeText}"${redactionApplied ? ' redacted="true"' : ""}>`;
   const contentBody =
     content === "" || content.endsWith("\n") ? content : `${content}\n`;
-  outputParts.push(`${contentOpenTag}\n${contentBody}</content>`);
 
-  if (adapter && endLine < totalLines) {
+  if (framing === "tags") {
+    const contentOpenTag = `<content lines="${rangeText}"${redactionApplied ? ' redacted="true"' : ""}>`;
+    outputParts.push(`${contentOpenTag}\n${contentBody}</content>`);
+  } else {
+    outputParts.push(contentBody.endsWith("\n") ? contentBody.slice(0, -1) : contentBody);
+  }
+
+  if (includeOutline && adapter && endLine < totalLines) {
     const afterEntries = entries.filter(
       (entry) => entry.metadata!.sourceLine! > endLine,
     );

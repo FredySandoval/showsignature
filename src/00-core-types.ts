@@ -250,17 +250,30 @@ export interface CliProgram {
 
 export type CliCommandName = "map" | "read";
 
+export type ReadFraming = "tags" | "none";
+
 export interface ParsedCliArgs {
   command: CliCommandName;
   paths?: string[];
-  langOnly?: string;
-  showOnly?: string;
+  lang?: string;
+  /** map: comma-separated extractors (--only) */
+  only?: string;
+  /** read: comma-separated extractors for the outline (--outline) */
+  outline?: string;
   includeTests: boolean;
   maxDepth?: number;
   lineNumber: boolean;
   redact?: boolean;
+  /** map: entries to skip (--skip) */
+  skip?: number;
+  /** map: max entries shown (--take) */
+  take?: number;
+  /** read: first line, 1-indexed (--offset) */
   offset?: number;
+  /** read: max lines in the window (--limit) */
   limit?: number;
+  /** read: content window wrapping (--framing) */
+  framing?: ReadFraming;
   all?: boolean;
 }
 
