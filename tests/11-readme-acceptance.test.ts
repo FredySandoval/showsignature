@@ -9,6 +9,7 @@ const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 const originalStdoutWrite = process.stdout.write;
 const originalStderrWrite = process.stderr.write;
+const originalStdoutIsTTY = process.stdout.isTTY;
 
 let stdoutBuffer = "";
 let stderrBuffer = "";
@@ -23,6 +24,13 @@ function installOutputCapture(): void {
   stdoutBuffer = "";
   stderrBuffer = "";
   process.exitCode = 0;
+
+  // The CLI mirrors trailer notes to stderr only when stdout is not a TTY;
+  // pin the piped-consumer behavior so results don't depend on the terminal.
+  Object.defineProperty(process.stdout, "isTTY", {
+    value: false,
+    configurable: true,
+  });
 
   process.stdout.write = ((chunk: string | Uint8Array) => {
     stdoutBuffer += captureWrite(chunk);
@@ -56,6 +64,10 @@ afterEach(async () => {
   process.chdir(originalCwd);
   process.stdout.write = originalStdoutWrite;
   process.stderr.write = originalStderrWrite;
+  Object.defineProperty(process.stdout, "isTTY", {
+    value: originalStdoutIsTTY,
+    configurable: true,
+  });
   process.exitCode = 0;
 
   await Promise.all(
