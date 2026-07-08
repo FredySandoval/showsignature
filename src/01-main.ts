@@ -1233,10 +1233,13 @@ async function runPlannedPipeline(
 }
 
 // ============================================================================
-// Read Command                          [windowed literal read + skeleton]
+// Read Command                          [windowed literal read + outline]
 // ============================================================================
-const READ_SKELETON_BUDGET_PER_SIDE = 50;
-const SKELETON_NOTE = "signatures only — display context, not file content";
+const READ_OUTLINE_BUDGET_PER_SIDE = 50;
+
+function buildOutlineNote(extractOrder: readonly ExtractKind[]): string {
+  return `${extractOrder.join(", ")} — display context, not file content`;
+}
 
 function splitLinesKeepEnds(source: string): string[] {
   if (source === "") {
@@ -1259,7 +1262,7 @@ function countOccurrences(text: string, needle: string): number {
 }
 
 function entryFirstLine(entry: ExtractEntry): string {
-  // Entries may carry embedded newlines; the skeleton only shows the first
+  // Entries may carry embedded newlines; the outline only shows the first
   // physical line (the one entry.metadata.sourceLine points at).
   return (entry.lines[0] ?? "").split("\n", 1)[0] ?? "";
 }
@@ -1308,16 +1311,16 @@ export function buildEnclosingChain(beforeEntries: readonly ExtractEntry[]): {
 }
 
 // Over budget: drop the most nested entries first (methods before top-level
-// symbols) so the skeleton stays a complete, shallow table of contents. The
+// symbols) so the outline stays a complete, shallow table of contents. The
 // enclosing scope chain is exempt. Never cut positionally: if every remaining
 // entry sits at the shallowest depth, keep them all.
-export function degradeSkeletonByDepth(
+export function degradeOutlineByDepth(
   entries: readonly ExtractEntry[],
   chain: ReadonlySet<ExtractEntry>,
 ): ExtractEntry[] {
   let kept = [...entries];
 
-  if (kept.length <= READ_SKELETON_BUDGET_PER_SIDE) {
+  if (kept.length <= READ_OUTLINE_BUDGET_PER_SIDE) {
     return kept;
   }
 
@@ -1330,7 +1333,7 @@ export function degradeSkeletonByDepth(
   ].sort((left, right) => right - left);
 
   for (const indent of droppableIndents.slice(0, -1)) {
-    if (kept.length <= READ_SKELETON_BUDGET_PER_SIDE) {
+    if (kept.length <= READ_OUTLINE_BUDGET_PER_SIDE) {
       break;
     }
 
@@ -1342,12 +1345,13 @@ export function degradeSkeletonByDepth(
   return kept;
 }
 
-function renderSkeleton(
+function renderOutline(
   region: "before" | "after",
   entries: readonly ExtractEntry[],
   options: {
     includeLineNumbers: boolean;
     redact: boolean;
+    note: string;
     deepestChainEntry?: ExtractEntry;
   },
 ): string {
@@ -1368,9 +1372,9 @@ function renderSkeleton(
   });
 
   return [
-    `<skeleton region="${region}" note="${SKELETON_NOTE}">`,
+    `<outline region="${region}" note="${options.note}">`,
     ...lines,
-    `</skeleton>`,
+    `</outline>`,
   ].join("\n");
 }
 
@@ -1508,11 +1512,11 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   const redactionApplied = content !== rawContent;
 
   // Outlines need a parser: for stdin only --lang provides one.
-  const skeletonLang = isStdin
+  const outlineLang = isStdin
     ? explicitLang
     : (explicitLang ?? registry.inferFromFile(filePath));
-  const adapter = skeletonLang
-    ? await registry.getOrLoad(skeletonLang)
+  const adapter = outlineLang
+    ? await registry.getOrLoad(outlineLang)
     : undefined;
 
   let entries: ExtractEntry[] = [];
@@ -1539,12 +1543,13 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
       (entry) => entry.metadata!.sourceLine! < startLine,
     );
     const { chain, deepest } = buildEnclosingChain(beforeEntries);
-    const skeletonEntries = degradeSkeletonByDepth(beforeEntries, chain);
+    const outlineEntries = degradeOutlineByDepth(beforeEntries, chain);
 
     outputParts.push(
-      renderSkeleton("before", skeletonEntries, {
+      renderOutline("before", outlineEntries, {
         includeLineNumbers,
         redact: redactEnabled,
+        note: buildOutlineNote(extractOrder),
         ...(deepest ? { deepestChainEntry: deepest } : {}),
       }),
     );
@@ -1566,12 +1571,13 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     const afterEntries = entries.filter(
       (entry) => entry.metadata!.sourceLine! > endLine,
     );
-    const skeletonEntries = degradeSkeletonByDepth(afterEntries, new Set());
+    const outlineEntries = degradeOutlineByDepth(afterEntries, new Set());
 
     outputParts.push(
-      renderSkeleton("after", skeletonEntries, {
+      renderOutline("after", outlineEntries, {
         includeLineNumbers,
         redact: redactEnabled,
+        note: buildOutlineNote(extractOrder),
       }),
     );
   }

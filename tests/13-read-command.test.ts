@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import {
   buildCli,
   buildEnclosingChain,
-  degradeSkeletonByDepth,
+  degradeOutlineByDepth,
 } from "@/src/01-main.js";
 import type { ExtractEntry } from "@/src/00-core-types.js";
 
@@ -115,7 +115,7 @@ describe("read command", () => {
     ).rejects.toThrow("'read' takes exactly one file; run one invocation per file");
   });
 
-  test("reads a whole small file: full range tag, no skeletons, no note", async () => {
+  test("reads a whole small file: full range tag, no outlines, no note", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -135,7 +135,7 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("windows with --offset/--limit: literal content framed by skeletons", async () => {
+  test("windows with --offset/--limit: literal content framed by outlines", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -153,13 +153,13 @@ describe("read command", () => {
     ]);
 
     expect(stdoutBuffer).toContain(
-      '<skeleton region="before" note="signatures only — display context, not file content">',
+      '<outline region="before" note="signatures — display context, not file content">',
     );
     expect(stdoutBuffer).toContain("1 function first(): void;");
     expect(stdoutBuffer).toContain(
       '<content lines="2-4 of 5">\nfunction second(): void {\n  return;\n}\n</content>',
     );
-    expect(stdoutBuffer).toContain('<skeleton region="after"');
+    expect(stdoutBuffer).toContain('<outline region="after"');
     expect(stdoutBuffer).toContain("5 function third(): void;");
     expect(stdoutBuffer).toContain(
       "note: showing lines 2-4 of 5; continue with: showsignature read --offset 5 src/app.ts",
@@ -191,7 +191,7 @@ describe("read command", () => {
       "function second(): void {\n  return;\n}\nnote: showing lines 2-4 of 5; continue with: showsignature read --offset 5 src/app.ts\n",
     );
     expect(stdoutBuffer).not.toContain("<content");
-    expect(stdoutBuffer).not.toContain("<skeleton");
+    expect(stdoutBuffer).not.toContain("<outline");
     expect(process.exitCode).toBe(0);
   });
 
@@ -203,7 +203,7 @@ describe("read command", () => {
     ).rejects.toThrow("Option --framing must be one of: tags, none (got 'bogus')");
   });
 
-  test("applies the default cap with an after-skeleton and continuation note", async () => {
+  test("applies the default cap with an after-outline and continuation note", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -218,9 +218,9 @@ describe("read command", () => {
     await buildCli().run(["showcode", "read", "big.ts"]);
 
     expect(stdoutBuffer).toContain('<content lines="1-2000 of 2500">');
-    expect(stdoutBuffer).toContain('<skeleton region="after"');
+    expect(stdoutBuffer).toContain('<outline region="after"');
     expect(stdoutBuffer).toContain("2500 function late(): void;");
-    expect(stdoutBuffer).not.toContain('<skeleton region="before"');
+    expect(stdoutBuffer).not.toContain('<outline region="before"');
     expect(stdoutBuffer).toContain(
       "note: showing lines 1-2000 of 2500; continue with: showsignature read --offset 2001 big.ts",
     );
@@ -264,7 +264,7 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("reads stdin without --lang: frame and note, no skeletons", async () => {
+  test("reads stdin without --lang: frame and note, no outlines", async () => {
     installOutputCapture();
     installStdin("line one\nline two\nline three\n");
 
@@ -273,14 +273,14 @@ describe("read command", () => {
     expect(stdoutBuffer).toContain(
       '<content lines="1-2 of 3">\nline one\nline two\n</content>',
     );
-    expect(stdoutBuffer).not.toContain("<skeleton");
+    expect(stdoutBuffer).not.toContain("<outline");
     expect(stdoutBuffer).toContain(
       "note: showing lines 1-2 of 3; continue with: showsignature read --offset 3 -",
     );
     expect(process.exitCode).toBe(0);
   });
 
-  test("reads stdin with --lang: skeletons frame the window", async () => {
+  test("reads stdin with --lang: outlines frame the window", async () => {
     installOutputCapture();
     installStdin("def a():\n    pass\ndef b():\n    pass\ndef c():\n    pass\n");
 
@@ -296,12 +296,12 @@ describe("read command", () => {
       "2",
     ]);
 
-    expect(stdoutBuffer).toContain('<skeleton region="before"');
+    expect(stdoutBuffer).toContain('<outline region="before"');
     expect(stdoutBuffer).toContain("1 def a(): ...");
     expect(stdoutBuffer).toContain(
       '<content lines="3-4 of 6">\ndef b():\n    pass\n</content>',
     );
-    expect(stdoutBuffer).toContain('<skeleton region="after"');
+    expect(stdoutBuffer).toContain('<outline region="after"');
     expect(stdoutBuffer).toContain("5 def c(): ...");
     expect(process.exitCode).toBe(0);
   });
@@ -344,7 +344,7 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("--no-line-number strips skeleton prefixes but keeps content raw", async () => {
+  test("--no-line-number strips outline prefixes but keeps content raw", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -371,7 +371,7 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("skeleton honors --outline for markdown windows", async () => {
+  test("outline honors --outline for markdown windows", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -402,12 +402,12 @@ describe("read command", () => {
       "guide.md",
     ]);
 
-    expect(stdoutBuffer).toContain('<skeleton region="before"');
+    expect(stdoutBuffer).toContain('<outline region="before"');
     expect(stdoutBuffer).toContain("1 # Title");
     expect(stdoutBuffer).toContain(
       '<content lines="3-4 of 9">\nintro text\nmore text\n</content>',
     );
-    expect(stdoutBuffer).toContain('<skeleton region="after"');
+    expect(stdoutBuffer).toContain('<outline region="after"');
     expect(stdoutBuffer).toContain("7 ## Section");
     expect(process.exitCode).toBe(0);
   });
@@ -435,7 +435,7 @@ describe("read command", () => {
   });
 });
 
-describe("skeleton helpers", () => {
+describe("outline helpers", () => {
   const entry = (line: number, text: string): ExtractEntry => ({
     kind: "signatures",
     lines: [text],
@@ -452,7 +452,7 @@ describe("skeleton helpers", () => {
     }
 
     const { chain, deepest } = buildEnclosingChain(entries);
-    const kept = degradeSkeletonByDepth(entries, chain);
+    const kept = degradeOutlineByDepth(entries, chain);
 
     // 10 top-level entries plus the chain's deepest nested entry survive.
     expect(kept.length).toBe(11);
@@ -469,7 +469,7 @@ describe("skeleton helpers", () => {
       entry(index + 1, `def top${index}():`),
     );
 
-    const kept = degradeSkeletonByDepth(entries, new Set());
+    const kept = degradeOutlineByDepth(entries, new Set());
 
     expect(kept.length).toBe(80);
   });
