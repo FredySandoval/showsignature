@@ -127,44 +127,45 @@ Large files are noisy. `showsignature` gives you the shape of a project before y
 ## Usage
 
 ```sh
-showsignature map  [OPTION]... [FILE]...
-showsignature read [OPTION] <FILE>
+showsignature map  [OPTION]... [PATH]...
+showsignature read [OPTION]... <FILE>
 ```
 
 Two commands:
 
-- `map` — structural overview: signatures and other extracted entries. Inspect [FILE] operands—files or directory paths—using the current directory by default.
-- `read` — windowed literal read of exactly one file, framed by a signature skeleton for orientation.
+- `map` — structural overview: signatures and other extracted entries. Inspect [PATH] operands—files or directory paths—using the current directory by default.
+- `read` — literal windowed read of exactly one file, with an optional structural outline around the window for orientation.
 
 Running `showsignature` with no command prints help and exits with code 1.
 
 Options for `showsignature map`:
 
-| OPTION                | Description                                                                  |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `--lang-only <lang>`  | Force language, required when using `-` to read stdin.                       |
-| `--show-only <items>` | Choose extractors.                                                           |
-| `--include-tests`     | Include test files in folder scans.                                          |
-| `--max-depth <n>`     | Limit folder scan depth (directory scans default to `2`).                    |
-| `--offset <n>`        | Skip the first N extracted **entries** (default: 0).                         |
-| `--limit <n>`         | Max extracted **entries** displayed.                                         |
-| `--all`               | Disable every output cap (entry limit and the 2000-line / 50 KB cap).        |
-| `--no-redact`         | Disable built-in secret redaction.                                           |
-| `--no-line-number`    | Hide source line-number prefixes.                                            |
+| OPTION                 | Description                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| `--only <extractors>`  | Comma-separated extractors to run (default: all applicable).                 |
+| `--skip <n>`           | Skip the first N **entries** (default: 0).                                   |
+| `--take <n>`           | Show at most N **entries**.                                                  |
+| `--max-depth <n>`      | Folder scan depth (directory scans default to `2`).                          |
+| `--include-tests`      | Include test files in folder scans.                                          |
+| `--no-line-number`     | Hide source line-number prefixes.                                            |
+| `--lang <l>`           | Only process files of this language; required when using `-` to read stdin.  |
+| `--all`                | Lift all output caps (entry limit and the 2000-line / 50 KB cap).            |
+| `--no-redact`          | Disable built-in secrets redaction.                                          |
 
 Options for `showsignature read`:
 
-| OPTION               | Description                                                                   |
-| -------------------- | ----------------------------------------------------------------------------- |
-| `--offset <n>`       | First **line** to show, 1-indexed (default: 1).                               |
-| `--limit <n>`        | Max **lines** shown in the window.                                            |
-| `--all`              | Disable the 2000-line / 50 KB window cap.                                     |
-| `--lang-only <lang>` | Language for the skeleton; enables skeletons when reading stdin (`-`).        |
-| `--show-only <items>`| Extractors used for the skeleton (default: `signatures`).                     |
-| `--no-line-number`   | Hide line-number prefixes on skeleton lines (content never has them).         |
-| `--no-redact`        | Disable secret redaction for literal bytes (redaction is disclosed otherwise).|
+| OPTION                   | Description                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `--offset <line>`        | First **line** to show, 1-indexed (default: 1).                               |
+| `--limit <n>`            | Max **lines** shown in the window.                                            |
+| `--outline <extractors>` | Extractors used for the outline (default: `signatures`).                      |
+| `--framing <mode>`       | How the content window is wrapped (default: `tags`). One of: `tags`, `none`.  |
+| `--no-line-number`       | Hide line-number prefixes on outline lines (content never has them).          |
+| `--lang <l>`             | Declare the file's language; required when reading stdin (`-`).               |
+| `--all`                  | Lift the 2000-line / 50 KB window cap.                                        |
+| `--no-redact`            | Disable secret redaction for literal bytes (redaction is disclosed otherwise).|
 
-Note: `--offset`/`--limit` mean **entries** in `map` but **lines** in `read`.
+Remember the split: `map` works in **ENTRIES** (`--skip`/`--take`); `read` works in **LINES** (`--offset`/`--limit`).
 
 Output is capped at 2000 lines / 50 KB by default; when a cap or the default scan depth
 kicks in, the output ends with a single `note:` trailer (mirrored to stderr) naming the
@@ -210,49 +211,51 @@ Markdown and JSON files:
 
 ## Basic usage examples
 
-`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
+`showsignature map [OPTION]... [PATH]...` / `showsignature read [OPTION]... <FILE>`
 
 ```sh
 showsignature map ./src                                         # Inspect a folder
 showsignature map src/01-main.ts                                # Inspect one file
 
-showsignature map src/main.ts README.md tests/fixtures          # [FILE] can be one or more files/directories
-showsignature map --show-only imports,exports ./src            # Show imports and exports only
-showsignature map --show-only signatures,imports,exports ./src  # Show code structure and imports
-showsignature map --show-only interfaces,types ./folder         # Show data shapes
-showsignature map --show-only variables,comments src/main.ts    # Show variables
+showsignature map src/main.ts README.md tests/fixtures          # [PATH] can be one or more files/directories
+showsignature map --only imports,exports ./src                  # Show imports and exports only
+showsignature map --only signatures,imports,exports ./src       # Show code structure and imports
+showsignature map --only interfaces,types ./folder              # Show data shapes
+showsignature map --only variables,comments src/main.ts         # Show variables
 
-showsignature map --show-only md:headings                       # Extract Markdown headings
-showsignature map --show-only md:tables,md:codeblocks           # Extract Markdown tables
-showsignature map --show-only json:shape config.json            # Extract JSON shape
+showsignature map --only md:headings                            # Extract Markdown headings
+showsignature map --only md:tables,md:codeblocks                # Extract Markdown tables
+showsignature map --only json:shape config.json                 # Extract JSON shape
 
 # useful when doing migrations from one language to other
-showsignature map --lang-only py                                # Process Python files only
-showsignature map --lang-only go --show-only imports,exports    # Show Go imports and exported declarations
-showsignature map --lang-only py --show-only types,comments     # Show Python imports and public exports
+showsignature map --lang py                                     # Process Python files only
+showsignature map --lang go --only imports,exports              # Show Go imports and exported declarations
+showsignature map --lang py --only types,comments               # Show Python imports and public exports
 showsignature map --max-depth 4 ./                              # Repo-wide overview with an explicit scan depth
 
-showsignature map --offset 40 --limit 40 ./src                  # Page through a large entry listing
-showsignature map --all ./src                                   # Disable the output caps
+showsignature map --skip 40 --take 40 ./src                     # Page through a large entry listing
+showsignature map --all ./src                                   # Lift the output caps
 ```
 
-Read one file literally, framed by a signature skeleton:
+Read one file literally, with an optional structural outline around the window:
 
 ```sh
 showsignature read src/01-main.ts                               # First lines of the file (up to the cap)
-showsignature read --offset 200 --limit 100 src/01-main.ts      # Lines 200-299, skeletons around the window
+showsignature read --offset 200 --limit 100 src/01-main.ts      # Lines 200-299, outline around the window
+showsignature read --outline imports,signatures src/01-main.ts  # Choose the outline extractors
+showsignature read --framing none src/01-main.ts                # Plain read: no <content> tags, no outline
 showsignature read --no-redact src/config.ts                    # Literal bytes, no secret redaction
-cat snippet.py | showsignature read - --lang-only py            # Stdin; --lang-only enables the skeleton
+cat snippet.py | showsignature read - --lang py                 # Stdin; --lang enables the outline
 ```
 
-The skeleton lines carry real line numbers, so you can jump anywhere with
+The outline lines carry real line numbers, so you can jump anywhere with
 `showsignature read --offset <line> <file>`. The content between the `<content>` tags is
 raw—no line-number prefixes—so it is safe to copy into exact-match edit tools.
 
 Combine modes with commas:
 
 ```bash
-showsignature map src --show-only signatures,imports,comments
+showsignature map src --only signatures,imports,comments
 ```
 
 ## Output
@@ -260,7 +263,7 @@ showsignature map src --show-only signatures,imports,comments
 `showsignature` prints compact text output. Use shell redirection to save output to a file:
 
 ```bash
-showsignature map src --show-only signatures > structure.txt
+showsignature map src --only signatures > structure.txt
 ```
 
 ## Pipeline usage
@@ -268,10 +271,10 @@ showsignature map src --show-only signatures > structure.txt
 `showsignature` writes to stdout by default, so it works well with tools like `rg`, `grep`, `fzf`, `less`, `head`, `tee`, and shell redirects.
 
 ```sh
-showsignature map src --show-only imports | rg "node"                         # Find matching imports
-showsignature map src --show-only signatures | rg "async"                     # Find async functions or methods
-showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # Search comments/signatures with nearby context
-showsignature map src --show-only signatures,imports | bat -l js              # Page through large output
+showsignature map src --only imports | rg "node"                         # Find matching imports
+showsignature map src --only signatures | rg "async"                     # Find async functions or methods
+showsignature map src --only comments,signatures | rg -C 2 "ExtractKind" # Search comments/signatures with nearby context
+showsignature map src --only signatures,imports | bat -l js              # Page through large output
 ```
 
 ## Development

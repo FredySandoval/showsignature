@@ -127,13 +127,13 @@ pnpm link --global
 ## 使い方
 
 ```sh
-showsignature map  [OPTION]... [FILE]...
-showsignature read [OPTION] <FILE>
+showsignature map  [OPTION]... [PATH]...
+showsignature read [OPTION]... <FILE>
 ```
 
 2 つのコマンドがあります:
 
-- `map` — 構造の概要: シグネチャなどの抽出エントリ。[FILE] オペランド（ファイルまたはディレクトリパス）を検査します。既定では現在のディレクトリを使用します。
+- `map` — 構造の概要: シグネチャなどの抽出エントリ。[PATH] オペランド（ファイルまたはディレクトリパス）を検査します。既定では現在のディレクトリを使用します。
 - `read` — ちょうど 1 つのファイルをウィンドウ指定でそのまま読み取り、シグネチャのスケルトンで位置付けを示します。
 
 コマンドなしで `showsignature` を実行するとヘルプを表示し、終了コード 1 で終了します。
@@ -142,12 +142,12 @@ showsignature read [OPTION] <FILE>
 
 | OPTION                | 説明                                                  |
 | --------------------- | ----------------------------------------------------- |
-| `--lang-only <lang>`  | 言語を強制します。`-` で stdin を読む場合に必須です。 |
-| `--show-only <items>` | extractors を選択します。                             |
+| `--lang <lang>`  | 言語を強制します。`-` で stdin を読む場合に必須です。 |
+| `--only <items>` | extractors を選択します。                             |
 | `--include-tests`     | フォルダスキャンにテストファイルを含めます。          |
 | `--max-depth <n>`     | スキャンの深さを制限します（ディレクトリの既定値は `2`）。 |
-| `--offset <n>`        | 抽出された**エントリ**の先頭 N 件をスキップします（既定: 0）。 |
-| `--limit <n>`         | 表示する抽出**エントリ**の上限。                      |
+| `--skip <n>`        | 抽出された**エントリ**の先頭 N 件をスキップします（既定: 0）。 |
+| `--take <n>`         | 表示する抽出**エントリ**の上限。                      |
 | `--all`               | すべての出力上限を無効化します（エントリ上限と 2000 行 / 50 KB の上限）。 |
 | `--no-redact`         | 組み込みのシークレット秘匿を無効化します。            |
 | `--no-line-number`    | ソース行番号のプレフィックスを非表示にします。        |
@@ -159,12 +159,12 @@ showsignature read [OPTION] <FILE>
 | `--offset <n>`       | 表示する最初の**行**（1 始まり、既定: 1）。               |
 | `--limit <n>`        | ウィンドウに表示する**行**数の上限。                      |
 | `--all`              | 2000 行 / 50 KB のウィンドウ上限を無効化します。          |
-| `--lang-only <lang>` | スケルトンの言語。stdin（`-`）読み取り時にスケルトンを有効化します。 |
-| `--show-only <items>`| スケルトンに使う extractors（既定: `signatures`）。       |
+| `--lang <lang>` | スケルトンの言語。stdin（`-`）読み取り時にスケルトンを有効化します。 |
+| `--outline <items>`| スケルトンに使う extractors（既定: `signatures`）。       |
 | `--no-line-number`   | スケルトン行の行番号プレフィックスを非表示にします（本文には元々付きません）。 |
 | `--no-redact`        | シークレット秘匿を無効化してリテラルなバイト列を得ます。  |
 
-注意: `--offset`/`--limit` は `map` では**エントリ**、`read` では**行**を意味します。
+Note: `map` → **ENTRIES** (`--skip`/`--take`); `read` → **LINES** (`--offset`/`--limit`).
 
 出力は既定で 2000 行 / 50 KB に制限されます。上限や既定のスキャン深さが働いた場合、
 出力の末尾に単一の `note:` トレーラーが付き（stderr にも複製されます）、続行に必要な
@@ -210,29 +210,29 @@ Markdown と JSON ファイル:
 
 ## 基本的な使用例
 
-`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
+`showsignature map [OPTION]... [PATH]...` / `showsignature read [OPTION]... <FILE>`
 
 ```sh
 showsignature map ./src                                         # フォルダを検査
 showsignature map src/01-main.ts                                # 1 つのファイルを検査
 
-showsignature map src/main.ts README.md tests/fixtures          # [FILE] は 1 つ以上のファイル/ディレクトリにできます
-showsignature map --show-only imports,exports                   # exports のみ表示
-showsignature map --show-only signatures,imports,exports ./src  # コード構造と imports を表示
-showsignature map --show-only interfaces,types ./folder         # データ shape を表示
-showsignature map --show-only variables,comments src/main.ts    # variables を表示
+showsignature map src/main.ts README.md tests/fixtures          # [PATH] は 1 つ以上のファイル/ディレクトリにできます
+showsignature map --only imports,exports                   # exports のみ表示
+showsignature map --only signatures,imports,exports ./src  # コード構造と imports を表示
+showsignature map --only interfaces,types ./folder         # データ shape を表示
+showsignature map --only variables,comments src/main.ts    # variables を表示
 
-showsignature map --show-only md:headings                       # Markdown headings を抽出
-showsignature map --show-only md:tables,md:codeblocks           # Markdown tables を抽出
-showsignature map --show-only json:shape config.json            # JSON shape を抽出
+showsignature map --only md:headings                       # Markdown headings を抽出
+showsignature map --only md:tables,md:codeblocks           # Markdown tables を抽出
+showsignature map --only json:shape config.json            # JSON shape を抽出
 
 # ある言語から別の言語へ移行するときに便利
-showsignature map --lang-only py                                # Python ファイルのみ処理
-showsignature map --lang-only go --show-only imports,exports    # Go imports と exported declarations を表示
-showsignature map --lang-only py --show-only types,comments     # Python imports と public exports を表示
+showsignature map --lang py                                # Python ファイルのみ処理
+showsignature map --lang go --only imports,exports    # Go imports と exported declarations を表示
+showsignature map --lang py --only types,comments     # Python imports と public exports を表示
 showsignature map --max-depth 4                                 # 再帰スキャンの深さを制限
 
-showsignature map --offset 40 --limit 40 ./src                  # 大きなエントリ一覧をページング
+showsignature map --skip 40 --take 40 ./src                  # 大きなエントリ一覧をページング
 showsignature map --all ./src                                   # 出力上限を無効化
 ```
 
@@ -242,7 +242,7 @@ showsignature map --all ./src                                   # 出力上限�
 showsignature read src/01-main.ts                               # ファイル先頭の行（上限まで）
 showsignature read --offset 200 --limit 100 src/01-main.ts      # 200-299 行目、ウィンドウの前後にスケルトン
 showsignature read --no-redact src/config.ts                    # リテラルなバイト列（シークレット秘匿なし）
-cat snippet.py | showsignature read - --lang-only py            # stdin。--lang-only でスケルトンを有効化
+cat snippet.py | showsignature read - --lang py            # stdin。--lang でスケルトンを有効化
 ```
 
 スケルトン行には実際の行番号が付くため、`showsignature read --offset <行> <ファイル>` で
@@ -252,7 +252,7 @@ cat snippet.py | showsignature read - --lang-only py            # stdin。--lang
 モードはカンマで組み合わせます:
 
 ```bash
-showsignature map src --show-only signatures,imports,comments
+showsignature map src --only signatures,imports,comments
 ```
 
 ## 出力
@@ -260,7 +260,7 @@ showsignature map src --show-only signatures,imports,comments
 `showsignature` はコンパクトなテキスト出力を表示します。shell リダイレクトを使って出力をファイルに保存できます:
 
 ```bash
-showsignature map src --show-only signatures > structure.txt
+showsignature map src --only signatures > structure.txt
 ```
 
 ## Pipeline での使用
@@ -268,10 +268,10 @@ showsignature map src --show-only signatures > structure.txt
 `showsignature` は既定で stdout に書き込むため、`rg`、`grep`、`fzf`、`less`、`head`、`tee`、shell リダイレクトなどのツールとうまく連携します。
 
 ```sh
-showsignature map src --show-only imports | rg "node"                         # 一致する imports を探す
-showsignature map src --show-only signatures | rg "async"                     # async 関数またはメソッドを探す
-showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # 近くのコンテキスト付きで comments/signatures を検索
-showsignature map src --show-only signatures,imports | bat -l js              # 大きな出力をページ表示
+showsignature map src --only imports | rg "node"                         # 一致する imports を探す
+showsignature map src --only signatures | rg "async"                     # async 関数またはメソッドを探す
+showsignature map src --only comments,signatures | rg -C 2 "ExtractKind" # 近くのコンテキスト付きで comments/signatures を検索
+showsignature map src --only signatures,imports | bat -l js              # 大きな出力をページ表示
 ```
 
 ## 開発

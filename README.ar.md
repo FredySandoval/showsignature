@@ -127,13 +127,13 @@ pnpm link --global
 ## الاستخدام
 
 ```sh
-showsignature map  [OPTION]... [FILE]...
-showsignature read [OPTION] <FILE>
+showsignature map  [OPTION]... [PATH]...
+showsignature read [OPTION]... <FILE>
 ```
 
 أمران:
 
-- `map` — نظرة هيكلية عامة: التواقيع وغيرها من المدخلات المستخرجة. يفحص معاملات [FILE] — ملفات أو مسارات أدلة — باستخدام الدليل الحالي افتراضيًا.
+- `map` — نظرة هيكلية عامة: التواقيع وغيرها من المدخلات المستخرجة. يفحص معاملات [PATH] — ملفات أو مسارات أدلة — باستخدام الدليل الحالي افتراضيًا.
 - `read` — قراءة حرفية بنافذة لملف واحد بالضبط، محاطة بهيكل تواقيع للتوجيه.
 
 تشغيل `showsignature` بدون أمر يطبع المساعدة وينتهي برمز الخروج 1.
@@ -142,12 +142,12 @@ showsignature read [OPTION] <FILE>
 
 | OPTION                | الوصف                                               |
 | --------------------- | --------------------------------------------------- |
-| `--lang-only <lang>`  | يفرض اللغة؛ مطلوب عند استخدام `-` للقراءة من stdin. |
-| `--show-only <items>` | يختار extractors.                                   |
+| `--lang <lang>`  | يفرض اللغة؛ مطلوب عند استخدام `-` للقراءة من stdin. |
+| `--only <items>` | يختار extractors.                                   |
 | `--include-tests`     | يضمّن ملفات الاختبار في عمليات فحص المجلدات.        |
 | `--max-depth <n>`     | يحد عمق الفحص (الافتراضي للأدلة هو `2`).            |
-| `--offset <n>`        | يتخطى أول N من **المدخلات** المستخرجة (افتراضيًا: 0). |
-| `--limit <n>`         | الحد الأقصى لعدد **المدخلات** المعروضة.             |
+| `--skip <n>`        | يتخطى أول N من **المدخلات** المستخرجة (افتراضيًا: 0). |
+| `--take <n>`         | الحد الأقصى لعدد **المدخلات** المعروضة.             |
 | `--all`               | يعطّل كل حدود الإخراج (حد المدخلات وحد 2000 سطر / 50 KB). |
 | `--no-redact`         | يعطّل إخفاء الأسرار المدمج.                         |
 | `--no-line-number`    | يخفي بادئات أرقام الأسطر.                           |
@@ -159,12 +159,12 @@ showsignature read [OPTION] <FILE>
 | `--offset <n>`       | أول **سطر** يُعرض، يبدأ من 1 (افتراضيًا: 1).          |
 | `--limit <n>`        | الحد الأقصى لعدد **الأسطر** المعروضة في النافذة.      |
 | `--all`              | يعطّل حد النافذة 2000 سطر / 50 KB.                    |
-| `--lang-only <lang>` | لغة الهيكل؛ يفعّل الهياكل عند القراءة من stdin (`-`). |
-| `--show-only <items>`| المستخرجات المستخدمة للهيكل (افتراضيًا: `signatures`). |
+| `--lang <lang>` | لغة الهيكل؛ يفعّل الهياكل عند القراءة من stdin (`-`). |
+| `--outline <items>`| المستخرجات المستخدمة للهيكل (افتراضيًا: `signatures`). |
 | `--no-line-number`   | يخفي بادئات أرقام الأسطر في الهيكل (المحتوى لا يحملها أبدًا). |
 | `--no-redact`        | يعطّل إخفاء الأسرار للحصول على البايتات الحرفية.      |
 
-ملاحظة: `--offset`/`--limit` تعني **مدخلات** في `map` لكنها تعني **أسطرًا** في `read`.
+Note: `map` → **ENTRIES** (`--skip`/`--take`); `read` → **LINES** (`--offset`/`--limit`).
 
 الإخراج محدود افتراضيًا بـ 2000 سطر / 50 KB؛ عندما يعمل حد أو عمق الفحص الافتراضي، ينتهي
 الإخراج بذيل `note:` واحد (يُعكس أيضًا إلى stderr) يذكر الأعلام الدقيقة أو الاستدعاء التالي للمتابعة.
@@ -209,29 +209,29 @@ showsignature read [OPTION] <FILE>
 
 ## أمثلة استخدام أساسية
 
-`showsignature map [OPTION]... [FILE]...` / `showsignature read [OPTION] <FILE>`
+`showsignature map [OPTION]... [PATH]...` / `showsignature read [OPTION]... <FILE>`
 
 ```sh
 showsignature map ./src                                         # فحص مجلد
 showsignature map src/01-main.ts                                # فحص ملف واحد
 
-showsignature map src/main.ts README.md tests/fixtures          # يمكن أن يكون [FILE] ملفًا/دليلًا واحدًا أو أكثر
-showsignature map --show-only imports,exports                   # عرض exports فقط
-showsignature map --show-only signatures,imports,exports ./src  # عرض بنية الكود و imports
-showsignature map --show-only interfaces,types ./folder         # عرض أشكال البيانات
-showsignature map --show-only variables,comments src/main.ts    # عرض variables
+showsignature map src/main.ts README.md tests/fixtures          # يمكن أن يكون [PATH] ملفًا/دليلًا واحدًا أو أكثر
+showsignature map --only imports,exports                   # عرض exports فقط
+showsignature map --only signatures,imports,exports ./src  # عرض بنية الكود و imports
+showsignature map --only interfaces,types ./folder         # عرض أشكال البيانات
+showsignature map --only variables,comments src/main.ts    # عرض variables
 
-showsignature map --show-only md:headings                       # استخراج Markdown headings
-showsignature map --show-only md:tables,md:codeblocks           # استخراج Markdown tables
-showsignature map --show-only json:shape config.json            # استخراج JSON shape
+showsignature map --only md:headings                       # استخراج Markdown headings
+showsignature map --only md:tables,md:codeblocks           # استخراج Markdown tables
+showsignature map --only json:shape config.json            # استخراج JSON shape
 
 # مفيد عند إجراء عمليات ترحيل من لغة إلى أخرى
-showsignature map --lang-only py                                # معالجة ملفات Python فقط
-showsignature map --lang-only go --show-only imports,exports    # عرض Go imports والتصريحات المصدّرة
-showsignature map --lang-only py --show-only types,comments     # عرض Python imports و public exports
+showsignature map --lang py                                # معالجة ملفات Python فقط
+showsignature map --lang go --only imports,exports    # عرض Go imports والتصريحات المصدّرة
+showsignature map --lang py --only types,comments     # عرض Python imports و public exports
 showsignature map --max-depth 4                                 # حد عمق الفحص التكراري
 
-showsignature map --offset 40 --limit 40 ./src                  # تصفح قائمة مدخلات كبيرة صفحة صفحة
+showsignature map --skip 40 --take 40 ./src                  # تصفح قائمة مدخلات كبيرة صفحة صفحة
 showsignature map --all ./src                                   # تعطيل حدود الإخراج
 ```
 
@@ -241,7 +241,7 @@ showsignature map --all ./src                                   # تعطيل ح�
 showsignature read src/01-main.ts                               # الأسطر الأولى من الملف (حتى الحد)
 showsignature read --offset 200 --limit 100 src/01-main.ts      # الأسطر 200-299 مع هياكل حول النافذة
 showsignature read --no-redact src/config.ts                    # بايتات حرفية، بدون إخفاء الأسرار
-cat snippet.py | showsignature read - --lang-only py            # stdin؛ --lang-only يفعّل الهيكل
+cat snippet.py | showsignature read - --lang py            # stdin؛ --lang يفعّل الهيكل
 ```
 
 تحمل أسطر الهيكل أرقام أسطر حقيقية، لذا يمكنك القفز إلى أي مكان عبر
@@ -251,7 +251,7 @@ cat snippet.py | showsignature read - --lang-only py            # stdin؛ --lang
 اجمع الأوضاع بفواصل:
 
 ```bash
-showsignature map src --show-only signatures,imports,comments
+showsignature map src --only signatures,imports,comments
 ```
 
 ## الإخراج
@@ -259,7 +259,7 @@ showsignature map src --show-only signatures,imports,comments
 يطبع `showsignature` إخراجًا نصيًا مضغوطًا. استخدم إعادة توجيه shell لحفظ الإخراج في ملف:
 
 ```bash
-showsignature map src --show-only signatures > structure.txt
+showsignature map src --only signatures > structure.txt
 ```
 
 ## الاستخدام في pipeline
@@ -267,10 +267,10 @@ showsignature map src --show-only signatures > structure.txt
 يكتب `showsignature` إلى stdout افتراضيًا، لذلك يعمل جيدًا مع أدوات مثل `rg` و `grep` و `fzf` و `less` و `head` و `tee` وإعادات توجيه shell.
 
 ```sh
-showsignature map src --show-only imports | rg "node"                         # العثور على imports مطابقة
-showsignature map src --show-only signatures | rg "async"                     # العثور على وظائف أو طرق async
-showsignature map src --show-only comments,signatures | rg -C 2 "ExtractKind" # البحث في comments/signatures مع سياق قريب
-showsignature map src --show-only signatures,imports | bat -l js              # تصفح إخراج كبير على صفحات
+showsignature map src --only imports | rg "node"                         # العثور على imports مطابقة
+showsignature map src --only signatures | rg "async"                     # العثور على وظائف أو طرق async
+showsignature map src --only comments,signatures | rg -C 2 "ExtractKind" # البحث في comments/signatures مع سياق قريب
+showsignature map src --only signatures,imports | bat -l js              # تصفح إخراج كبير على صفحات
 ```
 
 ## التطوير
