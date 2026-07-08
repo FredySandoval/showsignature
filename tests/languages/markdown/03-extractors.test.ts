@@ -40,6 +40,54 @@ describe("markdown extractors", () => {
     ]);
   });
 
+  test("ignores # comments inside fenced code blocks", () => {
+    const context = createMarkdownParseContext({
+      source: [
+        "# Title",
+        "```bash",
+        "# not a heading",
+        "```",
+        "~~~",
+        "# also not a heading",
+        "~~~",
+        "## After",
+        "",
+      ].join("\n"),
+      filePath: "/tmp/fenced-headings.md",
+    });
+
+    const result = createHeadingsExtractor().extract(context);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries.map((entry) => entry.lines[0])).toEqual([
+      "# Title",
+      "## After",
+    ]);
+  });
+
+  test("ignores pipe characters inside fenced code blocks", () => {
+    const context = createMarkdownParseContext({
+      source: [
+        "```sh",
+        "cat file | grep foo",
+        "```",
+        "| Name | Value |",
+        "| --- | --- |",
+        "",
+      ].join("\n"),
+      filePath: "/tmp/fenced-tables.md",
+    });
+
+    const result = createTablesExtractor().extract(context);
+
+    expect(result.warnings).toEqual([]);
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]?.lines).toEqual([
+      "| Name | Value |",
+      "| --- | --- |",
+    ]);
+  });
+
   test("extracts markdown tables as blocks", () => {
     const context = createMarkdownParseContext({
       source: [

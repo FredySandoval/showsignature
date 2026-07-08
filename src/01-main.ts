@@ -16,6 +16,7 @@ import {
   type DetectFenceLanguageOptions,
   type Diagnostic,
   type DiscoverFilesOptions,
+  type DiscoverFilesStats,
   type ExecutionPlan,
   type ExitCodeError,
   type ExtractEntry,
@@ -49,7 +50,17 @@ import { createTsFamilyAdapter } from "./languages/typescript/00-adapter.js";
 
 export type { Extractor, LanguageAdapter } from "./00-core-types.js";
 
-const DEFAULT_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
+// Intersected per file with each adapter's supported kinds: code files run
+// signatures+imports, Markdown runs md:*, JSON runs json:shape.
+const DEFAULT_MAP_EXTRACT_ORDER: ExtractKind[] = [
+  "signatures",
+  "imports",
+  "md:headings",
+  "md:tables",
+  "md:codeblocks",
+  "json:shape",
+] as ExtractKind[];
+const DEFAULT_OUTLINE_EXTRACT_ORDER: ExtractKind[] = ["signatures"];
 import rawPackageMetadata from "../package.json" with { type: "json" };
 
 const packageMetadata = rawPackageMetadata as PackageMetadata;
@@ -72,6 +83,7 @@ const JWT_PATTERN =
 const GITHUB_TOKEN_PATTERN =
   /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b/gu;
 const AWS_ACCESS_KEY_PATTERN = /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/gu;
+const ANTHROPIC_API_KEY_PATTERN = /\bsk-ant-[A-Za-z0-9_-]{10,}\b/gu;
 const SLACK_TOKEN_PATTERN = /\bxox(?:a|b|p|r|s)-[A-Za-z0-9-]{10,}\b/gu;
 const PRIVATE_KEY_INLINE_PATTERN =
   /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/gu;
@@ -100,6 +112,7 @@ export function redactSecrets(value: string): string {
     .replace(JWT_PATTERN, REDACTED_SECRET)
     .replace(GITHUB_TOKEN_PATTERN, REDACTED_SECRET)
     .replace(AWS_ACCESS_KEY_PATTERN, REDACTED_SECRET)
+    .replace(ANTHROPIC_API_KEY_PATTERN, REDACTED_SECRET)
     .replace(SLACK_TOKEN_PATTERN, REDACTED_SECRET)
     .replace(
       QUOTED_SECRET_PROPERTY_PATTERN,
@@ -149,24 +162,11 @@ function sanitizeForMarkdown(value: string): string {
   );
 }
 
-function isPathWithin(basePath: string, targetPath: string): boolean {
-  const relativePath = path.relative(basePath, targetPath);
-  return (
-    relativePath === "" ||
-    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
-  );
-}
-
 async function resolveSafeInputPath(
   targetPath: string,
 ): Promise<string | null> {
   const resolvedPath = path.resolve(targetPath);
-  const cwdRealPath = await realpath(process.cwd());
   const realTargetPath = await realpath(resolvedPath);
-
-  if (!isPathWithin(cwdRealPath, realTargetPath)) {
-    return null;
-  }
 
   const targetStats = await stat(realTargetPath);
   if (!targetStats.isFile()) {
@@ -252,7 +252,7 @@ function buildExtractorsOptionHelp(kinds: readonly string[]): string {
   }
 
   sections.push(
-    "default flag: signatures",
+    "default flags: signatures, imports (md:*/json:shape for Markdown/JSON)",
   );
   return sections.join("\n");
 }
@@ -319,7 +319,8 @@ ${HELP_EXTRACTORS_BODY}
 Global options (accepted by both commands):
   --all            Lift all output caps (2000 lines / 50 KB).
   --no-redact      Disable built-in secrets redaction.
-  --lang <l>       Restrict/declare language; required when reading stdin.
+  --lang <l>       Restrict/declare language. For stdin: required by map,
+                   optional for read (enables the outline).
                    Example: ts, js, tsx, jsx, svelte, go, py, rs, lua, md, json
   -h, --help       Show help. Use \`${CLI_NAME} <command> --help\` for
                    command-specific options and examples.
@@ -352,8 +353,10 @@ Output is a list of extracted ENTRIES (one signature, import, heading,
 etc. per entry), each prefixed with its real source line number.
 
 Options:
-  --only <extractors>    Comma-separated extractors to run (default: all
-                         applicable). See "Extractors" below.
+  --only <extractors>    Comma-separated extractors to run (default:
+                         signatures,imports for code files; md:* for
+                         Markdown; json:shape for JSON). See "Extractors"
+                         below.
   --skip <n>             Skip the first N entries (default: 0).
   --take <n>             Show at most N entries.
   --max-depth <n>        Folder scan depth (default: ${DEFAULT_DIRECTORY_MAX_DEPTH}).
@@ -409,8 +412,9 @@ Global options:
   --all                   Lift the 2000-line / 50 KB window cap.
   --no-redact             Disable secret redaction for literal bytes
                           (redaction is disclosed otherwise).
-  --lang <l>              Declare the file's language; required when
-                          reading stdin.
+  --lang <l>              Declare the file's language. Optional for stdin:
+                          content always displays; the outline appears only
+                          when the language is known.
 
 Extractors (for --outline):
 ${HELP_EXTRACTORS_BODY}
@@ -703,6 +707,16 @@ function emitDiagnostic(diagnostic: Diagnostic, redact = true): void {
   process.stderr.write(`${formatDiagnostic(diagnostic, redact)}\n`);
 }
 
+// Notes go to stdout so piped consumers see them; the stderr copy is only
+// for humans watching a command whose stdout is redirected elsewhere.
+function emitTrailerNote(notes: readonly string[]): void {
+  const trailer = `note: ${notes.join(" | ")}`;
+  process.stdout.write(`${trailer}\n`);
+  if (process.stdout.isTTY !== true) {
+    process.stderr.write(`${trailer}\n`);
+  }
+}
+
 function emitDiagnostics(
   diagnostics: readonly Diagnostic[],
   redact = true,
@@ -765,39 +779,45 @@ async function discoverFilesWithDefaultDepth(options: {
   maxDepth?: number;
   disableDefaultDepth?: boolean;
   notices: string[];
+  stats?: DiscoverFilesStats;
 }): Promise<string[]> {
   const { registry, folder, includeTests, maxDepth, notices } = options;
 
-  if (maxDepth !== undefined || options.disableDefaultDepth) {
+  if (options.disableDefaultDepth) {
     return discoverFiles({
       registry,
       ...(folder !== undefined ? { folder } : {}),
       includeTests,
-      ...(maxDepth !== undefined ? { maxDepth } : {}),
+      ...(options.stats ? { stats: options.stats } : {}),
     });
   }
 
-  // Probe one level past the default so a truncated scan is detectable.
+  // Probe one level past the limit so a truncated scan is detectable.
+  const depthLimit = maxDepth ?? DEFAULT_DIRECTORY_MAX_DEPTH;
   const probed = await discoverFiles({
     registry,
     ...(folder !== undefined ? { folder } : {}),
     includeTests,
-    maxDepth: DEFAULT_DIRECTORY_MAX_DEPTH + 1,
+    maxDepth: depthLimit + 1,
+    ...(options.stats ? { stats: options.stats } : {}),
   });
   const baseDir = folder !== undefined ? path.resolve(folder) : process.cwd();
-  const withinDefault = probed.filter(
-    (filePath) =>
-      pathDepthWithin(baseDir, filePath) <= DEFAULT_DIRECTORY_MAX_DEPTH,
+  const withinLimit = probed.filter(
+    (filePath) => pathDepthWithin(baseDir, filePath) <= depthLimit,
   );
 
-  if (
-    withinDefault.length < probed.length &&
-    !notices.includes(DEPTH_LIMIT_NOTICE)
-  ) {
-    notices.push(DEPTH_LIMIT_NOTICE);
+  if (withinLimit.length < probed.length) {
+    const beyond = probed.length - withinLimit.length;
+    const notice =
+      maxDepth === undefined
+        ? DEPTH_LIMIT_NOTICE
+        : `depth limit ${depthLimit} reached; ${beyond} more file(s) at depth ${depthLimit + 1} — pass --max-depth ${depthLimit + 1} or --all`;
+    if (!notices.includes(notice)) {
+      notices.push(notice);
+    }
   }
 
-  return withinDefault;
+  return withinLimit;
 }
 
 async function resolveInputTarget(
@@ -837,9 +857,16 @@ async function resolveInputTarget(
   }
 
   const inputPaths = args.paths ?? [];
+  const stats: DiscoverFilesStats = { excludedTestFiles: 0 };
+  const noteExcludedTests = (): void => {
+    if (stats.excludedTestFiles > 0) {
+      notices.push(
+        `${stats.excludedTestFiles} test file(s) excluded; pass --include-tests to include them`,
+      );
+    }
+  };
 
   if (inputPaths.length > 0) {
-    const cwdRealPath = await realpath(process.cwd());
     const files: string[] = [];
 
     for (const inputPath of inputPaths) {
@@ -854,11 +881,6 @@ async function resolveInputTarget(
         continue;
       }
 
-      const folderRealPath = await realpath(resolvedPath);
-      if (!isPathWithin(cwdRealPath, folderRealPath)) {
-        continue;
-      }
-
       const discoveredFiles = await discoverFilesWithDefaultDepth({
         registry,
         folder: inputPath,
@@ -866,6 +888,7 @@ async function resolveInputTarget(
         ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
         ...(args.all ? { disableDefaultDepth: true } : {}),
         notices,
+        stats,
       });
       const filteredFiles = explicitLang
         ? discoveredFiles.filter(
@@ -882,6 +905,7 @@ async function resolveInputTarget(
       );
     }
 
+    noteExcludedTests();
     return { files };
   }
 
@@ -891,7 +915,10 @@ async function resolveInputTarget(
     ...(args.maxDepth !== undefined ? { maxDepth: args.maxDepth } : {}),
     ...(args.all ? { disableDefaultDepth: true } : {}),
     notices,
+    stats,
   });
+
+  noteExcludedTests();
 
   const files = explicitLang
     ? discoveredFiles.filter(
@@ -928,7 +955,7 @@ async function resolveExecutionPlan(
 
   const extractOrder = args.only
     ? parseExtractOptions(args.only, listSupportedExtractKinds(registry))
-    : DEFAULT_EXTRACT_ORDER;
+    : DEFAULT_MAP_EXTRACT_ORDER;
 
   const notices: string[] = [];
   const input = await resolveInputTarget(
@@ -1171,9 +1198,7 @@ async function emitPipelineResult(
 
   const notices = plan.notices ?? [];
   if (notices.length > 0) {
-    const trailer = `note: ${notices.join(" | ")}`;
-    process.stdout.write(`${trailer}\n`);
-    process.stderr.write(`${trailer}\n`);
+    emitTrailerNote(notices);
   }
 
   emitDiagnostics(result.diagnostics.warnings, plan.output.redact !== false);
@@ -1410,7 +1435,7 @@ async function resolveReadSource(
   const safePath = await resolveSafeInputPath(target);
   if (!safePath) {
     throw createCliError(
-      `Could not access path: ${target} (must be a regular file inside the current working directory)`,
+      `Could not access path: ${target} (must be a regular file)`,
     );
   }
 
@@ -1458,7 +1483,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
 
   const extractOrder = args.outline
     ? parseExtractOptions(args.outline, listSupportedExtractKinds(registry))
-    : DEFAULT_EXTRACT_ORDER;
+    : DEFAULT_OUTLINE_EXTRACT_ORDER;
 
   const { source, filePath, isStdin } = await resolveReadSource(
     args.paths![0]!,
@@ -1605,9 +1630,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   }
 
   if (notes.length > 0) {
-    const trailer = `note: ${notes.join(" | ")}`;
-    process.stdout.write(`${trailer}\n`);
-    process.stderr.write(`${trailer}\n`);
+    emitTrailerNote(notes);
   }
 }
 
@@ -2175,11 +2198,15 @@ export async function discoverFiles(
     ...(options.maxDepth !== undefined ? { deep: options.maxDepth } : {}),
   });
 
-  return (
-    options.includeTests
-      ? discovered
-      : discovered.filter((filePath) => !isTestFile(filePath))
-  ).sort(compareFilesLogical);
+  const kept = options.includeTests
+    ? discovered
+    : discovered.filter((filePath) => !isTestFile(filePath));
+
+  if (options.stats) {
+    options.stats.excludedTestFiles += discovered.length - kept.length;
+  }
+
+  return kept.sort(compareFilesLogical);
 }
 
 // ============================================================================
@@ -2488,9 +2515,12 @@ export function stripCombinedPositions(
 // Output Formatting                    [Step 8 — format + sink]
 // ============================================================================
 export function toDisplayPath(filePath: string): string {
-  const normalized = path.isAbsolute(filePath)
-    ? path.relative(process.cwd(), filePath)
-    : filePath;
+  let normalized = filePath;
+
+  if (path.isAbsolute(filePath)) {
+    const relativePath = path.relative(process.cwd(), filePath);
+    normalized = relativePath.startsWith("..") ? filePath : relativePath;
+  }
 
   return sanitizeForDisplay(normalized.split(path.sep).join("/"));
 }

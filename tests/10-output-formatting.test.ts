@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import path from "node:path";
 
 import type {
   ExtractKind,
@@ -96,6 +97,17 @@ describe("redactSecrets", () => {
     expect(result.match(/\[redacted\]/gu)?.length).toBe(4);
   });
 
+  test("redacts Anthropic API keys regardless of variable name", () => {
+    const fakeAnthropicKey = ["sk-ant", "api03", "abcdefghijklmnop123456"].join(
+      "-",
+    );
+
+    const result = redactSecrets(`const key = "${fakeAnthropicKey}";`);
+
+    expect(result).not.toContain(fakeAnthropicKey);
+    expect(result).toContain("[redacted]");
+  });
+
   test("redacts secret-like variable and .env assignments", () => {
     expect(redactSecrets("PASSWORD=hunter2")).toBe("PASSWORD=[redacted]");
     expect(redactSecrets('const api_key = "abc123";')).toBe(
@@ -122,6 +134,11 @@ describe("toDisplayPath", () => {
 
   test("handles a plain filename", () => {
     expect(toDisplayPath("index.ts")).toBe("index.ts");
+  });
+
+  test("keeps an absolute path above the cwd absolute instead of ../ chains", () => {
+    const outside = path.join(path.dirname(process.cwd()), "elsewhere", "baz.ts");
+    expect(toDisplayPath(outside)).toBe(outside.split(path.sep).join("/"));
   });
 });
 

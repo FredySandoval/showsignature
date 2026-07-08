@@ -31,7 +31,8 @@ Extractors (for map --only and read --outline):
 Global options (accepted by both commands):
   --all            Lift all output caps (2000 lines / 50 KB).
   --no-redact      Disable built-in secrets redaction.
-  --lang <l>       Restrict/declare language; required when reading stdin.
+  --lang <l>       Restrict/declare language. For stdin: required by map,
+                   optional for read (enables the outline).
                    Example: ts, js, tsx, jsx, svelte, go, py, rs, lua, md, json
   -h, --help       Show help. Use \`showsignature <command> --help\` for
                    command-specific options and examples.
@@ -65,8 +66,10 @@ Output is a list of extracted ENTRIES (one signature, import, heading,
 etc. per entry), each prefixed with its real source line number.
 
 Options:
-  --only <extractors>    Comma-separated extractors to run (default: all
-                         applicable). See "Extractors" below.
+  --only <extractors>    Comma-separated extractors to run (default:
+                         signatures,imports for code files; md:* for
+                         Markdown; json:shape for JSON). See "Extractors"
+                         below.
   --skip <n>             Skip the first N entries (default: 0).
   --take <n>             Show at most N entries.
   --max-depth <n>        Folder scan depth (default: 2).
@@ -133,8 +136,9 @@ Global options:
   --all                   Lift the 2000-line / 50 KB window cap.
   --no-redact             Disable secret redaction for literal bytes
                           (redaction is disclosed otherwise).
-  --lang <l>              Declare the file's language; required when
-                          reading stdin.
+  --lang <l>              Declare the file's language. Optional for stdin:
+                          content always displays; the outline appears only
+                          when the language is known.
 
 Extractors (for --outline):
     signatures     Functions, classes, methods, constructors

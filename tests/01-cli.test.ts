@@ -510,7 +510,9 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain("// top.ts");
     expect(stdoutBuffer).toContain("// src/one.ts");
     expect(stdoutBuffer).not.toContain("// src/nested/two.ts");
-    expect(stderrBuffer).toBe("");
+    expect(stdoutBuffer).toContain(
+      "note: depth limit 2 reached; 1 more file(s) at depth 3 — pass --max-depth 3 or --all",
+    );
     expect(process.exitCode).toBe(0);
   });
 
@@ -768,7 +770,7 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("skips markdown files when default signatures are requested", async () => {
+  test("maps markdown files with the md defaults when no --only is given", async () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
@@ -786,7 +788,8 @@ describe("buildCli", () => {
 
     await buildCli().run(["showcode", "map", "README.md"]);
 
-    expect(stdoutBuffer).toBe("");
+    expect(stdoutBuffer).toContain("// README.md");
+    expect(stdoutBuffer).toContain("1 # The API Guide");
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);
   });

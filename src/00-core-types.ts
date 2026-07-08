@@ -171,6 +171,10 @@ export interface LanguageRegistry {
   supportedLanguages(): string[];
 }
 
+export interface DiscoverFilesStats {
+  excludedTestFiles: number;
+}
+
 export type DiscoverFilesOptions =
   | {
       registry: LanguageRegistry;
@@ -178,6 +182,7 @@ export type DiscoverFilesOptions =
       folder?: never;
       includeTests?: boolean;
       maxDepth?: number;
+      stats?: DiscoverFilesStats;
     }
   | {
       registry: LanguageRegistry;
@@ -185,6 +190,7 @@ export type DiscoverFilesOptions =
       file?: never;
       includeTests?: boolean;
       maxDepth?: number;
+      stats?: DiscoverFilesStats;
     }
   | {
       registry: LanguageRegistry;
@@ -192,6 +198,7 @@ export type DiscoverFilesOptions =
       folder?: never;
       includeTests?: boolean;
       maxDepth?: number;
+      stats?: DiscoverFilesStats;
     };
 
 export interface RunPipelineOptions {

@@ -142,7 +142,7 @@ Options for `showsignature map`:
 
 | OPTION                 | Description                                                                  |
 | ---------------------- | ---------------------------------------------------------------------------- |
-| `--only <extractors>`  | Comma-separated extractors to run (default: all applicable).                 |
+| `--only <extractors>`  | Comma-separated extractors to run (default: `signatures,imports` for code files; `md:*` for Markdown; `json:shape` for JSON). |
 | `--skip <n>`           | Skip the first N **entries** (default: 0).                                   |
 | `--take <n>`           | Show at most N **entries**.                                                  |
 | `--max-depth <n>`      | Folder scan depth (directory scans default to `2`).                          |
@@ -161,15 +161,16 @@ Options for `showsignature read`:
 | `--outline <extractors>` | Extractors used for the outline (default: `signatures`).                      |
 | `--framing <mode>`       | How the content window is wrapped (default: `tags`). One of: `tags`, `none`.  |
 | `--no-line-number`       | Hide line-number prefixes on outline lines (content never has them).          |
-| `--lang <l>`             | Declare the file's language; required when reading stdin (`-`).               |
+| `--lang <l>`             | Declare the file's language. Optional for stdin (`-`): content always displays; the outline needs a known language. |
 | `--all`                  | Lift the 2000-line / 50 KB window cap.                                        |
 | `--no-redact`            | Disable secret redaction for literal bytes (redaction is disclosed otherwise).|
 
 Remember the split: `map` works in **ENTRIES** (`--skip`/`--take`); `read` works in **LINES** (`--offset`/`--limit`).
 
-Output is capped at 2000 lines / 50 KB by default; when a cap or the default scan depth
-kicks in, the output ends with a single `note:` trailer (mirrored to stderr) naming the
-exact flags or follow-up call to continue.
+Output is capped at 2000 lines / 50 KB by default; when a cap, a depth limit, or a
+default filter (such as test-file exclusion) kicks in, the output ends with a single
+`note:` trailer naming the exact flags or follow-up call to continue. The note is
+mirrored to stderr when stdout is piped or redirected, so it stays visible.
 
 ## Extractors
 

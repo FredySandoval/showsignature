@@ -13,7 +13,10 @@ export const MARKDOWN_CODEBLOCKS_KIND = "md:codeblocks" as ExtractKind;
 interface SourceLine {
   text: string;
   start: number;
+  insideFence: boolean;
 }
+
+const FENCE_PATTERN = /^\s{0,3}(```+|~~~+)/u;
 
 function toResult(
   entries: ExtractEntry[],
@@ -42,9 +45,26 @@ function toSourceLines(source: string): SourceLine[] {
   const lines = source.split(/\r?\n/u);
   const output: SourceLine[] = [];
   let start = 0;
+  let openFence: string | undefined;
 
   for (const line of lines) {
-    output.push({ text: line, start });
+    const fenceMatch = FENCE_PATTERN.exec(line);
+    let insideFence = openFence !== undefined;
+
+    if (fenceMatch) {
+      const marker = fenceMatch[1] ?? "";
+      if (openFence === undefined) {
+        openFence = marker;
+        insideFence = true;
+      } else if (
+        marker[0] === openFence[0] &&
+        marker.length >= openFence.length
+      ) {
+        openFence = undefined;
+      }
+    }
+
+    output.push({ text: line, start, insideFence });
     start += line.length + 1;
   }
 
@@ -71,7 +91,7 @@ function createEntriesFromLines(
   predicate: (line: string) => boolean,
 ): ExtractEntry[] {
   return toSourceLines(context.source)
-    .filter((line) => predicate(line.text))
+    .filter((line) => !line.insideFence && predicate(line.text))
     .map((line) => toEntry(kind, [line.text], context.filePath, line.start));
 }
 
@@ -97,7 +117,7 @@ function createTableEntries(context: ParseContext): ExtractEntry[] {
   }
 
   for (const line of lines) {
-    if (isTableLine(line.text)) {
+    if (!line.insideFence && isTableLine(line.text)) {
       currentLines.push(line);
       continue;
     }
