@@ -8,8 +8,8 @@ import type {
 
 export const JSON_SHAPE_KIND = "json:shape" as ExtractKind;
 
-const MAX_DEPTH = 5;
-const MAX_OBJECT_KEYS = 20;
+export const JSON_SHAPE_MAX_DEPTH = 5;
+export const JSON_SHAPE_MAX_OBJECT_KEYS = 20;
 
 function toResult(
   entries: ExtractEntry[],
@@ -60,7 +60,7 @@ function shapeOf(value: unknown, depth = 0): string {
     return scalar;
   }
 
-  if (depth >= MAX_DEPTH) {
+  if (depth >= JSON_SHAPE_MAX_DEPTH) {
     return Array.isArray(value) ? "[...]" : "{...}";
   }
 
@@ -79,10 +79,10 @@ function shapeOf(value: unknown, depth = 0): string {
     }
 
     const renderedKeys = keys
-      .slice(0, MAX_OBJECT_KEYS)
+      .slice(0, JSON_SHAPE_MAX_OBJECT_KEYS)
       .map((key) => `${key}: ${shapeOf(value[key], depth + 1)}`);
 
-    if (keys.length > MAX_OBJECT_KEYS) {
+    if (keys.length > JSON_SHAPE_MAX_OBJECT_KEYS) {
       renderedKeys.push("...");
     }
 

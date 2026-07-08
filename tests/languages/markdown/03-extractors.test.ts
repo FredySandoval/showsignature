@@ -138,4 +138,41 @@ describe("markdown extractors", () => {
       },
     ]);
   });
+
+  test("code block after a blank line points at the fence line, without blanks", () => {
+    const context = createMarkdownParseContext({
+      source: ["title", "", "```js", "code();", "```", "", "after", ""].join(
+        "\n",
+      ),
+      filePath: "/tmp/codeblocks-blank.md",
+    });
+
+    const result = createCodeBlocksExtractor().extract(context);
+
+    expect(result.entries).toEqual([
+      {
+        kind: MARKDOWN_CODEBLOCKS_KIND,
+        lines: ["```js", "code();", "```"],
+        metadata: {
+          filePath: "/tmp/codeblocks-blank.md",
+          sourcePos: 7,
+        },
+      },
+    ]);
+  });
+
+  test("extracts tilde-fenced code blocks and ignores shorter closing fences", () => {
+    const context = createMarkdownParseContext({
+      source: ["~~~~", "```", "inner", "```", "~~~", "~~~~", "done", ""].join(
+        "\n",
+      ),
+      filePath: "/tmp/codeblocks-tilde.md",
+    });
+
+    const result = createCodeBlocksExtractor().extract(context);
+
+    expect(result.entries.map((entry) => entry.lines)).toEqual([
+      ["~~~~", "```", "inner", "```", "~~~", "~~~~"],
+    ]);
+  });
 });

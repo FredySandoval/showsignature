@@ -44,3 +44,37 @@
 - [x] **`tests/fixtures/generate-fixtures.sh` uses old CLI syntax.** Now
       invokes `showsignature map --only …`; regenerating produces
       byte-identical golden fixtures. (done 2026-07-08)
+
+## Round 2 findings (verified 2026-07-08, from independent re-review)
+
+- [x] **`--lang` on an explicit file forces the wrong parser instead of
+      filtering or warning.** Explicit file operands whose detected language
+      mismatches `--lang` are now skipped with a note (`skipped file.py:
+      detected language "py" does not match --lang go`); files with no
+      inferable language can still be forced. (done 2026-07-08)
+- [x] **Zero-entry results print nothing — no file header, no note.**
+      `map` now emits `note: 0 <extractors> entries in N file(s)` whenever
+      files were processed but nothing was extracted. (done 2026-07-08)
+- [x] **`map` redacts secrets without the disclosure note.** `map` now emits
+      the same `note: N secret(s) redacted; pass --no-redact for literal
+      bytes` trailer as `read`, counted by diffing against an unredacted
+      render. (done 2026-07-08)
+- [x] **`json:shape` truncates with `... }` silently.** Chose the note:
+      `note: json:shape elides nested detail as "..." past depth 5 or 20
+      object keys; this cap is fixed (--all does not lift it)`, emitted when
+      a displayed shape entry contains a truncation marker. (done 2026-07-08)
+- [x] **`md:codeblocks` line numbers off by one + blank-line padding.**
+      Replaced the multiline regex (whose `^\s*` swallowed the preceding
+      newline) with the same fence-tracking scanner used by `md:headings`;
+      entries now start exactly at the fence line and `~~~` fences are
+      supported too. (done 2026-07-08)
+- [x] **Outline "← window opens inside this" annotation** could mark an
+      entry the window starts after. Since spans aren't tracked, the
+      annotation now requires the window's first non-blank line to be
+      indented deeper than the candidate entry. (done 2026-07-08)
+- [x] **Unknown-option errors print twice.** Commander's own `writeErr`
+      output is suppressed (`configureOutput`, inherited by subcommands); the
+      thrown CommanderError is reported once via `handleCliFailure`.
+      (done 2026-07-08)
+- [x] **Empty `<outline region=...>` tag pairs** are no longer emitted;
+      regions with zero entries are skipped entirely. (done 2026-07-08)

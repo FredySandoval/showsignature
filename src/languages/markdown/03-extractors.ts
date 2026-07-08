@@ -131,22 +131,43 @@ function createTableEntries(context: ParseContext): ExtractEntry[] {
 
 function createCodeBlockEntries(context: ParseContext): ExtractEntry[] {
   const entries: ExtractEntry[] = [];
-  const pattern = /^\s*```.*(?:\r?\n|$)[\s\S]*?^\s*```\s*$/gmu;
+  let blockLines: SourceLine[] = [];
+  let openFence: string | undefined;
 
-  for (const match of context.source.matchAll(pattern)) {
-    const block = match[0] ?? "";
-    if (!block) {
-      continue;
-    }
-
+  function flush(): void {
     entries.push(
       toEntry(
         MARKDOWN_CODEBLOCKS_KIND,
-        block.split(/\r?\n/u),
+        blockLines.map((line) => line.text),
         context.filePath,
-        match.index ?? 0,
+        blockLines[0]?.start ?? 0,
       ),
     );
+    blockLines = [];
+  }
+
+  for (const line of toSourceLines(context.source)) {
+    const fenceMatch = FENCE_PATTERN.exec(line.text);
+
+    if (openFence === undefined) {
+      if (fenceMatch) {
+        openFence = fenceMatch[1] ?? "";
+        blockLines = [line];
+      }
+      continue;
+    }
+
+    blockLines.push(line);
+    const marker = fenceMatch?.[1] ?? "";
+
+    if (
+      fenceMatch &&
+      marker[0] === openFence[0] &&
+      marker.length >= openFence.length
+    ) {
+      openFence = undefined;
+      flush();
+    }
   }
 
   return entries;

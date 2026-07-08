@@ -845,3 +845,91 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 });
+
+describe("cli round-2 regressions", () => {
+  test("skips explicit files whose detected language mismatches --lang, with a note", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.py", "def greet():\n    pass\n");
+
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--lang", "go", "src/app.py"]);
+
+    expect(stdoutBuffer).toContain(
+      'skipped src/app.py: detected language "py" does not match --lang go',
+    );
+    expect(stdoutBuffer).not.toContain("def greet");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("notes zero-entry results instead of printing nothing", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "basic.lua", "local x = 1\n");
+
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode", "map",
+      "--only",
+      "interfaces",
+      "basic.lua",
+    ]);
+
+    expect(stdoutBuffer).toContain("note: 0 interfaces entries in 1 file");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("map discloses redaction with the same note as read", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "config.py",
+      'API_KEY = "sk-ant-api03-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n',
+    );
+
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--only", "variables", "config.py"]);
+
+    expect(stdoutBuffer).toContain("[redacted]");
+    expect(stdoutBuffer).toContain(
+      "note: 1 secret redacted; pass --no-redact for literal bytes",
+    );
+  });
+
+  test("json:shape truncation is disclosed with a note naming the fixed cap", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "deep.json",
+      '{"a":{"b":{"c":{"d":{"e":{"f":1}}}}}}\n',
+    );
+
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "deep.json"]);
+
+    expect(stdoutBuffer).toContain("{...}");
+    expect(stdoutBuffer).toContain(
+      'note: json:shape elides nested detail as "..." past depth 5 or 20 object keys; this cap is fixed (--all does not lift it)',
+    );
+  });
+
+  test("unknown options are reported once, not twice", async () => {
+    installOutputCapture();
+
+    await expect(
+      buildCli().run(["showcode", "map", "--bogus"]),
+    ).rejects.toThrow("unknown option '--bogus'");
+
+    expect(stderrBuffer).not.toContain("error: unknown option");
+  });
+});

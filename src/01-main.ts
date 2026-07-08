@@ -40,6 +40,11 @@ import {
 } from "./00-core-types.js";
 import { createGoAdapter } from "./languages/go/00-adapter.js";
 import { createJsonAdapter } from "./languages/json/00-adapter.js";
+import {
+  JSON_SHAPE_KIND,
+  JSON_SHAPE_MAX_DEPTH,
+  JSON_SHAPE_MAX_OBJECT_KEYS,
+} from "./languages/json/03-extractors.js";
 import { createLuaAdapter } from "./languages/lua/00-adapter.js";
 import { createMarkdownAdapter } from "./languages/markdown/00-adapter.js";
 import { createPythonAdapter } from "./languages/python/00-adapter.js";
@@ -451,6 +456,9 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .usage("<command> [OPTION]... [FILE]...")
     .version(CLI_VERSION, "-v, --version", "print version and exit")
     .configureHelp({ formatHelp: () => ROOT_HELP })
+    // Commander writes its own "error: …" line before throwing; suppress it —
+    // the thrown CommanderError is re-reported once via handleCliFailure.
+    .configureOutput({ writeErr: () => {} })
     .exitOverride();
 
   program
@@ -876,7 +884,16 @@ async function resolveInputTarget(
       if (target.isFile()) {
         const resolvedFilePath = await resolveSafeInputPath(inputPath);
         if (resolvedFilePath) {
-          files.push(resolvedFilePath);
+          const inferredLang = registry.inferFromFile(resolvedFilePath);
+          if (explicitLang && inferredLang && inferredLang !== explicitLang) {
+            // Forcing a mismatched parser yields silently wrong structure;
+            // extensionless files (no inferred language) may still be forced.
+            notices.push(
+              `skipped ${toDisplayPath(resolvedFilePath)}: detected language "${inferredLang}" does not match --lang ${explicitLang}`,
+            );
+          } else {
+            files.push(resolvedFilePath);
+          }
         }
         continue;
       }
@@ -1164,28 +1181,76 @@ function renderPipelineOutput(
     }
   }
 
-  if (plan.uncapped) {
-    return formatFinalOutput({
-      registry: plan.registry,
-      sections,
-      ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
-      ...(plan.output.includeLineNumbers ? { includeLineNumbers: true } : {}),
-      ...(plan.output.redact === false ? { redact: false } : {}),
-      seenLangs: result.meta.seenLangs,
+  const redactEnabled = plan.output.redact !== false;
+
+  const render = (redact: boolean): string => {
+    if (plan.uncapped) {
+      return formatFinalOutput({
+        registry: plan.registry,
+        sections,
+        ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
+        ...(plan.output.includeLineNumbers
+          ? { includeLineNumbers: true }
+          : {}),
+        ...(redact ? {} : { redact: false }),
+        seenLangs: result.meta.seenLangs,
+      });
+    }
+
+    const capped = renderCappedSections(sections, {
+      includeLineNumbers: plan.output.includeLineNumbers === true,
+      redact,
     });
+
+    if (redact === redactEnabled && capped.notice) {
+      notices.push(capped.notice);
+    }
+
+    return capped.output;
+  };
+
+  const output = render(redactEnabled);
+
+  if (totalEntries === 0 && result.sections.length > 0) {
+    const fileCount = result.sections.length;
+    notices.push(
+      `0 ${plan.extractOrder.join(", ")} entries in ${fileCount} file${fileCount === 1 ? "" : "s"}`,
+    );
   }
 
-  const capped = renderCappedSections(sections, {
-    includeLineNumbers: plan.output.includeLineNumbers === true,
-    redact: plan.output.redact !== false,
-  });
-
-  if (capped.notice) {
-    notices.push(capped.notice);
+  if (redactEnabled && output.includes(REDACTED_SECRET)) {
+    // Diff against an unredacted render so literal "[REDACTED]" text in the
+    // source is not miscounted as a redaction.
+    const redactedCount = Math.max(
+      1,
+      countOccurrences(output, REDACTED_SECRET) -
+        countOccurrences(render(false), REDACTED_SECRET),
+    );
+    notices.push(
+      `${redactedCount} secret${redactedCount === 1 ? "" : "s"} redacted; pass --no-redact for literal bytes`,
+    );
   }
 
-  return capped.output;
+  const shapeTruncated = sections.some(
+    (section) =>
+      section.entries.some(
+        (entry) =>
+          entry.kind === JSON_SHAPE_KIND &&
+          entry.lines.some((line) => JSON_SHAPE_TRUNCATION_PATTERN.test(line)),
+      ),
+  );
+  if (shapeTruncated) {
+    notices.push(
+      `json:shape elides nested detail as "..." past depth ${JSON_SHAPE_MAX_DEPTH} or ${JSON_SHAPE_MAX_OBJECT_KEYS} object keys; this cap is fixed (--all does not lift it)`,
+    );
+  }
+
+  return output;
 }
+
+// json:shape never prints values, only type names and keys, so these marker
+// forms can only come from shapeOf() truncation.
+const JSON_SHAPE_TRUNCATION_PATTERN = /\{\.\.\.\}|\[\.\.\.\]|, \.\.\. \}/u;
 
 async function emitPipelineResult(
   plan: ExecutionPlan,
@@ -1305,6 +1370,27 @@ function entryIndentWidth(entry: ExtractEntry): number {
   }
 
   return width;
+}
+
+// Indent of the first non-blank line, or undefined when every line is blank.
+function contentIndentWidth(content: string): number | undefined {
+  for (const line of content.split("\n")) {
+    if (line.trim() === "") {
+      continue;
+    }
+
+    let width = 0;
+    while (width < line.length) {
+      const char = line[width];
+      if (char !== " " && char !== "\t") {
+        break;
+      }
+      width += 1;
+    }
+    return width;
+  }
+
+  return undefined;
 }
 
 // Chain of definitions the window start sits inside, approximated from the
@@ -1569,15 +1655,25 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     );
     const { chain, deepest } = buildEnclosingChain(beforeEntries);
     const outlineEntries = degradeOutlineByDepth(beforeEntries, chain);
+    // Entries only track start lines, not spans, so "the window opens inside
+    // this" is a guess; only claim it when the window's first non-blank line
+    // is indented deeper than the candidate (i.e. plausibly in its body).
+    const windowIndent = contentIndentWidth(rawContent);
+    const annotate =
+      deepest !== undefined &&
+      windowIndent !== undefined &&
+      windowIndent > entryIndentWidth(deepest);
 
-    outputParts.push(
-      renderOutline("before", outlineEntries, {
-        includeLineNumbers,
-        redact: redactEnabled,
-        note: buildOutlineNote(extractOrder),
-        ...(deepest ? { deepestChainEntry: deepest } : {}),
-      }),
-    );
+    if (outlineEntries.length > 0) {
+      outputParts.push(
+        renderOutline("before", outlineEntries, {
+          includeLineNumbers,
+          redact: redactEnabled,
+          note: buildOutlineNote(extractOrder),
+          ...(annotate ? { deepestChainEntry: deepest } : {}),
+        }),
+      );
+    }
   }
 
   const rangeText =
@@ -1598,13 +1694,15 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     );
     const outlineEntries = degradeOutlineByDepth(afterEntries, new Set());
 
-    outputParts.push(
-      renderOutline("after", outlineEntries, {
-        includeLineNumbers,
-        redact: redactEnabled,
-        note: buildOutlineNote(extractOrder),
-      }),
-    );
+    if (outlineEntries.length > 0) {
+      outputParts.push(
+        renderOutline("after", outlineEntries, {
+          includeLineNumbers,
+          redact: redactEnabled,
+          note: buildOutlineNote(extractOrder),
+        }),
+      );
+    }
   }
 
   process.stdout.write(`${outputParts.join("\n")}\n`);

@@ -489,3 +489,73 @@ describe("outline helpers", () => {
     expect([...chain].map((e) => e.lines[0])).toEqual(["class B:", "  def m3():"]);
   });
 });
+
+describe("read round-2 regressions", () => {
+  test("omits the window annotation when the window is not inside the last entry", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      rootDir,
+      "w.py",
+      "def a():\n    pass\n\n\nx = 1\ny = 2\nz = 3\n",
+    );
+
+    await buildCli().run([
+      "showcode", "read",
+      "--offset",
+      "5",
+      "--limit",
+      "1",
+      filePath,
+    ]);
+
+    expect(stdoutBuffer).toContain("def a()");
+    expect(stdoutBuffer).not.toContain("← window opens inside this");
+  });
+
+  test("keeps the window annotation when the window is indented inside the entry", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      rootDir,
+      "in.py",
+      "def a():\n    x = 1\n    y = 2\n    z = 3\n",
+    );
+
+    await buildCli().run([
+      "showcode", "read",
+      "--offset",
+      "3",
+      "--limit",
+      "1",
+      filePath,
+    ]);
+
+    expect(stdoutBuffer).toContain("← window opens inside this");
+  });
+
+  test("skips empty outline tag pairs", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      rootDir,
+      "w.py",
+      "def a():\n    pass\n\n\nx = 1\ny = 2\nz = 3\n",
+    );
+
+    await buildCli().run([
+      "showcode", "read",
+      "--offset",
+      "5",
+      "--limit",
+      "1",
+      filePath,
+    ]);
+
+    expect(stdoutBuffer).toContain('<outline region="before"');
+    expect(stdoutBuffer).not.toContain('<outline region="after"');
+  });
+});
