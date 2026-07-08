@@ -43,7 +43,8 @@ Getting started:
   showsignature map ./src                                Overview of a folder
   showsignature map --only imports ./src                 One extractor only
   showsignature read --offset 200 --limit 100 file.ext   Read lines 200–299
-  showsignature read --outline exports file.ext             Plain read, no outline
+  showsignature read --framing none file.ext             Plain read, no outline
+
 
 Output is capped at 2000 lines / 50 KB.
 When a cap kicks in, a trailing `note:` names the exact flags or
@@ -69,7 +70,7 @@ Options:
   --skip <n>             Skip the first N entries (default: 0).
   --take <n>             Show at most N entries.
   --max-depth <n>        Folder scan depth (default: 2).
-  --include-tests        include test files in folder scans.
+  --include-tests        Include test files in folder scans.
   --no-line-number       Hide source line-number prefixes.
   -h, --help             Show this help.
 
@@ -101,7 +102,6 @@ Examples:
   showsignature map --only json:shape config.json
   showsignature map --lang go --only imports,exports
   showsignature map --skip 40 --take 40 ./src
-  showsignature map src --only imports | rg "node"
 
 Note: map paginates ENTRIES (--skip/--take).
       To read LINES from one file, use `showsignature read --offset/--limit`.
@@ -157,10 +157,10 @@ Framing modes:
 
 Examples:
   showsignature read src/01-main.ts
-  showsignature read --offset 200 --limit 100 src/main.py
-  showsignature read --outline imports,signatures src/config.ts
-  showsignature read --outline types src/config.ts
-  showsignature read --outline interfaces --framing none src/data.json
+  showsignature read --offset 200 --limit 100 src/main.ext
+  showsignature read --outline imports,signatures src/config.ext
+  showsignature read --outline types src/config.ext
+  showsignature read --outline interfaces --framing none src/data.ext
 
 Tip: outline lines carry real line numbers, so you can jump anywhere
      with `showsignature read --offset <line> <file>`.
