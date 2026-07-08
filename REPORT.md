@@ -69,7 +69,7 @@ Options:
   --skip <n>             Skip the first N entries (default: 0).
   --take <n>             Show at most N entries.
   --max-depth <n>        Folder scan depth (default: 2).
-  --Include-tests        Include test files in folder scans.
+  --include-tests        include test files in folder scans.
   --no-line-number       Hide source line-number prefixes.
   -h, --help             Show this help.
 
