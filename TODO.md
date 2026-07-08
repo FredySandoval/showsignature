@@ -78,3 +78,40 @@
       (done 2026-07-08)
 - [x] **Empty `<outline region=...>` tag pairs** are no longer emitted;
       regions with zero entries are skipped entirely. (done 2026-07-08)
+
+## Round 3 findings (verified 2026-07-08, full spec re-verification)
+
+- [x] **`--lang` directory scans with zero matches produce empty output,
+      exit 0, and no (or a misleading) note.**
+      `map --lang go --max-depth 10 src` printed nothing at all — no note,
+      exit 0; with the default depth the only note blamed the depth limit.
+      Both directory-scan branches in `resolveInputTarget` now emit
+      `note: 0 files matched --lang <l> under <dir>; remove --lang or check
+      the extension` whenever the lang filter leaves a scan empty (per
+      directory in multi-path runs; `.` for the default cwd scan).
+      Regression tests added. (done 2026-07-08)
+- [x] **Stale golden fixtures for zero-entry extractors.**
+      `tests/fixtures/lua/interfaces.lua`, `lua/types.lua`,
+      `python/interfaces.py`, `python/types.py` were empty, but live output
+      now (correctly) emits `note: 0 <extractor> entries in 1 file` on
+      stdout. Regenerated all goldens with `generate-fixtures.sh` against
+      the local build; only those four changed. (done 2026-07-08)
+- [x] **False-positive secret redaction of `package.json` `author`.**
+      `map --only json:shape package.json` showed `author: [redacted]`:
+      `SECRET_NAME_PATTERN` appended `[A-Za-z0-9_]*` to each keyword, so
+      `auth` matched "auth"+"or" = `author`. The keyword suffix now must
+      start with a digit or `_` (`AUTH_TOKEN`/`token2` still match;
+      `author`/`tokenizer` don't), and `authorization` was added as an
+      explicit keyword so bearer headers stay redacted. Regression tests
+      added. (done 2026-07-08)
+- [x] **`--all` docs overstate: json:shape depth/key cap is fixed.**
+      Global/`map` help and the README `--all` row now say "Lift the output
+      caps … Exception: json:shape's nesting summary ("...") is fixed",
+      matching the runtime trailer. Help snapshot updated.
+      (done 2026-07-08)
+- [x] **Pluralization nits in output** (cosmetic). Added a `pluralize`
+      helper; `(1 entry)`/`(N entries)`, `1 more file`/`N more files`,
+      `N test files excluded`, and the zero-entry note reworded to
+      `0 entries for <extractors> in N file(s→files)`. Tests and the four
+      zero-entry golden fixtures updated to the new wording.
+      (done 2026-07-08)

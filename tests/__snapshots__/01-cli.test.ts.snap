@@ -29,7 +29,8 @@ Extractors (for map --only and read --outline):
     json:shape     JSON value shape
 
 Global options (accepted by both commands):
-  --all            Lift all output caps (2000 lines / 50 KB).
+  --all            Lift the output caps (2000 lines / 50 KB). Exception:
+                   json:shape's nesting summary ("...") is fixed.
   --no-redact      Disable built-in secrets redaction.
   --lang <l>       Restrict/declare language. For stdin: required by map,
                    optional for read (enables the outline).
@@ -78,8 +79,9 @@ Options:
   -h, --help             Show this help.
 
 Global options:
-  --all                  Lift all output caps (entry limit and the
-                         2000-line / 50 KB cap).
+  --all                  Lift the output caps (entry limit and the
+                         2000-line / 50 KB cap). Exception: json:shape's
+                         nesting summary ("...") is fixed.
   --no-redact            Disable built-in secrets redaction.
   --lang <l>             Only process files of this language; required when
                          reading stdin. Example: ts, go, py, rs, md, json

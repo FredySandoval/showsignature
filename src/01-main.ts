@@ -95,8 +95,10 @@ const PRIVATE_KEY_INLINE_PATTERN =
 const PRIVATE_KEY_BOUNDARY_PATTERN =
   /-----(?:BEGIN|END) [A-Z0-9 ]*PRIVATE KEY-----/gu;
 const SECRET_KEYWORD_PATTERN =
-  "(?:api[_-]?key|token|secret|password|passwd|credential|private[_-]?key|access[_-]?key|auth)";
-const SECRET_NAME_PATTERN = `(?:${SECRET_KEYWORD_PATTERN}|[A-Za-z_][A-Za-z0-9_]*${SECRET_KEYWORD_PATTERN})[A-Za-z0-9_]*`;
+  "(?:api[_-]?key|token|secret|password|passwd|credential|private[_-]?key|access[_-]?key|authorization|auth)";
+// The suffix after a keyword must not start with a letter, so a bare
+// keyword cannot extend into an unrelated word ("auth" ≠ "author").
+const SECRET_NAME_PATTERN = `(?:${SECRET_KEYWORD_PATTERN}|[A-Za-z_][A-Za-z0-9_]*${SECRET_KEYWORD_PATTERN})(?:[0-9_][A-Za-z0-9_]*)?`;
 const ENV_SECRET_ASSIGNMENT_PATTERN = new RegExp(
   `(^|\\b)(${SECRET_NAME_PATTERN}\\s*=\\s*)([^\\s#;]+)`,
   "giu",
@@ -322,7 +324,8 @@ Extractors (for map --only and read --outline):
 ${HELP_EXTRACTORS_BODY}
 
 Global options (accepted by both commands):
-  --all            Lift all output caps (2000 lines / 50 KB).
+  --all            Lift the output caps (2000 lines / 50 KB). Exception:
+                   json:shape's nesting summary ("...") is fixed.
   --no-redact      Disable built-in secrets redaction.
   --lang <l>       Restrict/declare language. For stdin: required by map,
                    optional for read (enables the outline).
@@ -370,8 +373,9 @@ Options:
   -h, --help             Show this help.
 
 Global options:
-  --all                  Lift all output caps (entry limit and the
-                         2000-line / 50 KB cap).
+  --all                  Lift the output caps (entry limit and the
+                         2000-line / 50 KB cap). Exception: json:shape's
+                         nesting summary ("...") is fixed.
   --no-redact            Disable built-in secrets redaction.
   --lang <l>             Only process files of this language; required when
                          reading stdin. Example: ts, go, py, rs, md, json
@@ -776,6 +780,14 @@ function inferImplicitStdinLanguage(
 
 const DEPTH_LIMIT_NOTICE = `directory scan depth-limited to ${DEFAULT_DIRECTORY_MAX_DEPTH} by default; pass --max-depth <n> to go deeper`;
 
+function pluralize(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+): string {
+  return count === 1 ? singular : plural;
+}
+
 function pathDepthWithin(baseDir: string, filePath: string): number {
   return path.relative(baseDir, filePath).split(path.sep).length;
 }
@@ -819,7 +831,7 @@ async function discoverFilesWithDefaultDepth(options: {
     const notice =
       maxDepth === undefined
         ? DEPTH_LIMIT_NOTICE
-        : `depth limit ${depthLimit} reached; ${beyond} more file(s) at depth ${depthLimit + 1} — pass --max-depth ${depthLimit + 1} or --all`;
+        : `depth limit ${depthLimit} reached; ${beyond} more ${pluralize(beyond, "file")} at depth ${depthLimit + 1} — pass --max-depth ${depthLimit + 1} or --all`;
     if (!notices.includes(notice)) {
       notices.push(notice);
     }
@@ -869,7 +881,7 @@ async function resolveInputTarget(
   const noteExcludedTests = (): void => {
     if (stats.excludedTestFiles > 0) {
       notices.push(
-        `${stats.excludedTestFiles} test file(s) excluded; pass --include-tests to include them`,
+        `${stats.excludedTestFiles} test ${pluralize(stats.excludedTestFiles, "file")} excluded; pass --include-tests to include them`,
       );
     }
   };
@@ -912,6 +924,11 @@ async function resolveInputTarget(
             (filePath) => registry.inferFromFile(filePath) === explicitLang,
           )
         : discoveredFiles;
+      if (explicitLang && filteredFiles.length === 0) {
+        notices.push(
+          `0 files matched --lang ${explicitLang} under ${toDisplayPath(path.resolve(inputPath))}; remove --lang or check the extension`,
+        );
+      }
 
       files.push(
         ...(!usesOnlyMarkdownExtractKinds(extractOrder)
@@ -942,6 +959,11 @@ async function resolveInputTarget(
         (filePath) => registry.inferFromFile(filePath) === explicitLang,
       )
     : discoveredFiles;
+  if (explicitLang && files.length === 0) {
+    notices.push(
+      `0 files matched --lang ${explicitLang} under .; remove --lang or check the extension`,
+    );
+  }
 
   if (!usesOnlyMarkdownExtractKinds(extractOrder)) {
     return { files };
@@ -1080,7 +1102,9 @@ function renderCappedSections(
     const displayPath = toDisplayPath(section.filePath);
 
     if (capDescription) {
-      summaries.push(`// ${displayPath} (${section.entries.length} entries)`);
+      summaries.push(
+        `// ${displayPath} (${section.entries.length} ${pluralize(section.entries.length, "entry", "entries")})`,
+      );
       continue;
     }
 
@@ -1117,12 +1141,14 @@ function renderCappedSections(
 
       output = sectionOutput;
       summaries.push(
-        `// ${displayPath} (${section.entries.length - keptEntries} more entries)`,
+        `// ${displayPath} (${section.entries.length - keptEntries} more ${pluralize(section.entries.length - keptEntries, "entry", "entries")})`,
       );
       continue;
     }
 
-    summaries.push(`// ${displayPath} (${section.entries.length} entries)`);
+    summaries.push(
+      `// ${displayPath} (${section.entries.length} ${pluralize(section.entries.length, "entry", "entries")})`,
+    );
   }
 
   if (!capDescription) {
@@ -1214,7 +1240,7 @@ function renderPipelineOutput(
   if (totalEntries === 0 && result.sections.length > 0) {
     const fileCount = result.sections.length;
     notices.push(
-      `0 ${plan.extractOrder.join(", ")} entries in ${fileCount} file${fileCount === 1 ? "" : "s"}`,
+      `0 entries for ${plan.extractOrder.join(", ")} in ${fileCount} ${pluralize(fileCount, "file")}`,
     );
   }
 

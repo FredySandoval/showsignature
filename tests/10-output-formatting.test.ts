@@ -114,6 +114,17 @@ describe("redactSecrets", () => {
       "const api_key = [redacted];",
     );
     expect(redactSecrets("auth: 'bearer-token'")).toBe("auth: [redacted]");
+    expect(redactSecrets("AUTH_TOKEN=abc")).toBe("AUTH_TOKEN=[redacted]");
+    expect(redactSecrets('authorization: "Bearer abc"')).toBe(
+      "authorization: [redacted]",
+    );
+  });
+
+  test("does not redact benign names that merely start with a keyword", () => {
+    expect(redactSecrets('"author": "Fredy <x@y.dev>"')).toBe(
+      '"author": "Fredy <x@y.dev>"',
+    );
+    expect(redactSecrets('tokenizer = "gpt"')).toBe('tokenizer = "gpt"');
   });
 });
 

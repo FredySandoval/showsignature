@@ -523,7 +523,7 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain("// src/one.ts");
     expect(stdoutBuffer).not.toContain("// src/nested/two.ts");
     expect(stdoutBuffer).toContain(
-      "note: depth limit 2 reached; 1 more file(s) at depth 3 — pass --max-depth 3 or --all",
+      "note: depth limit 2 reached; 1 more file at depth 3 — pass --max-depth 3 or --all",
     );
     expect(process.exitCode).toBe(0);
   });
@@ -891,7 +891,7 @@ describe("cli round-2 regressions", () => {
       "basic.lua",
     ]);
 
-    expect(stdoutBuffer).toContain("note: 0 interfaces entries in 1 file");
+    expect(stdoutBuffer).toContain("note: 0 entries for interfaces in 1 file");
     expect(process.exitCode).toBe(0);
   });
 
@@ -943,5 +943,38 @@ describe("cli round-2 regressions", () => {
     ).rejects.toThrow("unknown option '--bogus'");
 
     expect(stderrBuffer).not.toContain("error: unknown option");
+  });
+});
+
+describe("cli round-3 regressions", () => {
+  test("notes when --lang leaves a directory scan empty", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}\n");
+
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--lang", "go", "src"]);
+
+    expect(stdoutBuffer).toContain(
+      "0 files matched --lang go under src; remove --lang or check the extension",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("no lang note when the filter matches files", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}\n");
+
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--lang", "ts", "src"]);
+
+    expect(stdoutBuffer).toContain("// src/app.ts");
+    expect(stdoutBuffer).not.toContain("0 files matched --lang");
+    expect(process.exitCode).toBe(0);
   });
 });

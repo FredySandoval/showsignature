@@ -149,7 +149,7 @@ Options for `showsignature map`:
 | `--include-tests`      | Include test files in folder scans.                                          |
 | `--no-line-number`     | Hide source line-number prefixes.                                            |
 | `--lang <l>`           | Only process files of this language; required when using `-` to read stdin.  |
-| `--all`                | Lift all output caps (entry limit and the 2000-line / 50 KB cap).            |
+| `--all`                | Lift the output caps (entry limit and the 2000-line / 50 KB cap). Exception: `json:shape`'s nesting summary (`...`) is fixed. |
 | `--no-redact`          | Disable built-in secrets redaction.                                          |
 
 Options for `showsignature read`:

@@ -150,14 +150,14 @@ describe("README acceptance", () => {
         "     getProfile(): string;",
         "   }",
         "22 export function printUserInfo<T extends User>(user: T): void;",
-        "note: 2 test file(s) excluded; pass --include-tests to include them",
+        "note: 2 test files excluded; pass --include-tests to include them",
         "",
       ].join("\n"),
     );
     expect(stdoutBuffer).not.toContain("shouldNotAppear");
     expect(stdoutBuffer).not.toContain("shouldAlsoNotAppear");
     expect(stderrBuffer).toContain(
-      "note: 2 test file(s) excluded; pass --include-tests to include them",
+      "note: 2 test files excluded; pass --include-tests to include them",
     );
     expect(process.exitCode).toBe(0);
   });
