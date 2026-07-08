@@ -22,8 +22,8 @@ allowed-tools: Bash(showsignature:*)
 
 Two commands:
 
-- `showsignature map [OPTION]... [FILE]...` — structural overview of files or directories: signatures, imports, exports, types, interfaces, variables, comments, Markdown headings/tables/code blocks (`md:*`), JSON shapes (`json:shape`).
-- `showsignature read [OPTION]... <FILE>` — windowed literal read of exactly one file, framed by a signature skeleton with real line numbers.
+- `showsignature map [OPTION]... [PATH]...` — structural overview of files or directories: signatures, imports, exports, types, interfaces, variables, comments, Markdown headings/tables/code blocks (`md:*`), JSON shapes (`json:shape`).
+- `showsignature read [OPTION]... <FILE>` — literal windowed read of exactly one file, with an optional structural outline (real line numbers) around the window.
 
 Run `showsignature <command> --help` for the full option reference; the summaries below cover the decision rules and the flags you will actually reach for.
 
@@ -33,8 +33,8 @@ Run `showsignature map` BEFORE opening any file with Read, cat, head, or grep. T
 
 - First look at any unfamiliar file or folder → `map` it.
 - Need the actual lines → `read` with `--offset`/`--limit`, jumping to a line number the map gave you.
-- Reviewing an API or data shape → `map --show-only interfaces,types` (or `json:shape` for JSON).
-- Migrating between languages → `map --lang-only <lang>` to inspect one language at a time.
+- Reviewing an API or data shape → `map --only interfaces,types` (or `json:shape` for JSON).
+- Migrating between languages → `map --lang <lang>` to inspect one language at a time.
 - Preparing compact context for another tool or agent → pipe `map` output.
 
 Fall back to Read/Grep only when: showsignature reports the file type is unsupported, you are searching for a string pattern rather than structure, or you already know the exact lines you need and have no need for orientation.
@@ -47,8 +47,8 @@ Fall back to Read/Grep only when: showsignature reports the file type is unsuppo
 
 Two properties to rely on:
 
-- In `read`, everything between the `<content>` tags is raw bytes with no line-number prefixes — safe to copy into exact-match edit tools. The skeleton above and below the window lists elided signatures with their real line numbers, so you can jump anywhere next.
-- `--offset`/`--limit` count extracted **ENTRIES** in `map` but **LINES** in `read`.
+- In `read`, everything between the `<content>` tags is raw bytes with no line-number prefixes — safe to copy into exact-match edit tools. The outline above and below the window lists elided signatures with their real line numbers, so you can jump anywhere next. Pass `--framing none` for a plain read (content only: no tags, no outline).
+- Remember the split: `map` works in **ENTRIES** (`--skip`/`--take`); `read` works in **LINES** (`--offset`/`--limit`).
 
 ## Canonical examples
 
@@ -66,27 +66,31 @@ showsignature map src/main.ts README.md tests/fixtures/
 showsignature map --max-depth 4 ./
 
 # Narrow to specific extractors
-showsignature map --show-only imports,exports ./src
-showsignature map --show-only interfaces,types ./src
-showsignature map --show-only md:headings README.md
-showsignature map --show-only json:shape config.json
+showsignature map --only imports,exports ./src
+showsignature map --only interfaces,types ./src
+showsignature map --only md:headings README.md
+showsignature map --only json:shape config.json
 
 # One language at a time (useful for migrations)
-showsignature map --lang-only go --show-only imports,exports ./src
+showsignature map --lang go --only imports,exports ./src
 
 # Page through a large listing, or lift every cap
-showsignature map --offset 40 --limit 40 ./src
+showsignature map --skip 40 --take 40 ./src
 showsignature map --all ./src
 
 # Read literal content, windowed (--offset is the first line, 1-indexed)
 showsignature read src/01-main.ts
 showsignature read --offset 200 --limit 100 src/01-main.ts
 
+# Choose the outline extractors, or drop the framing entirely
+showsignature read --outline imports,signatures src/01-main.ts
+showsignature read --framing none src/01-main.ts
+
 # Secrets are redacted by default and the note discloses it; get literal bytes with
 showsignature read --no-redact src/config.ts
 
-# stdin works too; skeletons appear only when --lang-only names the language
-cat snippet.py | showsignature read - --lang-only py
+# stdin works too; the outline appears only when --lang names the language
+cat snippet.py | showsignature read - --lang py
 ```
 
 Output is capped at 2000 lines / 50 KB; when a cap kicks in, the trailing `note:` names the exact flags or follow-up call to continue.
