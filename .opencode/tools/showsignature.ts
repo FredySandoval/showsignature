@@ -1,11 +1,11 @@
 import { tool } from "@opencode-ai/plugin";
 import { z } from "zod";
 
-export const showmap = tool({
+export const map = tool({
   description: [
     "Structural overview of code, Markdown, and JSON. Use INSTEAD of read/grep/cat for the FIRST look at any unfamiliar file or folder: returns signatures, imports, exports, types, interfaces, variables, comments, Markdown headings, and JSON shapes at a fraction of the token cost, each entry prefixed with its real source line number.",
     "Supported: .ts/.mts/.cts .js/.mjs/.cjs .tsx/.jsx .svelte .go .py .rs .lua .md .json — for other file types use read/grep directly.",
-    "Workflow: map first to see what exists, then jump to exact lines with showsignature_showread using the line numbers from the map. Before grepping for a name you are guessing at, run with symbolSummary to get the identifiers that literally exist (each token is a valid ripgrep pattern).",
+    "Workflow: map first to see what exists, then jump to exact lines with showsignature_read using the line numbers from the map. Before grepping for a name you are guessing at, run with symbolSummary to get the identifiers that literally exist (each token is a valid ripgrep pattern).",
     "If the output ends with a 'note:' line, it was capped, depth-limited, or filtered — the note names the exact follow-up flags; never ignore it.",
   ].join(" "),
     args: {
@@ -42,9 +42,9 @@ export const showmap = tool({
     },
 })
 
-export const showread = tool({
+export const read = tool({
   description: [
-    "Windowed literal read of exactly one file, with a structural outline (real line numbers) around the window for orientation. Prefer this over plain read for supported file types (.ts/.js/.tsx/.jsx/.svelte/.go/.py/.rs/.lua/.md/.json), typically jumping to a line number that showsignature_showmap reported.",
+    "Windowed literal read of exactly one file, with a structural outline (real line numbers) around the window for orientation. Prefer this over plain read for supported file types (.ts/.js/.tsx/.jsx/.svelte/.go/.py/.rs/.lua/.md/.json), typically jumping to a line number that showsignature_map reported.",
     "The content window carries no line-number prefixes, so it is safe to copy into exact-match edit tools. Windows in LINES (offset/limit), unlike showmap which paginates in ENTRIES (skip/take).",
     "If the output ends with a 'note:' line, the window was capped — it names the exact follow-up flags.",
   ].join(" "),
