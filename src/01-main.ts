@@ -812,26 +812,49 @@ async function discoverFilesWithDefaultDepth(options: {
     });
   }
 
-  // Probe one level past the limit so a truncated scan is detectable.
+  // Probe without a depth cap so a truncated scan is detectable even when
+  // every level just past the limit contains only directories. Test
+  // exclusion is applied after the depth filter so the excluded-tests stat
+  // reflects the visible scan, not the whole tree.
   const depthLimit = maxDepth ?? DEFAULT_DIRECTORY_MAX_DEPTH;
-  const probed = await discoverFiles({
+  const probedAll = await discoverFiles({
     registry,
     ...(folder !== undefined ? { folder } : {}),
-    includeTests,
-    maxDepth: depthLimit + 1,
-    ...(options.stats ? { stats: options.stats } : {}),
+    includeTests: true,
   });
+  const probed = includeTests
+    ? probedAll
+    : probedAll.filter((filePath) => !isTestFile(filePath));
   const baseDir = folder !== undefined ? path.resolve(folder) : process.cwd();
+  const withinLimitAll = probedAll.filter(
+    (filePath) => pathDepthWithin(baseDir, filePath) <= depthLimit,
+  );
   const withinLimit = probed.filter(
     (filePath) => pathDepthWithin(baseDir, filePath) <= depthLimit,
   );
+  if (options.stats) {
+    options.stats.excludedTestFiles += withinLimitAll.length - withinLimit.length;
+  }
 
   if (withinLimit.length < probed.length) {
-    const beyond = probed.length - withinLimit.length;
+    const beyondFiles = probed.filter(
+      (filePath) => pathDepthWithin(baseDir, filePath) > depthLimit,
+    );
+    const beyond = beyondFiles.length;
+    const deepest = Math.max(
+      ...beyondFiles.map((filePath) => pathDepthWithin(baseDir, filePath)),
+    );
+    const shallowest = Math.min(
+      ...beyondFiles.map((filePath) => pathDepthWithin(baseDir, filePath)),
+    );
+    const depthPhrase =
+      shallowest === deepest
+        ? `at depth ${deepest}`
+        : `at depths ${shallowest}-${deepest}`;
     const notice =
       maxDepth === undefined
         ? DEPTH_LIMIT_NOTICE
-        : `depth limit ${depthLimit} reached; ${beyond} more ${pluralize(beyond, "file")} at depth ${depthLimit + 1} — pass --max-depth ${depthLimit + 1} or --all`;
+        : `depth limit ${depthLimit} reached; ${beyond} more ${pluralize(beyond, "file")} ${depthPhrase} — pass --max-depth ${deepest} or --all`;
     if (!notices.includes(notice)) {
       notices.push(notice);
     }
@@ -1195,7 +1218,7 @@ function renderPipelineOutput(
 
     if (offset > 0 && offset >= totalEntries && totalEntries > 0) {
       notices.push(
-        `--skip ${offset} skips all ${totalEntries} extracted entries`,
+        `--skip ${offset} skips all ${totalEntries} extracted ${pluralize(totalEntries, "entry", "entries")}`,
       );
     } else if (
       limit !== undefined &&
@@ -1239,8 +1262,17 @@ function renderPipelineOutput(
 
   if (totalEntries === 0 && result.sections.length > 0) {
     const fileCount = result.sections.length;
+    // Name only the extractors applicable to the languages actually
+    // processed, so e.g. a Python stdin does not list md:*/json:shape.
+    const applicableKinds = plan.extractOrder.filter((kind) =>
+      result.meta.seenLangs.some((lang) =>
+        plan.registry.get(lang)?.extractors.has(kind),
+      ),
+    );
+    const namedKinds =
+      applicableKinds.length > 0 ? applicableKinds : plan.extractOrder;
     notices.push(
-      `0 entries for ${plan.extractOrder.join(", ")} in ${fileCount} ${pluralize(fileCount, "file")}`,
+      `0 entries for ${namedKinds.join(", ")} in ${fileCount} ${pluralize(fileCount, "file")}`,
     );
   }
 
@@ -1750,6 +1782,14 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     );
     notes.push(
       `${redactedCount} secret${redactedCount === 1 ? "" : "s"} redacted; pass --no-redact for literal bytes`,
+    );
+  }
+
+  if (includeOutline && !adapter) {
+    notes.push(
+      isStdin
+        ? "no outline: stdin language unknown; pass --lang <l> to enable it"
+        : "no outline: could not infer a language from the file name; pass --lang <l> to enable it",
     );
   }
 

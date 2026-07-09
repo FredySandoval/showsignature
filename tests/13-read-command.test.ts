@@ -571,3 +571,47 @@ describe("read round-2 regressions", () => {
     expect(stdoutBuffer).not.toContain('<outline region="after"');
   });
 });
+
+describe("read round-4 regressions", () => {
+  test("notes the missing outline for files with no inferable language", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    const filePath = path.join(rootDir, "notes.txt");
+    await writeFile(filePath, "plain text\n", "utf8");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "read", "notes.txt"]);
+
+    expect(stdoutBuffer).toContain(
+      '<content lines="1-1 of 1">\nplain text\n</content>',
+    );
+    expect(stdoutBuffer).not.toContain("<outline");
+    expect(stdoutBuffer).toContain(
+      "note: no outline: could not infer a language from the file name; pass --lang <l> to enable it",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("notes the missing outline for stdin without --lang", async () => {
+    installOutputCapture();
+    installStdin("line one\n");
+
+    await buildCli().run(["showcode", "read", "-"]);
+
+    expect(stdoutBuffer).toContain(
+      "note: no outline: stdin language unknown; pass --lang <l> to enable it",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("does not note a missing outline with --framing none", async () => {
+    installOutputCapture();
+    installStdin("line one\n");
+
+    await buildCli().run(["showcode", "read", "-", "--framing", "none"]);
+
+    expect(stdoutBuffer).not.toContain("no outline");
+    expect(process.exitCode).toBe(0);
+  });
+});

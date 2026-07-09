@@ -115,3 +115,34 @@
       `0 entries for <extractors> in N file(s→files)`. Tests and the four
       zero-entry golden fixtures updated to the new wording.
       (done 2026-07-08)
+
+## Round 4 findings (verified 2026-07-08, full spec re-verification)
+
+- [x] **Depth truncation silently undisclosed when the next level holds only
+      directories.** `map --max-depth 1 ./src` hid all 29 files under
+      `src/languages/*/` (depth 3) with no trailing `note:` — the probe only
+      scanned to depth N+1. The probe in `discoverFilesWithDefaultDepth` is
+      now unbounded, counts every file beyond the limit, and the note names
+      the deepest depth needed (`depth limit 1 reached; 29 more files at
+      depth 3 — pass --max-depth 3 or --all`; a range prints as
+      `at depths X-Y`). Side benefit: the `N test files excluded` stat is
+      now computed after the depth filter, so it reflects the visible scan
+      rather than the probe. Regression test added. (done 2026-07-08)
+- [x] **Golden fixtures stale again for zero-entry extractors.** FALSE
+      POSITIVE: the round-4 diff captured live output with `2>&1`, so the
+      stderr-mirrored `note:` line doubled up; the committed goldens were
+      already correct. Kept the hardening anyway: `generate-fixtures.sh`
+      now invokes the local `dist/02-cli.js` (failing fast if not built)
+      instead of whatever `showsignature` is on PATH. (done 2026-07-08)
+- [x] **Stdin `map` zero-entry note lists extractors from every file type.**
+      The note now intersects `extractOrder` with the extractors supported
+      by the languages actually processed (falling back to the full list if
+      the intersection is empty): `map - --lang py` on `x = 1` →
+      `note: 0 entries for signatures, imports in 1 file`. Regression test
+      added. (done 2026-07-08)
+- [x] **`read` on an unsupported file type silently omits the outline.**
+      When framing includes an outline and no language is known, `read` now
+      appends `note: no outline: could not infer a language from the file
+      name; pass --lang <l> to enable it` (stdin wording: `no outline:
+      stdin language unknown; …`). `--framing none` stays note-free.
+      Regression tests added. (done 2026-07-08)

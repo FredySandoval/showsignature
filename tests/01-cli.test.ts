@@ -722,7 +722,7 @@ describe("buildCli", () => {
     await buildCli().run(["showcode", "map", "--skip", "9", "src/app.ts"]);
 
     expect(stdoutBuffer).toContain(
-      "note: --skip 9 skips all 1 extracted entries",
+      "note: --skip 9 skips all 1 extracted entry",
     );
     expect(stdoutBuffer).not.toContain("function one(): void;");
     expect(process.exitCode).toBe(0);
@@ -975,6 +975,45 @@ describe("cli round-3 regressions", () => {
 
     expect(stdoutBuffer).toContain("// src/app.ts");
     expect(stdoutBuffer).not.toContain("0 files matched --lang");
+    expect(process.exitCode).toBe(0);
+  });
+});
+
+describe("cli round-4 regressions", () => {
+  test("notes depth truncation when the next level holds only directories", async () => {
+    installOutputCapture();
+    installStdin("");
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "top.ts", "function top(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "src/nested/deep.ts",
+      "function deep(): void {}\n",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--max-depth", "1"]);
+
+    expect(stdoutBuffer).toContain("// top.ts");
+    expect(stdoutBuffer).not.toContain("deep.ts");
+    expect(stdoutBuffer).toContain(
+      "note: depth limit 1 reached; 1 more file at depth 3 — pass --max-depth 3 or --all",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("stdin zero-entry note lists only extractors for the declared language", async () => {
+    installOutputCapture();
+    installStdin("x = 1\n");
+
+    await buildCli().run(["showcode", "map", "-", "--lang", "py"]);
+
+    expect(stdoutBuffer).toContain(
+      "note: 0 entries for signatures, imports in 1 file",
+    );
+    expect(stdoutBuffer).not.toContain("md:headings");
+    expect(stdoutBuffer).not.toContain("json:shape");
     expect(process.exitCode).toBe(0);
   });
 });

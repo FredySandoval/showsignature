@@ -3,6 +3,14 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Always use the local build; a globally installed showsignature may be stale.
+cli="$script_dir/../../dist/02-cli.js"
+if [[ ! -f "$cli" ]]; then
+  printf 'Local build not found at %s — run `pnpm build` first\n' "$cli" >&2
+  exit 1
+fi
+showsignature() { node "$cli" "$@"; }
+
 categories=(
   comments
   exports
