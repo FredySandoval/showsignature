@@ -145,6 +145,7 @@ Options for `showsignature map`:
 | `--only <extractors>`  | Comma-separated extractors to run (default: `signatures,imports` for code files; `md:*` for Markdown; `json:shape` for JSON). |
 | `--skip <n>`           | Skip the first N **entries** (default: 0).                                   |
 | `--take <n>`           | Show at most N **entries**.                                                  |
+| `--symbol-summary`     | Keyword-discovery mode: emit the identifier vocabulary per (extractor, file) as ripgrep-ready alternation patterns. See "Symbol summary" below. |
 | `--max-depth <n>`      | Folder scan depth (directory scans default to `2`).                          |
 | `--include-tests`      | Include test files in folder scans.                                          |
 | `--no-line-number`     | Hide source line-number prefixes.                                            |
@@ -195,6 +196,45 @@ Markdown and JSON files:
 | `md:codeblocks` | Fenced code blocks. |
 | `json:shape`    | JSON value shape.   |
 
+## Symbol summary (`map --symbol-summary`)
+
+In an unfamiliar repository, the first search is usually a blind one — grepping
+names guessed from convention rather than from the code. `--symbol-summary`
+closes that gap: it emits **the vocabulary that literally exists in the code**,
+one line per (extractor, file) pair, formatted as ready-to-use ripgrep
+alternation patterns:
+
+```sh
+$ showsignature map --symbol-summary ./src
+exports:src/db/pool.ts: PgPool|createPool|POOL_MAX|acquireConn
+imports:src/db/migrate.ts: runMigrations|MigrationLock|schemaVersion|LogErrMig
+json:shape:src/config/default.json: db|host|port|poolMax|migrationTable
+```
+
+Scan the output, spot the suspicious name, then `rg` or `map` *that* — no more
+guessing.
+
+**Contract: the token payload of every line is a valid ripgrep pattern in
+default (regex) mode.** Regex metacharacters appearing in identifiers are
+escaped rather than dropped (e.g. `$name` becomes `\$name`); every token
+exists verbatim in the corresponding source file.
+
+Rules:
+
+- Only symbol extractors contribute: `signatures`, `imports`, `exports`,
+  `interfaces`, `types`, `variables`, `json:shape`. Prose extractors
+  (`comments`, `md:*`) are excluded; naming one explicitly via `--only`
+  is an error.
+- Identifiers are verbatim — no splitting (`getUserById` stays whole).
+  Purely syntactic stopwords (language keywords, primitive/builtin type
+  names) are removed; nothing is filtered for "relevance".
+- Tokens appear in first-occurrence order and are deduped within a line
+  only — the same name showing under `exports:` of one file and `imports:`
+  of another tells you who defines it and who uses it.
+- No line numbers, ever. Output is deterministic across runs.
+- `--skip`/`--take` page over the output **lines**; the `note:` trailer
+  names the exact resume command.
+
 ## Supported files
 
 | Language   | Extensions            |
@@ -233,6 +273,9 @@ showsignature map --lang py                                     # Process Python
 showsignature map --lang go --only imports,exports              # Show Go imports and exported declarations
 showsignature map --lang py --only types,comments               # Show Python imports and public exports
 showsignature map --max-depth 4 ./                              # Repo-wide overview with an explicit scan depth
+
+showsignature map --symbol-summary ./src                        # Ripgrep-ready identifier vocabulary per file
+showsignature map --symbol-summary --only interfaces,types ./src # Domain vocabulary only
 
 showsignature map --skip 40 --take 40 ./src                     # Page through a large entry listing
 showsignature map --all ./src                                   # Lift the output caps

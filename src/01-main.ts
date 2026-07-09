@@ -38,6 +38,11 @@ import {
   type ResolvedInputTarget,
   type RunPipelineOptions,
 } from "./00-core-types.js";
+import {
+  buildSymbolSummaryLines,
+  isSymbolSummaryKind,
+  listExcludedSymbolSummaryKinds,
+} from "./03-symbol-summary.js";
 import { createGoAdapter } from "./languages/go/00-adapter.js";
 import { createJsonAdapter } from "./languages/json/00-adapter.js";
 import {
@@ -367,6 +372,12 @@ Options:
                          below.
   --skip <n>             Skip the first N entries (default: 0).
   --take <n>             Show at most N entries.
+  --symbol-summary       Keyword-discovery mode: one line per (extractor,
+                         file) pair listing the identifiers that literally
+                         exist there, formatted as a ready-to-use ripgrep
+                         alternation pattern (token1|token2|...). Symbol
+                         extractors only (no comments / md:*); no line
+                         numbers; --skip/--take page over output lines.
   --max-depth <n>        Folder scan depth (default: ${DEFAULT_DIRECTORY_MAX_DEPTH}).
   --include-tests        Include test files in folder scans.
   --no-line-number       Hide source line-number prefixes.
@@ -391,6 +402,8 @@ Examples:
   ${CLI_NAME} map --only json:shape config.json
   ${CLI_NAME} map --lang go --only imports,exports
   ${CLI_NAME} map --skip 40 --take 40 ./src
+  ${CLI_NAME} map --symbol-summary ./src
+  ${CLI_NAME} map --symbol-summary --only interfaces,types ./src
 
 Note: map paginates ENTRIES (--skip/--take).
       To read LINES from one file, use \`${CLI_NAME} read --offset/--limit\`.
@@ -497,6 +510,11 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       Number,
     )
     .option("--take <number>", "max extracted entries displayed", Number)
+    .option(
+      "--symbol-summary",
+      "emit the identifier vocabulary per (extractor, file) as ripgrep-ready alternation patterns",
+      false,
+    )
     .option(
       "--all",
       "lift all output caps (entry limit and the 2000-line / 50 KB cap)",
@@ -1015,9 +1033,24 @@ async function resolveExecutionPlan(
     throw createCliError(`${rawLang} not supported`);
   }
 
-  const extractOrder = args.only
+  let extractOrder = args.only
     ? parseExtractOptions(args.only, listSupportedExtractKinds(registry))
     : DEFAULT_MAP_EXTRACT_ORDER;
+
+  if (args.symbolSummary) {
+    if (args.only) {
+      // Error rather than silently drop: an explicitly requested prose
+      // extractor cannot contribute symbols, and hiding that hides intent.
+      const excluded = listExcludedSymbolSummaryKinds(extractOrder);
+      if (excluded.length > 0) {
+        throw createCliError(
+          `--symbol-summary only applies to symbol extractors (names that exist in code or config); ${excluded.join(", ")} ${pluralize(excluded.length, "is a prose extractor", "are prose extractors")} and cannot contribute. Remove ${pluralize(excluded.length, "it", "them")} from --only.`,
+        );
+      }
+    } else {
+      extractOrder = extractOrder.filter(isSymbolSummaryKind);
+    }
+  }
 
   const notices: string[] = [];
   const input = await resolveInputTarget(
@@ -1040,6 +1073,8 @@ async function resolveExecutionPlan(
     ...(args.skip !== undefined ? { entryOffset: args.skip } : {}),
     ...(args.take !== undefined ? { entryLimit: args.take } : {}),
     ...(args.all ? { uncapped: true } : {}),
+    ...(args.symbolSummary ? { symbolSummary: true } : {}),
+    ...(args.paths ? { resumePaths: args.paths } : {}),
     notices,
   };
 }
@@ -1198,10 +1233,100 @@ function renderCappedSections(
   };
 }
 
+// The user never guesses a resume offset: trailers hand over the exact
+// flags (and the original paths) needed to continue where output stopped.
+function buildResumeCommand(
+  plan: ExecutionPlan,
+  nextSkip: number,
+  take: number | undefined,
+): string {
+  const paths = (plan.resumePaths ?? []).join(" ");
+  return [
+    `--skip ${nextSkip}`,
+    ...(take !== undefined ? [`--take ${take}`] : []),
+    ...(paths ? [paths] : []),
+  ].join(" ");
+}
+
+// map --symbol-summary: one `<extractor>:<path>: token|token|...` line per
+// (extractor, file) pair. No line numbers, ever — regular map is the
+// discovery tool for locations. --skip/--take page over these output lines.
+function renderSymbolSummaryOutput(
+  plan: ExecutionPlan,
+  result: PipelineResult,
+): string {
+  const notices = plan.notices ?? (plan.notices = []);
+  const redact = plan.output.redact !== false;
+
+  const allLines = buildSymbolSummaryLines(
+    result.sections,
+    plan.extractOrder,
+  ).map(
+    (line) =>
+      `${line.kind}:${sanitizeAndMaybeRedactForDisplay(toDisplayPath(line.filePath), redact)}: ${sanitizeAndMaybeRedactForDisplay(line.payload, redact)}`,
+  );
+
+  const total = allLines.length;
+  const offset = plan.entryOffset ?? 0;
+  const limit = plan.uncapped ? undefined : plan.entryLimit;
+  const windowed = allLines.slice(
+    offset,
+    limit !== undefined ? offset + limit : undefined,
+  );
+
+  let output = "";
+  let kept = 0;
+  let capDescription: string | undefined;
+
+  for (const line of windowed) {
+    const candidate = output ? `${output}\n${line}` : line;
+
+    if (!plan.uncapped) {
+      const exceeded = describeExceededCap(candidate);
+      if (exceeded) {
+        capDescription = exceeded;
+        break;
+      }
+    }
+
+    output = candidate;
+    kept += 1;
+  }
+
+  if (capDescription) {
+    notices.push(`output capped at ${capDescription}`);
+  }
+
+  const nextSkip = offset + kept;
+
+  if (offset > 0 && offset >= total && total > 0) {
+    notices.push(
+      `--skip ${offset} skips all ${total} summary ${pluralize(total, "line")}`,
+    );
+  } else if (nextSkip < total) {
+    notices.push(
+      `showing summary lines ${offset + 1}-${nextSkip} of ${total} — rerun with --symbol-summary ${buildResumeCommand(plan, nextSkip, plan.entryLimit ?? kept)}`,
+    );
+  }
+
+  if (total === 0 && result.sections.length > 0) {
+    const fileCount = result.sections.length;
+    notices.push(
+      `0 symbol-summary lines for ${plan.extractOrder.join(", ")} in ${fileCount} ${pluralize(fileCount, "file")}`,
+    );
+  }
+
+  return output;
+}
+
 function renderPipelineOutput(
   plan: ExecutionPlan,
   result: PipelineResult,
 ): string {
+  if (plan.symbolSummary) {
+    return renderSymbolSummaryOutput(plan, result);
+  }
+
   const notices = plan.notices ?? (plan.notices = []);
   const offset = plan.entryOffset ?? 0;
   const limit = plan.uncapped ? undefined : plan.entryLimit;
@@ -1225,7 +1350,7 @@ function renderPipelineOutput(
       offset + windowed.shown < totalEntries
     ) {
       notices.push(
-        `showing entries ${offset + 1}-${offset + windowed.shown} of ${totalEntries}; continue with --skip ${offset + windowed.shown}`,
+        `${totalEntries - offset - windowed.shown} more ${pluralize(totalEntries - offset - windowed.shown, "entry", "entries")} — rerun with ${buildResumeCommand(plan, offset + windowed.shown, limit)}`,
       );
     }
   }

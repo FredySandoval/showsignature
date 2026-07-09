@@ -706,9 +706,11 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain("3 function third(): void;");
     expect(stdoutBuffer).not.toContain("function fourth(): void;");
     expect(stdoutBuffer).toContain(
-      "note: showing entries 2-3 of 4; continue with --skip 3",
+      "note: 1 more entry — rerun with --skip 3 --take 2 src/app.ts",
     );
-    expect(stderrBuffer).toContain("note: showing entries 2-3 of 4");
+    expect(stderrBuffer).toContain(
+      "note: 1 more entry — rerun with --skip 3 --take 2 src/app.ts",
+    );
     expect(process.exitCode).toBe(0);
   });
 

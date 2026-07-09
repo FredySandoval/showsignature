@@ -275,6 +275,8 @@ export interface ParsedCliArgs {
   skip?: number;
   /** map: max entries shown (--take) */
   take?: number;
+  /** map: keyword-discovery vocabulary output (--symbol-summary) */
+  symbolSummary?: boolean;
   /** read: first line, 1-indexed (--offset) */
   offset?: number;
   /** read: max lines in the window (--limit) */
@@ -313,5 +315,8 @@ export interface ExecutionPlan {
   entryOffset?: number;
   entryLimit?: number;
   uncapped?: boolean;
+  symbolSummary?: boolean;
+  /** paths as the user typed them, for exact resume commands in note: trailers */
+  resumePaths?: string[];
   notices?: string[];
 }
