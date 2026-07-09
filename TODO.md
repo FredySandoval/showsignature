@@ -89,3 +89,66 @@ no longer duplicates notes; tests updated to assert no stderr copy in captures.
 Notes are emitted to both stdout and stderr (tool-wide, not symbol-summary specific),
 so an interactive terminal shows each note duplicated. If intentional (note survives
 piping), document it; otherwise suppress the stderr copy when stdout is a TTY.
+
+---
+
+# Round 2 findings (2026-07-08 re-verification)
+
+Re-verified against the local build. Build/typecheck/tests pass (280 tests);
+all golden fixtures match; the output contract held for 1,763 real-identifier
+tokens (0 rg misses). New discrepancies below, ranked.
+
+## 5. HIGH — json:shape truncation marker `...` leaks as a fake token; truncated keys silently missing
+
+Doc's OUTPUT CONTRACT: "Every token exists verbatim in the corresponding source
+file." For JSON objects with more than ~20 keys (JSON_SHAPE_MAX_OBJECT_KEYS) or
+beyond max depth, the shape renderer's `...` summary is tokenized and emitted as
+`\.\.\.` — a token that does not exist in the file. Worse: the keys past the cap
+are absent from the vocabulary with no `note:` disclosing truncation, and `--all`
+does not restore them. Reproduces on the repo's own `package.json`.
+
+```sh
+node -e 'const o={};for(let i=0;i<40;i++)o["key"+i]=i;require("fs").writeFileSync("/tmp/wide.json",JSON.stringify(o))'
+node dist/02-cli.js map --symbol-summary /tmp/wide.json
+#   json:shape:/tmp/wide.json key0 key1 ... key26 \.\.\.     (key27–key39 missing)
+grep -c '\.\.\.' /tmp/wide.json   # 0 — token not in file
+```
+
+Fix: in the symbol-summary path, drop the truncation marker from tokens, and
+either emit ALL keys regardless of the shape-render cap (vocabulary is cheap)
+or add a `note:` disclosing that N keys were truncated. Update CAVEATS either way.
+
+## 6. MEDIUM — unhandled EPIPE crash when stdout closes early
+
+`map ... | head -2` crashes with a Node stack trace (`Error: write EPIPE` at
+`emitTrailerNote`, dist/01-main.js:501). Piping map output is an explicitly
+encouraged workflow. Fix: handle EPIPE on stdout/stderr writes (exit 0 quietly).
+
+```sh
+node dist/02-cli.js map /tmp/wide.json | head -2   # stack trace
+```
+
+## 7. LOW — token order for json:shape does not mirror source order (doc wrong)
+
+TOKEN RULES promise "First-occurrence order per line, mirroring source order."
+JSON tokens follow the shape rendering, which sorts keys lexicographically
+(`key0 key1 key10 ... key2 key20`; a first-in-source `pool.max` lands last).
+Fix: amend the doc — for json:shape, order mirrors the (sorted) shape rendering.
+
+## 8. LOW — empty directory scan: empty output, exit 0, no `note:`
+
+A scan of a directory containing no supported files prints nothing (both plain
+`map` and `--symbol-summary`), unlike every other empty-output case which gets
+an explanatory note. Fix: emit e.g. `note: no supported files found in <dir>`.
+
+```sh
+mkdir -p /tmp/emptydir && node dist/02-cli.js map --symbol-summary /tmp/emptydir; echo $?   # silent, 0
+```
+
+## 9. COSMETIC — inflated redaction count in `note:`
+
+40 files of `export const uniqueToken_N_M = <number>;` yield
+`note: 8000 secrets redacted` — every assignment whose name matches
+SECRET_NAME_PATTERN is counted even when the value is a small integer literal.
+Tokens are unaffected; the note is just alarming noise. Fix: don't count (or
+don't flag) values that can't plausibly be secrets, or word the note per-file.
