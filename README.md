@@ -196,45 +196,6 @@ Markdown and JSON files:
 | `md:codeblocks` | Fenced code blocks. |
 | `json:shape`    | JSON value shape.   |
 
-## Symbol summary (`map --symbol-summary`)
-
-In an unfamiliar repository, the first search is usually a blind one — grepping
-names guessed from convention rather than from the code. `--symbol-summary`
-closes that gap: it emits **the vocabulary that literally exists in the code**,
-one line per (extractor, file) pair, tokens separated by spaces (paths
-containing spaces are double-quoted):
-
-```sh
-$ showsignature map --symbol-summary ./src
-exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
-imports:src/db/migrate.ts runMigrations MigrationLock schemaVersion LogErrMig
-json:shape:src/config/default.json db host port poolMax migrationTable
-```
-
-Scan the output, spot the suspicious name, then `rg` or `map` *that* — no more
-guessing.
-
-**Contract: every token is a valid ripgrep pattern in default (regex)
-mode.** Regex metacharacters appearing in identifiers are escaped rather
-than dropped (e.g. `$name` becomes `\$name`); every token exists verbatim
-in the corresponding source file.
-
-Rules:
-
-- Only symbol extractors contribute: `signatures`, `imports`, `exports`,
-  `interfaces`, `types`, `variables`, `json:shape`. Prose extractors
-  (`comments`, `md:*`) are excluded; naming one explicitly via `--only`
-  is an error.
-- Identifiers are verbatim — no splitting (`getUserById` stays whole).
-  Purely syntactic stopwords (language keywords, primitive/builtin type
-  names) are removed; nothing is filtered for "relevance".
-- Tokens appear in first-occurrence order and are deduped within a line
-  only — the same name showing under `exports:` of one file and `imports:`
-  of another tells you who defines it and who uses it.
-- No line numbers, ever. Output is deterministic across runs.
-- `--skip`/`--take` page over the output **lines**; the `note:` trailer
-  names the exact resume command.
-
 ## Supported files
 
 | Language   | Extensions            |
