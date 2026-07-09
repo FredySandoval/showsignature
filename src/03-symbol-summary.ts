@@ -101,8 +101,12 @@ const LUA_STOPWORDS = [
 ];
 
 // json:shape prints keys plus type names; only the type names are syntax.
+// "..." is shapeOf()'s truncation marker (keys past the cap, depth cap) —
+// it never exists in the source file, so it must not become a token. The
+// renderer discloses the truncation in the trailing note.
 const JSON_STOPWORDS = [
   "array", "boolean", "false", "null", "number", "object", "string", "true",
+  "...",
 ];
 
 const STOPWORDS_BY_LANGUAGE: ReadonlyMap<string, ReadonlySet<string>> =

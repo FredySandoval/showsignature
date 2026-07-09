@@ -81,7 +81,9 @@ rg "PgPool|createPool|POOL_MAX|acquireConn" src/db/pool.ts
   `getUserById` stays whole, `DATABASE_URL` stays whole. Splitting would
   break the output contract and produce noisy greps.
 - **First-occurrence order** per line, mirroring source order, so related
-  terms cluster naturally.
+  terms cluster naturally. Exception: `json:shape` tokens follow the shape
+  rendering, which sorts object keys lexicographically — order there
+  mirrors the (sorted) rendering, not the source file.
 - **Dedup within a line only.** A token appears at most once per line but
   may appear on multiple lines — seeing `runMigrations` under both
   `exports:src/db/migrate.ts` and `imports:src/cli.ts` tells you who
@@ -171,6 +173,12 @@ showsignature map src/db/migrate.ts
 - **JSON keys are kept whole** (`pool.max` → `pool\.max`), except keys
   containing whitespace, which split on the space — the shape rendering
   itself is space-delimited and cannot represent them unambiguously.
+- **json:shape truncation drops keys.** Objects with more than 20 keys (or
+  nesting past depth 5) are elided by the shape rendering; the elided keys
+  do not appear in the vocabulary, the `...` marker itself is never
+  emitted as a token (a literal `"..."` key is likewise dropped), and the
+  trailing `note:` discloses the truncation. The cap is fixed — `--all`
+  does not lift it.
 - **Single-character tokens can appear** (e.g. a lone `s` from a template
   literal in a signature). They are verbatim and harmless, but rarely
   useful grep targets on their own.

@@ -98,7 +98,12 @@ Re-verified against the local build. Build/typecheck/tests pass (280 tests);
 all golden fixtures match; the output contract held for 1,763 real-identifier
 tokens (0 rg misses). New discrepancies below, ranked.
 
-## 5. HIGH — json:shape truncation marker `...` leaks as a fake token; truncated keys silently missing
+## 5. ✅ COMPLETED (2026-07-08) — HIGH — json:shape truncation marker `...` leaks as a fake token; truncated keys silently missing
+
+Fixed: `...` added to the JSON stopword table (it never exists in the source),
+and `renderSymbolSummaryOutput` discloses the truncation in the trailing
+`note:` (keys past the cap remain elided — the cap is fixed). CAVEATS updated;
+regression test added.
 
 Doc's OUTPUT CONTRACT: "Every token exists verbatim in the corresponding source
 file." For JSON objects with more than ~20 keys (JSON_SHAPE_MAX_OBJECT_KEYS) or
@@ -118,7 +123,10 @@ Fix: in the symbol-summary path, drop the truncation marker from tokens, and
 either emit ALL keys regardless of the shape-render cap (vocabulary is cheap)
 or add a `note:` disclosing that N keys were truncated. Update CAVEATS either way.
 
-## 6. MEDIUM — unhandled EPIPE crash when stdout closes early
+## 6. ✅ COMPLETED (2026-07-08) — MEDIUM — unhandled EPIPE crash when stdout closes early
+
+Fixed: `runCli` installs an error handler on stdout/stderr that exits 0
+quietly on EPIPE (`map ... | head` is a normal workflow, not an error).
 
 `map ... | head -2` crashes with a Node stack trace (`Error: write EPIPE` at
 `emitTrailerNote`, dist/01-main.js:501). Piping map output is an explicitly
@@ -128,14 +136,21 @@ encouraged workflow. Fix: handle EPIPE on stdout/stderr writes (exit 0 quietly).
 node dist/02-cli.js map /tmp/wide.json | head -2   # stack trace
 ```
 
-## 7. LOW — token order for json:shape does not mirror source order (doc wrong)
+## 7. ✅ COMPLETED (2026-07-08) — LOW — token order for json:shape does not mirror source order (doc wrong)
+
+Fixed: TOKEN RULES now states json:shape tokens mirror the (sorted) shape
+rendering, not source order.
 
 TOKEN RULES promise "First-occurrence order per line, mirroring source order."
 JSON tokens follow the shape rendering, which sorts keys lexicographically
 (`key0 key1 key10 ... key2 key20`; a first-in-source `pool.max` lands last).
 Fix: amend the doc — for json:shape, order mirrors the (sorted) shape rendering.
 
-## 8. LOW — empty directory scan: empty output, exit 0, no `note:`
+## 8. ✅ COMPLETED (2026-07-08) — LOW — empty directory scan: empty output, exit 0, no `note:`
+
+Fixed: `resolveInputTarget` emits `note: no supported files found in <dir>`
+when a directory scan (explicit path or cwd) discovers zero supported files.
+Regression test added.
 
 A scan of a directory containing no supported files prints nothing (both plain
 `map` and `--symbol-summary`), unlike every other empty-output case which gets
@@ -145,7 +160,12 @@ an explanatory note. Fix: emit e.g. `note: no supported files found in <dir>`.
 mkdir -p /tmp/emptydir && node dist/02-cli.js map --symbol-summary /tmp/emptydir; echo $?   # silent, 0
 ```
 
-## 9. COSMETIC — inflated redaction count in `note:`
+## 9. ✅ COMPLETED (2026-07-08) — COSMETIC — inflated redaction count in `note:`
+
+Fixed: bare numeric/boolean/null literals assigned to secret-looking names
+are no longer redacted or counted (`isImplausibleSecretValue` guard on the
+unquoted assignment patterns; quoted string values still redact as before).
+Regression test added.
 
 40 files of `export const uniqueToken_N_M = <number>;` yield
 `note: 8000 secrets redacted` — every assignment whose name matches

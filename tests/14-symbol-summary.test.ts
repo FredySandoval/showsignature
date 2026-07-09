@@ -243,6 +243,59 @@ describe("map --symbol-summary", () => {
     expect(tokens).not.toContain("max");
   });
 
+  test("json:shape truncation marker never becomes a token and is disclosed in the note", async () => {
+    const dir = await createTempDir();
+    const wide: Record<string, number> = {};
+    for (let i = 0; i < 40; i++) {
+      wide[`key${i}`] = i;
+    }
+    const filePath = await writeFixtureFile(
+      dir,
+      "wide.json",
+      JSON.stringify(wide),
+    );
+
+    await runCli(["map", "--symbol-summary", filePath]);
+
+    const tokens = stdoutBuffer
+      .trim()
+      .split("\n")
+      .filter((line) => line.startsWith("json:shape:"))
+      .flatMap((line) => line.split(" ").slice(1));
+
+    expect(tokens).not.toContain("\\.\\.\\.");
+    expect(tokens).not.toContain("...");
+    expect(stdoutBuffer).toContain("note: json:shape truncation");
+  });
+
+  test("scanning a directory with no supported files emits an explanatory note", async () => {
+    const dir = await createTempDir();
+    await writeFixtureFile(dir, "notes.txt", "unsupported\n");
+
+    await runCli(["map", "--symbol-summary", dir]);
+    expect(stdoutBuffer).toContain(`note: no supported files found in`);
+    expect(process.exitCode).toBe(0);
+
+    await runCli(["map", dir]);
+    expect(stdoutBuffer).toContain(`note: no supported files found in`);
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("numeric literals assigned to secret-looking names are not counted as redactions", async () => {
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      dir,
+      "nums.ts",
+      "export const uniqueToken_1_1 = 5;\nexport const retryToken = true;\n",
+    );
+
+    await runCli(["map", "--only", "variables,exports", filePath]);
+
+    expect(stdoutBuffer).toContain("uniqueToken_1_1 = 5");
+    expect(stdoutBuffer).not.toContain("[redacted]");
+    expect(stdoutBuffer).not.toContain("secrets redacted");
+  });
+
   test("errors when --only names an excluded extractor", async () => {
     const dir = await createTempDir();
     await writeFixtureFile(dir, "pool.ts", TS_FIXTURE);

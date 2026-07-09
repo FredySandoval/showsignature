@@ -117,6 +117,16 @@ const SECRET_VARIABLE_ASSIGNMENT_PATTERN = new RegExp(
   "giu",
 );
 
+// A bare numeric/boolean/null literal assigned to a secret-looking name
+// (`tokenCount = 3`, `passwordRequired: true`) cannot be a credential;
+// redacting it only inflates the "N secrets redacted" note.
+const IMPLAUSIBLE_SECRET_VALUE_PATTERN =
+  /^[+-]?\d+(?:\.\d+)?$|^(?:true|false|null|undefined|nil|None|True|False)$/u;
+
+function isImplausibleSecretValue(value: string): boolean {
+  return IMPLAUSIBLE_SECRET_VALUE_PATTERN.test(value);
+}
+
 export function redactSecrets(value: string): string {
   return value
     .replace(PRIVATE_KEY_INLINE_PATTERN, REDACTED_SECRET)
@@ -138,12 +148,17 @@ export function redactSecrets(value: string): string {
     )
     .replace(
       ENV_SECRET_ASSIGNMENT_PATTERN,
-      (_match, prefix: string, key: string) =>
-        `${prefix}${key}${REDACTED_SECRET}`,
+      (match, prefix: string, key: string, secret: string) =>
+        isImplausibleSecretValue(secret)
+          ? match
+          : `${prefix}${key}${REDACTED_SECRET}`,
     )
     .replace(
       SECRET_VARIABLE_ASSIGNMENT_PATTERN,
-      (_match, key: string) => `${key}${REDACTED_SECRET}`,
+      (match, key: string, secret: string) =>
+        isImplausibleSecretValue(secret)
+          ? match
+          : `${key}${REDACTED_SECRET}`,
     );
 }
 
@@ -971,6 +986,10 @@ async function resolveInputTarget(
         notices.push(
           `0 files matched --lang ${explicitLang} under ${toDisplayPath(path.resolve(inputPath))}; remove --lang or check the extension`,
         );
+      } else if (discoveredFiles.length === 0) {
+        notices.push(
+          `no supported files found in ${toDisplayPath(path.resolve(inputPath))}`,
+        );
       }
 
       files.push(
@@ -1006,6 +1025,8 @@ async function resolveInputTarget(
     notices.push(
       `0 files matched --lang ${explicitLang} under .; remove --lang or check the extension`,
     );
+  } else if (discoveredFiles.length === 0) {
+    notices.push("no supported files found in .");
   }
 
   if (!usesOnlyMarkdownExtractKinds(extractOrder)) {
@@ -1340,6 +1361,19 @@ function renderSymbolSummaryOutput(
   if (redactedCount > 0) {
     notices.push(
       `${redactedCount} ${pluralize(redactedCount, "secret")} redacted; pass --no-redact for literal bytes`,
+    );
+  }
+
+  const shapeTruncated = result.sections.some((section) =>
+    section.entries.some(
+      (entry) =>
+        entry.kind === JSON_SHAPE_KIND &&
+        entry.lines.some((line) => JSON_SHAPE_TRUNCATION_PATTERN.test(line)),
+    ),
+  );
+  if (shapeTruncated) {
+    notices.push(
+      `json:shape truncation: keys past ${JSON_SHAPE_MAX_OBJECT_KEYS} object keys or depth ${JSON_SHAPE_MAX_DEPTH} are missing from the vocabulary; this cap is fixed (--all does not lift it)`,
     );
   }
 
@@ -1991,9 +2025,23 @@ export function buildCli(): CliProgram {
   };
 }
 
+// A downstream consumer closing the pipe early (`map ... | head`) is a
+// normal way to use the tool, not an error: stop writing and exit cleanly.
+function exitQuietlyOnEpipe(stream: NodeJS.WriteStream): void {
+  stream.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EPIPE") {
+      process.exit(0);
+    }
+    throw error;
+  });
+}
+
 export async function runCli(
   argv: readonly string[] = process.argv,
 ): Promise<void> {
+  exitQuietlyOnEpipe(process.stdout);
+  exitQuietlyOnEpipe(process.stderr);
+
   try {
     await execute(argv);
   } catch (error) {
