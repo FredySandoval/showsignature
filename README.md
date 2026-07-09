@@ -201,23 +201,23 @@ Markdown and JSON files:
 In an unfamiliar repository, the first search is usually a blind one — grepping
 names guessed from convention rather than from the code. `--symbol-summary`
 closes that gap: it emits **the vocabulary that literally exists in the code**,
-one line per (extractor, file) pair, formatted as ready-to-use ripgrep
-alternation patterns:
+one line per (extractor, file) pair, tokens separated by spaces (paths
+containing spaces are double-quoted):
 
 ```sh
 $ showsignature map --symbol-summary ./src
-exports:src/db/pool.ts: PgPool|createPool|POOL_MAX|acquireConn
-imports:src/db/migrate.ts: runMigrations|MigrationLock|schemaVersion|LogErrMig
-json:shape:src/config/default.json: db|host|port|poolMax|migrationTable
+exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
+imports:src/db/migrate.ts runMigrations MigrationLock schemaVersion LogErrMig
+json:shape:src/config/default.json db host port poolMax migrationTable
 ```
 
 Scan the output, spot the suspicious name, then `rg` or `map` *that* — no more
 guessing.
 
-**Contract: the token payload of every line is a valid ripgrep pattern in
-default (regex) mode.** Regex metacharacters appearing in identifiers are
-escaped rather than dropped (e.g. `$name` becomes `\$name`); every token
-exists verbatim in the corresponding source file.
+**Contract: every token is a valid ripgrep pattern in default (regex)
+mode.** Regex metacharacters appearing in identifiers are escaped rather
+than dropped (e.g. `$name` becomes `\$name`); every token exists verbatim
+in the corresponding source file.
 
 Rules:
 

@@ -549,9 +549,7 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain(
       "note: directory scan depth-limited to 2 by default; pass --max-depth <n> to go deeper",
     );
-    expect(stderrBuffer).toContain(
-      "note: directory scan depth-limited to 2 by default",
-    );
+    expect(stderrBuffer).not.toContain("note:");
     expect(process.exitCode).toBe(0);
   });
 
@@ -624,7 +622,7 @@ describe("buildCli", () => {
       "note: output capped at 2000 lines (2 of 3 files summarized).",
     );
     expect(stdoutBuffer).toContain("--all disables the cap");
-    expect(stderrBuffer).toContain("note: output capped at 2000 lines");
+    expect(stderrBuffer).not.toContain("note:");
     expect(process.exitCode).toBe(0);
   });
 
@@ -708,9 +706,7 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain(
       "note: 1 more entry — rerun with --skip 3 --take 2 src/app.ts",
     );
-    expect(stderrBuffer).toContain(
-      "note: 1 more entry — rerun with --skip 3 --take 2 src/app.ts",
-    );
+    expect(stderrBuffer).not.toContain("note:");
     expect(process.exitCode).toBe(0);
   });
 

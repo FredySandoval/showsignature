@@ -96,7 +96,7 @@ export function createPool(schemaVersion: string): void {
 `;
 
 describe("map --symbol-summary", () => {
-  test("emits one extractor:path line with pipe-joined verbatim tokens", async () => {
+  test("emits one extractor:path line with space-separated verbatim tokens", async () => {
     const dir = await createTempDir();
     const filePath = await writeFixtureFile(dir, "pool.ts", TS_FIXTURE);
 
@@ -110,8 +110,8 @@ describe("map --symbol-summary", () => {
 
     expect(signaturesLine).toBeDefined();
     expect(importsLine).toBeDefined();
-    expect(signaturesLine!).toContain("createPool|schemaVersion");
-    expect(importsLine!).toContain("runMigrations|MigrationLock");
+    expect(signaturesLine!).toContain("createPool schemaVersion");
+    expect(importsLine!).toContain("runMigrations MigrationLock");
     expect(process.exitCode).toBe(0);
   });
 
@@ -121,11 +121,10 @@ describe("map --symbol-summary", () => {
 
     await runCli(["map", "--symbol-summary", filePath]);
 
-    const payloads = stdoutBuffer
+    const tokens = stdoutBuffer
       .trim()
       .split("\n")
-      .map((line) => line.slice(line.lastIndexOf(": ") + 2));
-    const tokens = payloads.flatMap((payload) => payload.split("|"));
+      .flatMap((line) => line.split(" ").slice(1));
 
     for (const stopword of ["export", "function", "const", "string", "void"]) {
       expect(tokens).not.toContain(stopword);
@@ -140,9 +139,51 @@ describe("map --symbol-summary", () => {
     await runCli(["map", "--symbol-summary", filePath]);
 
     for (const line of stdoutBuffer.trim().split("\n")) {
-      expect(line).toMatch(/^[a-z:]+:.+: \S/u);
+      expect(line).toMatch(/^[a-z:]+:\S+ \S/u);
       expect(line).not.toMatch(/^\d/u);
     }
+  });
+
+  test("double-quotes paths containing spaces", async () => {
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(dir, "my pool.ts", TS_FIXTURE);
+
+    await runCli(["map", "--symbol-summary", filePath]);
+
+    const lines = stdoutBuffer.trim().split("\n");
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(line).toMatch(/^[a-z:]+:"[^"]* [^"]*" \S/u);
+    }
+  });
+
+  test("secret values are redacted from tokens and disclosed in the note", async () => {
+    // Concatenated so this file never contains a contiguous secret-shaped
+    // token (GitHub push protection).
+    const awsKey = "AKIA" + "IOSFODNN7EXAMPLE";
+    const fixture = `export const AWS_SECRET = "${awsKey}";\nexport const dbPassword = "hunter2secretvalue123456";\n`;
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(dir, "secrets.ts", fixture);
+
+    await runCli(["map", "--symbol-summary", "--only", "variables", filePath]);
+
+    expect(stdoutBuffer).toContain("AWS_SECRET");
+    expect(stdoutBuffer).toContain("dbPassword");
+    expect(stdoutBuffer).not.toContain(awsKey);
+    expect(stdoutBuffer).not.toContain("hunter2secretvalue123456");
+    expect(stdoutBuffer).not.toContain("redacted;pass"); // sanity
+    expect(stdoutBuffer).toMatch(/note: .*secrets? redacted; pass --no-redact/u);
+
+    await runCli([
+      "map",
+      "--symbol-summary",
+      "--only",
+      "variables",
+      "--no-redact",
+      filePath,
+    ]);
+    expect(stdoutBuffer).toContain(awsKey);
+    expect(stdoutBuffer).toContain("hunter2secretvalue123456");
   });
 
   test("comments never contribute tokens", async () => {
@@ -175,7 +216,31 @@ describe("map --symbol-summary", () => {
     expect(jsonLine!).toContain("db");
     expect(jsonLine!).toContain("poolMax");
     // shape type names are syntax, not vocabulary
-    expect(jsonLine!.split(": ").at(-1)!.split("|")).not.toContain("string");
+    expect(jsonLine!.split(" ").slice(1)).not.toContain("string");
+  });
+
+  test("JSON keys with non-identifier characters stay whole, escaped", async () => {
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      dir,
+      "weird.json",
+      `{ "pool.max": 5, "a|b": 1, "e$f": [2] }\n`,
+    );
+
+    await runCli(["map", "--symbol-summary", filePath]);
+
+    const jsonLine = stdoutBuffer
+      .trim()
+      .split("\n")
+      .find((line) => line.startsWith("json:shape:"));
+    expect(jsonLine).toBeDefined();
+    const tokens = jsonLine!.split(" ").slice(1);
+    expect(tokens).toContain("pool\\.max");
+    expect(tokens).toContain("a\\|b");
+    expect(tokens).toContain("e\\$f");
+    // no fragments
+    expect(tokens).not.toContain("pool");
+    expect(tokens).not.toContain("max");
   });
 
   test("errors when --only names an excluded extractor", async () => {
@@ -229,8 +294,7 @@ describe("map --symbol-summary", () => {
     await runCli(["map", "--symbol-summary", filePath]);
 
     for (const line of stdoutBuffer.trim().split("\n")) {
-      const payload = line.slice(line.lastIndexOf(": ") + 2);
-      for (const token of payload.split("|")) {
+      for (const token of line.split(" ").slice(1)) {
         const literal = token.replace(/\\(.)/gu, "$1");
         expect(TS_FIXTURE).toContain(literal);
       }

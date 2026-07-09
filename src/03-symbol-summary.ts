@@ -1,13 +1,13 @@
 // ============================================================================
 // Symbol Summary                       [map --symbol-summary]
 // Keyword-discovery mode: emits the identifier vocabulary that literally
-// exists in the code as ready-to-use ripgrep alternation patterns, one line
-// per (extractor, file) pair:
+// exists in the code, one line per (extractor, file) pair, tokens separated
+// by single spaces (paths containing spaces are double-quoted):
 //
-//   exports:src/db/pool.ts: PgPool|createPool|POOL_MAX|acquireConn
+//   exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
 //
-// Output contract: the token payload of every line is a valid ripgrep
-// pattern in default (regex) mode.
+// Output contract: every token is a valid ripgrep pattern in default
+// (regex) mode and exists verbatim in the source file (modulo escaping).
 // ============================================================================
 import type { ExtractKind, FileSection } from "./00-core-types.js";
 
@@ -48,7 +48,9 @@ const TS_FAMILY_STOPWORDS = [
   // primitive/builtin types and literals
   "bigint", "boolean", "false", "never", "null", "number", "object",
   "string", "symbol", "true", "undefined", "unknown", "void",
-  // builtin globals and TS utility types
+  // builtin globals and TS utility types ("self" is the global scope in
+  // browsers/workers, same structural noise as "this")
+  "self",
   "Array", "Awaited", "Boolean", "Date", "Error", "Map", "Number", "Object",
   "Omit", "Partial", "Pick", "Promise", "Readonly", "ReadonlyArray",
   "ReadonlyMap", "ReadonlySet", "Record", "RegExp", "Required", "Set",
@@ -117,6 +119,10 @@ const STOPWORDS_BY_LANGUAGE: ReadonlyMap<string, ReadonlySet<string>> =
   ]);
 
 const IDENTIFIER_PATTERN = /[$_\p{L}][$_\p{L}\p{N}]*/gu;
+// json:shape lines are `{ key: type, key: [type] }` and keys may contain
+// non-identifier characters (`pool.max`, `a|b`). Keep keys whole: a token is
+// any run of characters that isn't whitespace or shape syntax.
+const JSON_TOKEN_PATTERN = /[^\s{}[\],:]+/gu;
 const REGEX_METACHARS_PATTERN = /[\\^$.*+?()[\]{}|]/gu;
 
 export function escapeSymbolToken(token: string): string {
@@ -127,11 +133,12 @@ function collectLineTokens(
   lines: readonly string[],
   stopwords: ReadonlySet<string>,
   seen: Set<string>,
+  tokenPattern: RegExp = IDENTIFIER_PATTERN,
 ): string[] {
   const tokens: string[] = [];
 
   for (const line of lines) {
-    for (const match of line.matchAll(IDENTIFIER_PATTERN)) {
+    for (const match of line.matchAll(tokenPattern)) {
       const token = match[0];
       if (stopwords.has(token) || seen.has(token)) {
         continue;
@@ -154,11 +161,20 @@ export interface SymbolSummaryLine {
 // second (mirroring extractOrder), fixed across runs. Tokens appear in
 // first-occurrence source order and are deduped within a line only —
 // repetition across lines is information (who defines vs. who uses).
+export interface BuildSymbolSummaryOptions {
+  // Applied to each entry line BEFORE tokenization. Redaction must happen
+  // here: secret patterns match on assignment context (`SECRET = "..."`),
+  // which tokenization strips away.
+  redactLine?: (line: string) => string;
+}
+
 export function buildSymbolSummaryLines(
   sections: readonly FileSection[],
   extractOrder: readonly ExtractKind[],
+  options: BuildSymbolSummaryOptions = {},
 ): SymbolSummaryLine[] {
   const summaryLines: SymbolSummaryLine[] = [];
+  const { redactLine } = options;
 
   for (const section of sections) {
     const stopwords =
@@ -176,7 +192,15 @@ export function buildSymbolSummaryLines(
         if (entry.kind !== kind) {
           continue;
         }
-        tokens.push(...collectLineTokens(entry.lines, stopwords, seen));
+        const lines = redactLine ? entry.lines.map(redactLine) : entry.lines;
+        tokens.push(
+          ...collectLineTokens(
+            lines,
+            stopwords,
+            seen,
+            section.lang === "json" ? JSON_TOKEN_PATTERN : undefined,
+          ),
+        );
       }
 
       if (tokens.length === 0) {
@@ -186,7 +210,7 @@ export function buildSymbolSummaryLines(
       summaryLines.push({
         kind,
         filePath: section.filePath,
-        payload: tokens.join("|"),
+        payload: tokens.join(" "),
       });
     }
   }

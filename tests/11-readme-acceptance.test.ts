@@ -156,9 +156,10 @@ describe("README acceptance", () => {
     );
     expect(stdoutBuffer).not.toContain("shouldNotAppear");
     expect(stdoutBuffer).not.toContain("shouldAlsoNotAppear");
-    expect(stderrBuffer).toContain(
+    expect(stdoutBuffer).toContain(
       "note: 2 test files excluded; pass --include-tests to include them",
     );
+    expect(stderrBuffer).not.toContain("note:");
     expect(process.exitCode).toBe(0);
   });
 });

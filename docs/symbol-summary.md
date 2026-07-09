@@ -3,7 +3,7 @@
 ## NAME
 
 **showsignature map --symbol-summary** — emit the identifier vocabulary of a
-codebase as ripgrep-ready alternation patterns
+codebase as ripgrep-ready tokens
 
 ## SYNOPSIS
 
@@ -32,20 +32,21 @@ The flag exists on `map` only. It is not available on `read`; use
 
 ## OUTPUT FORMAT
 
-One line per (extractor, file) pair:
+One line per (extractor, file) pair, tokens separated by single spaces;
+paths containing spaces are double-quoted:
 
 ```
-<extractor>:<relative/path/to/file>: token1|token2|token3
+<extractor>:<relative/path/to/file> token1 token2 token3
 ```
 
 Example:
 
 ```
 $ showsignature map --symbol-summary ./src
-exports:src/db/pool.ts: PgPool|createPool|POOL_MAX|acquireConn
-imports:src/db/migrate.ts: runMigrations|MigrationLock|schemaVersion|LogErrMig
-exports:src/db/migrate.ts: runMigrations|MigrationLock
-json:shape:src/config/default.json: db|host|port|poolMax|migrationTable
+exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
+imports:src/db/migrate.ts runMigrations MigrationLock schemaVersion LogErrMig
+exports:src/db/migrate.ts runMigrations MigrationLock
+json:shape:src/config/default.json db host port poolMax migrationTable
 ```
 
 - The extractor prefix says *why* a token is listed: an export is API
@@ -62,14 +63,13 @@ json:shape:src/config/default.json: db|host|port|poolMax|migrationTable
 
 ## THE OUTPUT CONTRACT
 
-> The token payload of every line is a valid ripgrep pattern in default
-> (regex) mode.
+> Every token is a valid ripgrep pattern in default (regex) mode.
 
 Every token exists verbatim in the corresponding source file (modulo
 escaping). Regex metacharacters occurring in identifiers are escaped rather
-than dropped — e.g. Svelte/PHP-style `$name` is emitted as `\$name`. `|` is
-the alternation separator, so a literal `|` inside a token would likewise be
-escaped. The payload is always safe to paste:
+than dropped — e.g. Svelte/PHP-style `$name` is emitted as `\$name`. Any
+token is safe to paste, and joining tokens with `|` yields a valid
+alternation:
 
 ```
 rg "PgPool|createPool|POOL_MAX|acquireConn" src/db/pool.ts
@@ -91,8 +91,9 @@ rg "PgPool|createPool|POOL_MAX|acquireConn" src/db/pool.ts
   `def`, `fn`, `pub`, `local`, …), primitive/builtin type names (`string`,
   `int`, `bool`, `void`, common JS/TS globals and utility types like
   `Promise`, `Set`, `Record`, …), and structural noise (`self`, `this`)
-  are removed. Nothing is filtered for perceived relevance — if it's a
-  name someone chose, it is kept.
+  are removed. The tables are per-language: each language drops its own
+  keywords and builtins. Nothing is filtered for perceived relevance — if
+  it's a name someone chose, it is kept.
 
 ## EXTRACTOR SCOPE
 
@@ -167,6 +168,9 @@ showsignature map src/db/migrate.ts
   contract (they exist verbatim and match with `rg`), but they are noisier
   than chosen identifiers. Package names (`commander`) are valuable enough
   that string literals are not skipped wholesale.
+- **JSON keys are kept whole** (`pool.max` → `pool\.max`), except keys
+  containing whitespace, which split on the space — the shape rendering
+  itself is space-delimited and cannot represent them unambiguously.
 - **Single-character tokens can appear** (e.g. a lone `s` from a template
   literal in a signature). They are verbatim and harmless, but rarely
   useful grep targets on their own.

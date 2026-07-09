@@ -374,10 +374,10 @@ Options:
   --take <n>             Show at most N entries.
   --symbol-summary       Keyword-discovery mode: one line per (extractor,
                          file) pair listing the identifiers that literally
-                         exist there, formatted as a ready-to-use ripgrep
-                         alternation pattern (token1|token2|...). Symbol
-                         extractors only (no comments / md:*); no line
-                         numbers; --skip/--take page over output lines.
+                         exist there, space-separated (paths containing
+                         spaces are double-quoted). Symbol extractors only
+                         (no comments / md:*); no line numbers;
+                         --skip/--take page over output lines.
   --max-depth <n>        Folder scan depth (default: ${DEFAULT_DIRECTORY_MAX_DEPTH}).
   --include-tests        Include test files in folder scans.
   --no-line-number       Hide source line-number prefixes.
@@ -738,11 +738,13 @@ function emitDiagnostic(diagnostic: Diagnostic, redact = true): void {
 }
 
 // Notes go to stdout so piped consumers see them; the stderr copy is only
-// for humans watching a command whose stdout is redirected elsewhere.
+// for humans watching a terminal while stdout is redirected elsewhere.
+// Requiring stderr to be a TTY avoids duplicate notes when both streams
+// are captured together (e.g. `cmd 2>&1 | ...`).
 function emitTrailerNote(notes: readonly string[]): void {
   const trailer = `note: ${notes.join(" | ")}`;
   process.stdout.write(`${trailer}\n`);
-  if (process.stdout.isTTY !== true) {
+  if (process.stdout.isTTY !== true && process.stderr.isTTY === true) {
     process.stderr.write(`${trailer}\n`);
   }
 }
@@ -1248,9 +1250,10 @@ function buildResumeCommand(
   ].join(" ");
 }
 
-// map --symbol-summary: one `<extractor>:<path>: token|token|...` line per
-// (extractor, file) pair. No line numbers, ever — regular map is the
-// discovery tool for locations. --skip/--take page over these output lines.
+// map --symbol-summary: one `<extractor>:<path> token token ...` line per
+// (extractor, file) pair; paths containing spaces are double-quoted. No line
+// numbers, ever — regular map is the discovery tool for locations.
+// --skip/--take page over these output lines.
 function renderSymbolSummaryOutput(
   plan: ExecutionPlan,
   result: PipelineResult,
@@ -1258,13 +1261,31 @@ function renderSymbolSummaryOutput(
   const notices = plan.notices ?? (plan.notices = []);
   const redact = plan.output.redact !== false;
 
-  const allLines = buildSymbolSummaryLines(
-    result.sections,
-    plan.extractOrder,
-  ).map(
-    (line) =>
-      `${line.kind}:${sanitizeAndMaybeRedactForDisplay(toDisplayPath(line.filePath), redact)}: ${sanitizeAndMaybeRedactForDisplay(line.payload, redact)}`,
-  );
+  let redactedCount = 0;
+  const redactLine = redact
+    ? (line: string): string => {
+        const redacted = redactSecrets(line);
+        if (redacted !== line) {
+          redactedCount += countOccurrences(redacted, REDACTED_SECRET);
+          // Drop the marker so "redacted" is not emitted as a token.
+          return redacted.replaceAll(REDACTED_SECRET, " ");
+        }
+        return redacted;
+      }
+    : undefined;
+
+  const allLines = buildSymbolSummaryLines(result.sections, plan.extractOrder, {
+    ...(redactLine ? { redactLine } : {}),
+  }).map((line) => {
+    const displayPath = sanitizeAndMaybeRedactForDisplay(
+      toDisplayPath(line.filePath),
+      redact,
+    );
+    const quotedPath = displayPath.includes(" ")
+      ? `"${displayPath}"`
+      : displayPath;
+    return `${line.kind}:${quotedPath} ${sanitizeAndMaybeRedactForDisplay(line.payload, redact)}`;
+  });
 
   const total = allLines.length;
   const offset = plan.entryOffset ?? 0;
@@ -1313,6 +1334,12 @@ function renderSymbolSummaryOutput(
     const fileCount = result.sections.length;
     notices.push(
       `0 symbol-summary lines for ${plan.extractOrder.join(", ")} in ${fileCount} ${pluralize(fileCount, "file")}`,
+    );
+  }
+
+  if (redactedCount > 0) {
+    notices.push(
+      `${redactedCount} ${pluralize(redactedCount, "secret")} redacted; pass --no-redact for literal bytes`,
     );
   }
 

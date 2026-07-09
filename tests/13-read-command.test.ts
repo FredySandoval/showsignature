@@ -176,7 +176,7 @@ describe("read command", () => {
     expect(stdoutBuffer).toContain(
       "note: showing lines 2-4 of 5; continue with: showsignature read --offset 5 src/app.ts",
     );
-    expect(stderrBuffer).toContain("note: showing lines 2-4 of 5");
+    expect(stderrBuffer).not.toContain("note:");
     expect(process.exitCode).toBe(0);
   });
 
