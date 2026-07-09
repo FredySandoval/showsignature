@@ -34,6 +34,7 @@ Run `showsignature map` BEFORE opening any supported file with Read, cat, head, 
 - First look at any unfamiliar file or folder → `map` it.
 - Need the actual lines → `read --offset <line> --limit <n>`, jumping to a line number the map gave you.
 - Reviewing an API or data shape → `map --only interfaces,types` (or `json:shape` for JSON).
+- About to grep for a name you're guessing at → `map --symbol-summary` first: it lists the identifiers that literally exist, so you search real vocabulary instead of guesses.
 - Migrating between languages → `map --lang <lang>` to inspect one language at a time.
 - Preparing compact context for another tool or agent → pipe `map` output.
 
@@ -52,6 +53,18 @@ Defaults to know (so you don't pass redundant flags or get surprised):
 - The `read` outline defaults to the `signatures` extractor; pick others with `--outline`.
 - In `read`, everything between the `<content>` tags is raw bytes with no line-number prefixes — safe to copy into exact-match edit tools. Pass `--framing none` for a plain read (content only: no tags, no outline).
 - Secrets are redacted by default (disclosed in the `note:`); `--no-redact` returns literal bytes.
+- `--no-line-number` hides line-number prefixes (map entries / read outline) when you want cleaner text to pipe onward.
+
+## Symbol summary (`map --symbol-summary`)
+
+Keyword-discovery mode: one line per (extractor, file) pair listing the identifiers that literally exist there, space-separated. Every token is a valid ripgrep pattern (regex metacharacters escaped), so you can pipe or copy tokens straight into `rg`:
+
+```
+exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
+imports:src/db/migrate.ts runMigrations MigrationLock schemaVersion
+```
+
+Rules: symbol extractors only (`signatures,imports,exports,interfaces,types,variables,json:shape` — naming `comments`/`md:*` via `--only` is an error); identifiers are verbatim, keywords/builtins removed; no line numbers; the same name under `exports:` of one file and `imports:` of another tells you who defines it and who uses it. `--skip`/`--take` page over output LINES here.
 
 ## Canonical examples
 
@@ -73,6 +86,10 @@ showsignature map --only imports,exports ./src
 showsignature map --only interfaces,types ./src
 showsignature map --only md:headings README.md
 showsignature map --only json:shape config.json
+
+# Discover the identifier vocabulary before grepping
+showsignature map --symbol-summary ./src
+showsignature map --symbol-summary --only interfaces,types ./src
 
 # One language at a time (useful for migrations)
 showsignature map --lang go --only imports,exports ./src
