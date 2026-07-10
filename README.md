@@ -39,20 +39,6 @@ In an A/B experiment on 25 SWE-bench Lite tasks (SWE-agent, identical configs wi
 
 ## Install
 
-### 1. Install locally or globally from the NPM registry
-`showsignature` is executed as a bash tool, so must be available locally or globally.
-
-```bash
-#npm|pnpm|yarn
-# global install
-npm install -g showsignature
-
-# local install
-npm install showsignature
-```
-
-## 2. Set your AI Agent
-
 > [!NOTE]
 > How the tool is exposed depends on the agent: in **Pi** and **OpenCode** it registers as a **native tool call**, while in **Claude Code** and **Codex** it runs as a **bash command** (their harnesses integrate external tools through the shell).
 
@@ -60,6 +46,17 @@ npm install showsignature
 <summary>
 <h2>Claude Code</h2>
 </summary>
+
+### 1. Install locally or globally
+```sh
+#npm|pnpm|yarn
+# global install
+npm install -g showsignature
+# local install
+npm install showsignature
+```
+
+### 2. Set the Agent
   
 ```bash
 /plugin marketplace add FredySandoval/showsignature
@@ -81,6 +78,17 @@ The agent invokes `showsignature` as a bash command.
 <h2>Codex</h2>
 </summary>
 
+### 1. Install locally or globally
+```sh
+#npm|pnpm|yarn
+# global install
+npm install -g showsignature
+# local install
+npm install showsignature
+```
+
+### 2. Set the Agent
+
 ```sh
 codex plugin marketplace add FredySandoval/showsignature
 codex
@@ -93,6 +101,22 @@ The agent invokes `showsignature` as a bash command.
 
 </details>
 
+<details id="pi-agent-extension">
+<summary>
+<h2>Pi agent extension</h2>
+</summary>
+  
+```bash
+# option 1
+pi install npm:showsignature
+# option 2
+pi install git:github.com/FredySandoval/showsignature
+# option 3
+pi install https://github.com/FredySandoval/showsignature
+```
+
+The extension registers `showsignature` as a native tool call.
+</details>
 
 <details id="opencode">
 <summary>
@@ -114,31 +138,26 @@ OpenCode installs the package automatically at startup and registers the `showsi
 
 <details id="agent-skill">
 <summary>
-<h2>Agent Skill</h2>
+<h2>Other Agent Harnesses (SKILL)</h2>
 </summary>
+
+### 1. Install locally or globally
+```sh
+#npm|pnpm|yarn
+# global install
+npm install -g showsignature
+# local install
+npm install showsignature
+```
   
+### 2. install the agent skill
+
 ```bash
 # All agents
 npx skills add https://github.com/FredySandoval/showsignature --skill showsignature
 ```
 </details>
 
-<details id="pi-agent-extension">
-<summary>
-<h2>Pi agent extension</h2>
-</summary>
-  
-```bash
-# option 1
-pi install npm:showsignature
-# option 2
-pi install git:github.com/FredySandoval/showsignature
-# option 3
-pi install https://github.com/FredySandoval/showsignature
-```
-
-The extension registers `showsignature` as a native tool call.
-</details>
 
 <details id="from-source">
 <summary>
