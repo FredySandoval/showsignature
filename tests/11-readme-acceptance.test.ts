@@ -10,6 +10,7 @@ const originalCwd = process.cwd();
 const originalStdoutWrite = process.stdout.write;
 const originalStderrWrite = process.stderr.write;
 const originalStdoutIsTTY = process.stdout.isTTY;
+const originalStderrIsTTY = process.stderr.isTTY;
 
 let stdoutBuffer = "";
 let stderrBuffer = "";
@@ -28,6 +29,10 @@ function installOutputCapture(): void {
   // The CLI mirrors trailer notes to stderr only when stdout is not a TTY;
   // pin the piped-consumer behavior so results don't depend on the terminal.
   Object.defineProperty(process.stdout, "isTTY", {
+    value: false,
+    configurable: true,
+  });
+  Object.defineProperty(process.stderr, "isTTY", {
     value: false,
     configurable: true,
   });
@@ -66,6 +71,10 @@ afterEach(async () => {
   process.stderr.write = originalStderrWrite;
   Object.defineProperty(process.stdout, "isTTY", {
     value: originalStdoutIsTTY,
+    configurable: true,
+  });
+  Object.defineProperty(process.stderr, "isTTY", {
+    value: originalStderrIsTTY,
     configurable: true,
   });
   process.exitCode = 0;

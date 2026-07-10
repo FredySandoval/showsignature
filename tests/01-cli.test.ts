@@ -15,6 +15,7 @@ const originalCwd = process.cwd();
 const originalStdoutWrite = process.stdout.write;
 const originalStderrWrite = process.stderr.write;
 const originalStdoutIsTTY = process.stdout.isTTY;
+const originalStderrIsTTY = process.stderr.isTTY;
 const originalStdin = process.stdin;
 
 let stdoutBuffer = "";
@@ -34,6 +35,10 @@ function installOutputCapture(): void {
   // The CLI mirrors trailer notes to stderr only when stdout is not a TTY;
   // pin the piped-consumer behavior so results don't depend on the terminal.
   Object.defineProperty(process.stdout, "isTTY", {
+    value: false,
+    configurable: true,
+  });
+  Object.defineProperty(process.stderr, "isTTY", {
     value: false,
     configurable: true,
   });
@@ -81,6 +86,10 @@ afterEach(async () => {
   process.stderr.write = originalStderrWrite;
   Object.defineProperty(process.stdout, "isTTY", {
     value: originalStdoutIsTTY,
+    configurable: true,
+  });
+  Object.defineProperty(process.stderr, "isTTY", {
+    value: originalStderrIsTTY,
     configurable: true,
   });
   Object.defineProperty(process, "stdin", {
@@ -523,7 +532,7 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain("// src/one.ts");
     expect(stdoutBuffer).not.toContain("// src/nested/two.ts");
     expect(stdoutBuffer).toContain(
-      "note: depth limit 2 reached; 1 more file at depth 3 — pass --max-depth 3 or --all",
+      "note: depth limit 2 reached; 1 more file at depth 3 — pass --max-depth 3",
     );
     expect(process.exitCode).toBe(0);
   });
@@ -621,7 +630,9 @@ describe("buildCli", () => {
     expect(stdoutBuffer).toContain(
       "note: output capped at 2000 lines (2 of 3 files summarized).",
     );
-    expect(stdoutBuffer).toContain("--all disables the cap");
+    expect(stdoutBuffer).toContain(
+      "Narrow the path, or use --only / --max-depth / --take to adjust.",
+    );
     expect(stderrBuffer).not.toContain("note:");
     expect(process.exitCode).toBe(0);
   });
@@ -996,7 +1007,7 @@ describe("cli round-4 regressions", () => {
     expect(stdoutBuffer).toContain("// top.ts");
     expect(stdoutBuffer).not.toContain("deep.ts");
     expect(stdoutBuffer).toContain(
-      "note: depth limit 1 reached; 1 more file at depth 3 — pass --max-depth 3 or --all",
+      "note: depth limit 1 reached; 1 more file at depth 3 — pass --max-depth 3",
     );
     expect(process.exitCode).toBe(0);
   });

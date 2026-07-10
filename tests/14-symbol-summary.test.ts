@@ -15,6 +15,7 @@ const originalCwd = process.cwd();
 const originalStdoutWrite = process.stdout.write;
 const originalStderrWrite = process.stderr.write;
 const originalStdoutIsTTY = process.stdout.isTTY;
+const originalStderrIsTTY = process.stderr.isTTY;
 
 let stdoutBuffer = "";
 let stderrBuffer = "";
@@ -31,6 +32,10 @@ function installOutputCapture(): void {
   process.exitCode = 0;
 
   Object.defineProperty(process.stdout, "isTTY", {
+    value: false,
+    configurable: true,
+  });
+  Object.defineProperty(process.stderr, "isTTY", {
     value: false,
     configurable: true,
   });
@@ -74,6 +79,10 @@ afterEach(async () => {
   process.stderr.write = originalStderrWrite;
   Object.defineProperty(process.stdout, "isTTY", {
     value: originalStdoutIsTTY,
+    configurable: true,
+  });
+  Object.defineProperty(process.stderr, "isTTY", {
+    value: originalStderrIsTTY,
     configurable: true,
   });
   process.exitCode = 0;
@@ -356,6 +365,78 @@ import type { Range } from "../../00-core-types.js";
     expect(noteLine).toContain(
       `rerun with --symbol-summary --skip 1 --take 1 ${dir}`,
     );
+  });
+
+  test("relative specifier ending in a slash still contributes one token", async () => {
+    // docs/symbol-summary.md TOKEN RULES: "The quoted module specifier in an
+    // imports/exports entry contributes exactly one token". A trailing-slash
+    // specifier like "./dir/" must not silently drop its token.
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      dir,
+      "slash.ts",
+      `import slash from "./dir/";\n`,
+    );
+
+    await runCli(["map", "--symbol-summary", filePath]);
+
+    const importsLine = stdoutBuffer
+      .trim()
+      .split("\n")
+      .find((line) => line.startsWith("imports:"));
+    expect(importsLine).toBeDefined();
+    const tokens = importsLine!.split(" ").slice(1);
+    expect(tokens).toContain("slash");
+    // the specifier must contribute a token (basename "dir")
+    expect(tokens).toContain("dir");
+  });
+
+  test("quoted strings containing spaces do not break the space-delimited token format", async () => {
+    // docs/symbol-summary.md OUTPUT FORMAT: "tokens separated by single
+    // spaces"; TOKEN RULES: "A token appears at most once per line".
+    // A quoted string value with a space ("b c") is emitted as one pseudo
+    // token containing a space, so the identifiers b and c are not marked
+    // seen and re-appear -> observable duplicate fields on one line.
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      dir,
+      "spacestr.ts",
+      `export const a = "b c";\nexport const b = 1;\nexport const c = 2;\n`,
+    );
+
+    await runCli(["map", "--symbol-summary", "--only", "exports", filePath]);
+
+    const exportsLine = stdoutBuffer
+      .trim()
+      .split("\n")
+      .find((line) => line.startsWith("exports:"));
+    expect(exportsLine).toBeDefined();
+    const fields = exportsLine!.split(" ").slice(1);
+    expect(new Set(fields).size).toBe(fields.length);
+  });
+
+  test("import specifier containing a space contributes exactly one unambiguous token", async () => {
+    // docs/symbol-summary.md TOKEN RULES: the specifier contributes "exactly
+    // one token, never path fragments". With `import sp from "./has
+    // space.js"` the output line reads `sp has space\.js` — three
+    // space-separated fields, so the fragment `has` leaks as a token.
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      dir,
+      "spacespec.ts",
+      `import sp from "./has space.js";\n`,
+    );
+
+    await runCli(["map", "--symbol-summary", filePath]);
+
+    const importsLine = stdoutBuffer
+      .trim()
+      .split("\n")
+      .find((line) => line.startsWith("imports:"));
+    expect(importsLine).toBeDefined();
+    const fields = importsLine!.split(" ").slice(1);
+    // one token for the local name, exactly one for the specifier
+    expect(fields).toHaveLength(2);
   });
 
   test("output is deterministic across runs", async () => {
