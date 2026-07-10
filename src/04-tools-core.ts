@@ -55,7 +55,6 @@ export const MAP_ARG_DOCS = {
   lang          : "Restrict to one language, e.g. 'go', 'py', 'ts'",
   includeTests  : "Include test files (excluded by default)",
   symbolSummary : "Keyword-discovery mode: one line per (extractor, file) listing identifiers",
-  all           : "Lift output caps (entry limit and 2000-line/50 KB cap)",
   noLineNumber  : "Hide source line-number prefixes (cleaner text for piping)",
 } as const;
 
@@ -66,7 +65,6 @@ export const READ_ARG_DOCS = {
   outline : "Outline extractors, e.g. 'imports,signatures' (default: signatures)" ,
   framing : "'none' for plain content only (no tags, no outline)"                 ,
   lang    : "Language hint, e.g. 'py', 'ts'"                                      ,
-  all     : "Lift the 2000-line/50 KB window cap"                                 ,
 } as const;
 
 export interface MapParams {
@@ -78,7 +76,6 @@ export interface MapParams {
   lang          ?: string   | undefined ;
   includeTests  ?: boolean  | undefined ;
   symbolSummary ?: boolean  | undefined ;
-  all           ?: boolean  | undefined ;
   noLineNumber  ?: boolean  | undefined ;
 }
 
@@ -89,7 +86,6 @@ export interface ReadParams {
   outline ?: string  | undefined ;
   framing ?: string  | undefined ;
   lang    ?: string  | undefined ;
-  all     ?: boolean | undefined ;
 }
 
 export function buildMapArgv(params: MapParams): string[] {
@@ -102,7 +98,6 @@ export function buildMapArgv(params: MapParams): string[] {
   if (params.lang                  ) argv.push("--lang"     ,params.lang            ) ;
   if (params.includeTests          ) argv.push("--include-tests"                    ) ;
   if (params.symbolSummary         ) argv.push("--symbol-summary"                   ) ;
-  if (params.all                   ) argv.push("--all"                              ) ;
   if (params.noLineNumber          ) argv.push("--no-line-number"                   ) ;
 
   argv.push(...(params.paths?.length ? params.paths : ["."]));
@@ -116,7 +111,6 @@ export function buildReadArgv(params: ReadParams): string[] {
   if (params.outline             ) argv.push("--outline",params.outline       ) ;
   if (params.framing             ) argv.push("--framing",params.framing       ) ;
   if (params.lang                ) argv.push("--lang"   ,params.lang          ) ;
-  if (params.all                 ) argv.push("--all"                          ) ;
   argv.push(params.file);
   return argv;
 }

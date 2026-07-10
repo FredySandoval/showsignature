@@ -168,7 +168,7 @@ Options for `showsignature map`:
 | `--include-tests`      | Include test files in folder scans.                                          |
 | `--no-line-number`     | Hide source line-number prefixes.                                            |
 | `--lang <l>`           | Only process files of this language; required when using `-` to read stdin.  |
-| `--all`                | Lift the output caps (entry limit and the 2000-line / 50 KB cap). Exception: `json:shape`'s nesting summary (`...`) is fixed. |
+| `--all`                | Lift the output caps (entry limit and the 2000-line / 50 KB cap). Exception: `json:shape`'s nesting summary (`...`) is fixed. Omitted from the agent tool schemas on purpose — uncapped output would flood an LLM context; agents page with `--skip`/`--take` instead. |
 | `--no-redact`          | Disable built-in secrets redaction.                                          |
 
 Options for `showsignature read`:
@@ -181,7 +181,7 @@ Options for `showsignature read`:
 | `--framing <mode>`       | How the content window is wrapped (default: `tags`). One of: `tags`, `none`.  |
 | `--no-line-number`       | Hide line-number prefixes on outline lines (content never has them).          |
 | `--lang <l>`             | Declare the file's language. Optional for stdin (`-`): content always displays; the outline needs a known language. |
-| `--all`                  | Lift the 2000-line / 50 KB window cap.                                        |
+| `--all`                  | Lift the 2000-line / 50 KB window cap. Omitted from the agent tool schemas on purpose — agents window with `--offset`/`--limit` instead. |
 | `--no-redact`            | Disable secret redaction for literal bytes (redaction is disclosed otherwise).|
 
 Remember the split: `map` works in **ENTRIES** (`--skip`/`--take`); `read` works in **LINES** (`--offset`/`--limit`).
@@ -257,7 +257,7 @@ showsignature map --symbol-summary ./src                        # Ripgrep-ready 
 showsignature map --symbol-summary --only interfaces,types ./src # Domain vocabulary only
 
 showsignature map --skip 40 --take 40 ./src                     # Page through a large entry listing
-showsignature map --all ./src                                   # Lift the output caps
+showsignature map --all ./src                                   # Lift the output caps (CLI only; omitted from agent tool schemas)
 ```
 
 Read one file literally, with an optional structural outline around the window:

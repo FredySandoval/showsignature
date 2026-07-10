@@ -94,9 +94,8 @@ showsignature map --symbol-summary --only interfaces,types ./src
 # One language at a time (useful for migrations)
 showsignature map --lang go --only imports,exports ./src
 
-# Page through a large ENTRY listing, or lift every cap
+# Page through a large ENTRY listing
 showsignature map --skip 40 --take 40 ./src
-showsignature map --all ./src
 
 # Read literal LINES, windowed (--offset is the first line, 1-indexed)
 showsignature read --offset 200 --limit 100 src/01-main.ts

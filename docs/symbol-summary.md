@@ -132,7 +132,7 @@ produce no output in this mode).
 | `--skip` / `--take` | Page over **output lines** (extractor×file entries), not individual tokens. |
 | `--no-line-number` | Redundant (no line numbers exist in this mode); accepted silently. |
 | `--max-depth`, `--include-tests`, `--lang` | Unchanged. |
-| `--all` | Lifts the output caps as usual. |
+| `--all` | Lifts the output caps as usual. CLI only — omitted from the agent tool schemas so agents page with `--skip`/`--take` instead. |
 
 Output is capped at 2000 lines / 50 KB as in normal `map`. When paging or a
 cap truncates output, the trailing `note:` names the **exact** resume

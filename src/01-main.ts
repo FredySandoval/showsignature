@@ -889,7 +889,7 @@ async function discoverFilesWithDefaultDepth(options: {
     const notice =
       maxDepth === undefined
         ? DEPTH_LIMIT_NOTICE
-        : `depth limit ${depthLimit} reached; ${beyond} more ${pluralize(beyond, "file")} ${depthPhrase} — pass --max-depth ${deepest} or --all`;
+        : `depth limit ${depthLimit} reached; ${beyond} more ${pluralize(beyond, "file")} ${depthPhrase} — pass --max-depth ${deepest}`;
     if (!notices.includes(notice)) {
       notices.push(notice);
     }
@@ -1252,7 +1252,7 @@ function renderCappedSections(
 
   return {
     output,
-    notice: `output capped at ${capDescription} (${summarizedFileCount} of ${visibleSections.length} files summarized). Narrow the path, or use --only / --max-depth / --take to adjust; --all disables the cap.`,
+    notice: `output capped at ${capDescription} (${summarizedFileCount} of ${visibleSections.length} files summarized). Narrow the path, or use --only / --max-depth / --take to adjust.`,
   };
 }
 

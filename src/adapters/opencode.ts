@@ -21,7 +21,6 @@ const mapArgs = {
   lang         : z.string() .optional().describe(MAP_ARG_DOCS.lang)             ,
   includeTests : z.boolean().optional().describe(MAP_ARG_DOCS.includeTests)     ,
   symbolSummary: z.boolean().optional().describe(MAP_ARG_DOCS.symbolSummary)    ,
-  all          : z.boolean().optional().describe(MAP_ARG_DOCS.all)              ,
   noLineNumber : z.boolean().optional().describe(MAP_ARG_DOCS.noLineNumber)     ,
 };
 
@@ -40,7 +39,6 @@ const readArgs = {
   outline: z.string() .optional().describe(READ_ARG_DOCS.outline),
   framing: z.string() .optional().describe(READ_ARG_DOCS.framing),
   lang   : z.string() .optional().describe(READ_ARG_DOCS.lang)   ,
-  all    : z.boolean().optional().describe(READ_ARG_DOCS.all)    ,
 };
 
 export const read = {
