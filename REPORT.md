@@ -31,9 +31,11 @@ yielding an empty string; same for `"./"`).
 Expected per docs/symbol-summary.md TOKEN RULES: "The quoted module specifier
 in an imports/exports entry contributes exactly one token, never path
 fragments" — a token (e.g. basename `dir`) must be emitted.
-Regression test (FAILING, bug unfixed):
+Regression test (PASSING, bug fixed):
 `tests/14-symbol-summary.test.ts` — "relative specifier ending in a slash
 still contributes one token".
+FIXED: `specifierToken` strips trailing slashes before taking the basename,
+so `"./dir/"` emits `dir`; bare `"./"` degrades to the documented `\.` case.
 
 ## bug: import specifier containing a space emits a space-containing pseudo-token (fragment leakage)
 
@@ -48,9 +50,12 @@ Expected per docs/symbol-summary.md OUTPUT FORMAT ("tokens separated by
 single spaces") and TOKEN RULES ("contributes exactly one token, never path
 fragments"): exactly two unambiguous tokens. (The JSON whitespace-splitting
 caveat applies to JSON keys only, not import specifiers.)
-Regression test (FAILING, bug unfixed):
+Regression test (PASSING, bug fixed):
 `tests/14-symbol-summary.test.ts` — "import specifier containing a space
 contributes exactly one unambiguous token".
+FIXED: `escapeSymbolToken` renders each whitespace char as `\s`, so the
+specifier stays one space-free field (`has\sspace\.js`) that still
+rg-matches the file verbatim.
 
 ## bug: quoted string values on exports lines break within-line dedup
 
@@ -67,9 +72,12 @@ Observed: `exports:/tmp/m8.ts a b c b c` — fields `b` and `c` each appear
 twice on one line.
 Expected per docs/symbol-summary.md TOKEN RULES: "Dedup within a line only.
 A token appears at most once per line".
-Regression test (FAILING, bug unfixed):
+Regression test (PASSING, bug fixed):
 `tests/14-symbol-summary.test.ts` — "quoted strings containing spaces do not
 break the space-delimited token format".
+FIXED: the whitespace-to-`\s` escaping makes `"b c"` a single field
+(`b\sc`), so `b` and `c` no longer leak as duplicate fields — the line reads
+`a b\sc b c` with every field unique.
 
 ## observations (documented, not bugs)
 

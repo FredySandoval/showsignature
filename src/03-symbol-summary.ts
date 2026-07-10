@@ -138,14 +138,24 @@ const REGEX_METACHARS_PATTERN = /[\\^$.*+?()[\]{}|]/gu;
 const QUOTED_SPECIFIER_PATTERN = /"([^"\n]+)"|'([^'\n]+)'/gu;
 
 function specifierToken(specifier: string): string | undefined {
-  const value = specifier.startsWith(".")
-    ? specifier.slice(specifier.lastIndexOf("/") + 1)
+  // Trailing slashes ("./dir/") would leave an empty basename and silently
+  // drop the specifier's token — strip them before slicing.
+  const trimmed = specifier.startsWith(".")
+    ? specifier.replace(/\/+$/u, "")
     : specifier;
+  const value = trimmed.startsWith(".")
+    ? trimmed.slice(trimmed.lastIndexOf("/") + 1)
+    : trimmed;
   return value.length > 0 ? value : undefined;
 }
 
 export function escapeSymbolToken(token: string): string {
-  return token.replace(REGEX_METACHARS_PATTERN, "\\$&");
+  // Whitespace inside a token (quoted specifiers/strings can contain it)
+  // would split into bogus fields in the space-delimited output; render each
+  // whitespace char as `\s` so the token stays whole and rg-matchable.
+  return token
+    .replace(REGEX_METACHARS_PATTERN, "\\$&")
+    .replace(/\s/gu, "\\s");
 }
 
 function collectLineTokens(
