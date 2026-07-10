@@ -4,7 +4,7 @@ Context: in the SWE-bench A/B experiment, the tool arm runs the pi agent with
 the built-in `read` tool disabled (`--exclude-tools read`), so
 `showsignature_read` must handle *everything* an agent would ever read — not
 just the supported language list. This report records the observed behavior on
-out-of-scope inputs (showsignature 0.1.9) and recommends the strategy.
+out-of-scope inputs (showsignature 0.2.0) and recommends the strategy.
 
 ## Observed behavior
 
