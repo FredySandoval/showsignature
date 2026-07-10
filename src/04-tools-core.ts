@@ -28,7 +28,9 @@ export async function runCli(argv: string[], cwd: string, signal?: AbortSignal):
   const stdout = "stdout" in result ? (result.stdout ?? "") : "";
   const stderr = "stderr" in result ? (result.stderr ?? "") : "";
   if (result instanceof Error) {
-    return `showsignature ${argv[0]} failed (${result.code ?? "error"}):\n${stdout}${stderr}`.trim();
+    // Throw so the host agent marks the tool call as failed (pi only sets
+    // isError on a thrown execute; a returned string reads as success).
+    throw new Error(`showsignature ${argv[0]} failed (${result.code ?? "error"}):\n${stdout}${stderr}`.trim());
   }
   return `${stdout}${stderr}`.trim() || "(no output)";
 }
