@@ -1,11 +1,4 @@
 {
   "name": "opencode-tools",
-  "private": true,
-  "devDependencies": {
-    "@types/bun": "latest",
-    "zod": "^4"
-  },
-  "dependencies": {
-    "@opencode-ai/plugin": "1.17.15"
-  }
+  "private": true
 }

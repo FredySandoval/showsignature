@@ -74,6 +74,24 @@ This same install also covers the Codex desktop app: restart the app after insta
 </details>
 
 
+<details id="opencode">
+<summary>
+<h2>OpenCode</h2>
+</summary>
+
+Add the plugin to your `opencode.json` (project or `~/.config/opencode/opencode.json` for global):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["showsignature"]
+}
+```
+
+OpenCode installs the package automatically at startup and registers the `showsignature_map` and `showsignature_read` tools.
+</details>
+
+
 <details id="agent-skill">
 <summary>
 <h2>Agent Skill</h2>
