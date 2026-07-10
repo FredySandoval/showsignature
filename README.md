@@ -163,7 +163,7 @@ Options for `showsignature map`:
 | `--only <extractors>`  | Comma-separated extractors to run (default: `signatures,imports` for code files; `md:*` for Markdown; `json:shape` for JSON). |
 | `--skip <n>`           | Skip the first N **entries** (default: 0).                                   |
 | `--take <n>`           | Show at most N **entries**.                                                  |
-| `--symbol-summary`     | Keyword-discovery mode: emit the identifier vocabulary per (extractor, file) as ripgrep-ready alternation patterns. See "Symbol summary" below. |
+| `--symbol-summary`     | Keyword-discovery mode: emit the identifier vocabulary per (extractor, file) as ripgrep-ready alternation patterns. Import specifiers are emitted as one whole token (relative paths reduced to their basename). See [docs/symbol-summary.md](docs/symbol-summary.md). |
 | `--max-depth <n>`      | Folder scan depth (directory scans default to `2`).                          |
 | `--include-tests`      | Include test files in folder scans.                                          |
 | `--no-line-number`     | Hide source line-number prefixes.                                            |

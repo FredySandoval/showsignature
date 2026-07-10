@@ -80,6 +80,21 @@ rg "PgPool|createPool|POOL_MAX|acquireConn" src/db/pool.ts
 - **Verbatim identifiers.** No splitting of compound identifiers:
   `getUserById` stays whole, `DATABASE_URL` stays whole. Splitting would
   break the output contract and produce noisy greps.
+- **Import specifiers are emitted whole.** The quoted module specifier in
+  an `imports`/`exports` entry contributes exactly one token, never path
+  fragments. A relative specifier is reduced to its basename — the
+  leading `./`/`../` segments vary per importing file and would break
+  cross-file correlation — while package and module names are kept
+  verbatim (metacharacters escaped):
+
+  ```
+  import type { Range } from "../../00-core-types.js";   →  Range 00-core-types\.js
+  import * as ts from "typescript";                      →  ts typescript
+  import "github.com/pkg/errors"                         →  github\.com/pkg/errors
+  ```
+
+  The same specifier token under `imports:` of several files tells you
+  exactly who depends on that module.
 - **First-occurrence order** per line, mirroring source order, so related
   terms cluster naturally. Exception: `json:shape` tokens follow the shape
   rendering, which sorts object keys lexicographically — order there
@@ -164,12 +179,13 @@ showsignature map src/db/migrate.ts
 
 ## CAVEATS
 
-- **Import specifiers are tokenized too.** A line like
-  `import { x } from "./00-core-types.js"` contributes path fragments
-  (`core`, `types`, `js`) alongside the imported names. They satisfy the
-  contract (they exist verbatim and match with `rg`), but they are noisier
-  than chosen identifiers. Package names (`commander`) are valuable enough
-  that string literals are not skipped wholesale.
+- **Relative import specifiers are reduced to their basename.** A line
+  like `import { x } from "../../00-core-types.js"` contributes
+  `00-core-types\.js`, not the full relative path — the `../` prefix
+  differs per importing file, so the basename is what correlates across
+  files. The basename still exists verbatim in the source (the contract
+  holds), but grepping it may also match other references to the same
+  filename, e.g. in build config.
 - **JSON keys are kept whole** (`pool.max` → `pool\.max`), except keys
   containing whitespace, which split on the space — the shape rendering
   itself is space-delimited and cannot represent them unambiguously.

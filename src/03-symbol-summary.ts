@@ -129,6 +129,21 @@ const IDENTIFIER_PATTERN = /[$_\p{L}][$_\p{L}\p{N}]*/gu;
 const JSON_TOKEN_PATTERN = /[^\s{}[\],:]+/gu;
 const REGEX_METACHARS_PATTERN = /[\\^$.*+?()[\]{}|]/gu;
 
+// imports/exports lines carry a quoted module specifier. It is emitted as
+// one whole token, never path fragments: fragments (`core`, `types`, `js`)
+// are useless grep targets, and digit-leading segments (`00`) would vanish
+// under IDENTIFIER_PATTERN entirely. Relative specifiers are reduced to
+// their basename — the `./`/`../` prefix varies per importing file and
+// would break cross-file correlation; package/module names stay verbatim.
+const QUOTED_SPECIFIER_PATTERN = /"([^"\n]+)"|'([^'\n]+)'/gu;
+
+function specifierToken(specifier: string): string | undefined {
+  const value = specifier.startsWith(".")
+    ? specifier.slice(specifier.lastIndexOf("/") + 1)
+    : specifier;
+  return value.length > 0 ? value : undefined;
+}
+
 export function escapeSymbolToken(token: string): string {
   return token.replace(REGEX_METACHARS_PATTERN, "\\$&");
 }
@@ -138,18 +153,43 @@ function collectLineTokens(
   stopwords: ReadonlySet<string>,
   seen: Set<string>,
   tokenPattern: RegExp = IDENTIFIER_PATTERN,
+  wholeSpecifiers = false,
 ): string[] {
   const tokens: string[] = [];
 
-  for (const line of lines) {
-    for (const match of line.matchAll(tokenPattern)) {
-      const token = match[0];
-      if (stopwords.has(token) || seen.has(token)) {
-        continue;
-      }
-      seen.add(token);
-      tokens.push(escapeSymbolToken(token));
+  const pushToken = (token: string): void => {
+    if (stopwords.has(token) || seen.has(token)) {
+      return;
     }
+    seen.add(token);
+    tokens.push(escapeSymbolToken(token));
+  };
+
+  for (const line of lines) {
+    if (!wholeSpecifiers) {
+      for (const match of line.matchAll(tokenPattern)) {
+        pushToken(match[0]);
+      }
+      continue;
+    }
+
+    // Walk quoted specifiers and plain segments in source order so the
+    // first-occurrence ordering rule holds across both token kinds.
+    let cursor = 0;
+    const emitPlain = (segment: string): void => {
+      for (const match of segment.matchAll(tokenPattern)) {
+        pushToken(match[0]);
+      }
+    };
+    for (const match of line.matchAll(QUOTED_SPECIFIER_PATTERN)) {
+      emitPlain(line.slice(cursor, match.index));
+      cursor = match.index + match[0].length;
+      const token = specifierToken(match[1] ?? match[2] ?? "");
+      if (token !== undefined) {
+        pushToken(token);
+      }
+    }
+    emitPlain(line.slice(cursor));
   }
 
   return tokens;
@@ -203,6 +243,8 @@ export function buildSymbolSummaryLines(
             stopwords,
             seen,
             section.lang === "json" ? JSON_TOKEN_PATTERN : undefined,
+            section.lang !== "json" &&
+              (kind === "imports" || kind === "exports"),
           ),
         );
       }

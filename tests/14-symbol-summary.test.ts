@@ -115,6 +115,37 @@ describe("map --symbol-summary", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("import specifiers are one whole token: relative paths reduced to basename, packages verbatim", async () => {
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      dir,
+      "helpers.ts",
+      `import * as ts from "typescript";
+import type { Range } from "../../00-core-types.js";
+`,
+    );
+
+    await runCli(["map", "--symbol-summary", filePath]);
+
+    const importsLine = stdoutBuffer
+      .trim()
+      .split("\n")
+      .find((line) => line.startsWith("imports:"));
+    expect(importsLine).toBeDefined();
+    const tokens = importsLine!.split(" ").slice(1);
+
+    // whole specifiers, metacharacters escaped; digit-leading basename kept
+    expect(tokens).toContain("typescript");
+    expect(tokens).toContain("00-core-types\\.js");
+    // no path fragments, no relative-prefix remnants
+    for (const fragment of ["core", "types", "js", "00"]) {
+      expect(tokens).not.toContain(fragment);
+    }
+    // imported names still tokenize normally around the specifier
+    expect(tokens).toContain("ts");
+    expect(tokens).toContain("Range");
+  });
+
   test("filters language keywords and primitive types, keeps chosen names", async () => {
     const dir = await createTempDir();
     const filePath = await writeFixtureFile(dir, "pool.ts", TS_FIXTURE);

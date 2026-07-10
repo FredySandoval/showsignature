@@ -1,170 +1,27 @@
-1. `showsignature --help` (also printed when run with no command, exit code 1)
+# findings
 
-```
-showsignature — extract the useful structure from source files
-
-Usage:
-  showsignature map  [OPTION]... [PATH]...
-  showsignature read [OPTION]... <FILE>
-
-Commands:
-  map     Structural overview of files or directories: signatures, imports,
-          exports, types, variables, comments, Markdown sections, JSON shapes.
-  read    Literal windowed read of exactly one file, with an optional
-          structural outline around the window for orientation.
-
-Extractors (for map --only and read --outline):
-    signatures     Functions, classes, methods, constructors
-    imports        Import statements/declarations
-    exports        JS/TS exports, exported Go decls, Python public exports
-    interfaces     TypeScript/Go interfaces
-    types          Type aliases/declarations
-    variables      Variables/constants
-    comments       Code comments
-    md:headings    Markdown headings
-    md:tables      Markdown tables
-    md:codeblocks  Markdown fenced code blocks
-    json:shape     JSON value shape
-
-Global options (accepted by both commands):
-  --all            Lift all output caps (2000 lines / 50 KB).
-  --no-redact      Disable built-in secrets redaction.
-  --lang <l>       Restrict/declare language; required when reading stdin.
-                   Example: ts, js, tsx, jsx, svelte, go, py, rs, lua, md, json
-  -h, --help       Show help. Use `showsignature <command> --help` for
-                   command-specific options and examples.
-  -v, --version    Print version and exit.
-
-Remember the split:
-  map  works in ENTRIES:  --skip <n> / --take <n>
-  read works in LINES:    --offset <line> / --limit <n>
-
-Getting started:
-  showsignature map ./src                                Overview of a folder
-  showsignature map --only imports ./src                 One extractor only
-  showsignature read --offset 200 --limit 100 file.ext   Read lines 200–299
-  showsignature read --framing none file.ext             Plain read, no outline
-
-
-Output is capped at 2000 lines / 50 KB.
-When a cap kicks in, a trailing `note:` names the exact flags or
-follow-up call to continue.
+let's take this piece of code:
+```ts
+import * as ts from "typescript";
+import type { Range } from "../../00-core-types.js";
 ```
 
-2. `showsignature map --help`
-
+running `showsignature map --symbol-summary ./src/example.ts`
+produces the following output:
 ```
-showsignature map — structural overview of files and directories
-
-Usage:
-  showsignature map [OPTION]... [PATH]...
-
-  PATH may be one or more files or directories (default: current directory).
-
-Output is a list of extracted ENTRIES (one signature, import, heading,
-etc. per entry), each prefixed with its real source line number.
-
-Options:
-  --only <extractors>    Comma-separated extractors to run (default: all
-                         applicable). See "Extractors" below.
-  --skip <n>             Skip the first N entries (default: 0).
-  --take <n>             Show at most N entries.
-  --max-depth <n>        Folder scan depth (default: 2).
-  --include-tests        Include test files in folder scans.
-  --no-line-number       Hide source line-number prefixes.
-  -h, --help             Show this help.
-
-Global options:
-  --all                  Lift all output caps (entry limit and the
-                         2000-line / 50 KB cap).
-  --no-redact            Disable built-in secrets redaction.
-  --lang <l>             Only process files of this language; required when
-                         reading stdin. Example: ts, go, py, rs, md, json
-
-Extractors (for --only):
-    signatures     Functions, classes, methods, constructors
-    imports        Import statements/declarations
-    exports        JS/TS exports, exported Go decls, Python public exports
-    interfaces     TypeScript/Go interfaces
-    types          Type aliases/declarations
-    variables      Variables/constants
-    comments       Code comments
-    md:headings    Markdown headings
-    md:tables      Markdown tables
-    md:codeblocks  Markdown fenced code blocks
-    json:shape     JSON value shape
-
-Examples:
-  showsignature map ./src
-  showsignature map src/main.py README.md tests/fixtures
-  showsignature map --only signatures,imports,exports ./src
-  showsignature map --only md:headings
-  showsignature map --only json:shape config.json
-  showsignature map --lang go --only imports,exports
-  showsignature map --skip 40 --take 40 ./src
-
-Note: map paginates ENTRIES (--skip/--take).
-      To read LINES from one file, use `showsignature read --offset/--limit`.
+imports:src/languages/typescript/02-ast-helpers.ts ts typescript Range core types js
 ```
 
-3. `showsignature read --help`
+question: how the `00-core-type.js` should be interpreted?
+as 00 core type js
+or as literal 
+00-core-types.js 
 
+example: 
 ```
-showsignature read — windowed literal read of one file, with an optional outline
-
-Usage:
-  showsignature read [OPTION]... <FILE>
-
-  Reads exactly one file.
-  The content window is wrapped in <content> tags by default and has no
-  line-number prefixes, making it safe to copy into exact-match edit
-  tools. A structural outline is shown around the window.
-
-Options:
-  --offset <line>         First line to show, 1-indexed (default: 1).
-  --limit <n>             Maximum lines shown in the window.
-  --outline <extractors>  Extractors used for the outline (default:
-                          signatures).
-  --framing <mode>        How the content window is wrapped (default:
-                          tags). One of: tags, none.
-  --no-line-number        Hide line-number prefixes on outline lines
-                          (content never has them).
-  -h, --help              Show this help.
-
-Global options:
-  --all                   Lift the 2000-line / 50 KB window cap.
-  --no-redact             Disable secret redaction for literal bytes
-                          (redaction is disclosed otherwise).
-  --lang <l>              Declare the file's language; required when
-                          reading stdin.
-
-Extractors (for --outline):
-    signatures     Functions, classes, methods, constructors
-    imports        Import statements/declarations
-    exports        JS/TS exports, exported Go decls, Python public exports
-    interfaces     TypeScript/Go interfaces
-    types          Type aliases/declarations
-    variables      Variables/constants
-    comments       Code comments
-    md:headings    Markdown headings
-    md:tables      Markdown tables
-    md:codeblocks  Markdown fenced code blocks
-    json:shape     JSON value shape
-
-Framing modes:
-    tags           Wrap content in <content>...</content> (default)
-    none           Emit the content only
-
-Examples:
-  showsignature read src/01-main.ts
-  showsignature read --offset 200 --limit 100 src/main.ext
-  showsignature read --outline imports,signatures src/config.ext
-  showsignature read --outline types src/config.ext
-  showsignature read --outline interfaces --framing none src/data.ext
-
-Tip: outline lines carry real line numbers, so you can jump anywhere
-     with `showsignature read --offset <line> <file>`.
-
-Note: read windows LINES (--offset/--limit).
-      To page through structural ENTRIES, use `showsignature map --skip/--take`.
+imports:src/languages/typescript/02-ast-helpers.ts ts typescript Range 00-core-types.js
 ```
+
+task: check this behavior against ./README.md and ./docs/symbol-summary.md
+is this behavior docummented and hence expected
+or this behavior is outside of what is docummented.

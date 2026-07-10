@@ -64,7 +64,7 @@ exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
 imports:src/db/migrate.ts runMigrations MigrationLock schemaVersion
 ```
 
-Rules: symbol extractors only (`signatures,imports,exports,interfaces,types,variables,json:shape` — naming `comments`/`md:*` via `--only` is an error); identifiers are verbatim, keywords/builtins removed; no line numbers; the same name under `exports:` of one file and `imports:` of another tells you who defines it and who uses it. `--skip`/`--take` page over output LINES here.
+Rules: symbol extractors only (`signatures,imports,exports,interfaces,types,variables,json:shape` — naming `comments`/`md:*` via `--only` is an error); identifiers are verbatim, keywords/builtins removed; import specifiers are one whole token (relative paths reduced to their basename: `../../00-core-types.js` → `00-core-types\.js`); no line numbers; the same name under `exports:` of one file and `imports:` of another tells you who defines it and who uses it. `--skip`/`--take` page over output LINES here.
 
 ## Canonical examples
 

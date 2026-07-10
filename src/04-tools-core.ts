@@ -56,7 +56,7 @@ export const MAP_ARG_DOCS = {
   maxDepth      : "Directory scan depth (default 2)",
   lang          : "Restrict to one language, e.g. 'go', 'py', 'ts'",
   includeTests  : "Include test files (excluded by default)",
-  symbolSummary : "Keyword-discovery mode: one line per (extractor, file) listing identifiers",
+  symbolSummary : "Keyword-discovery mode: one line per (extractor, file) listing identifiers; import specifiers are one whole token (relative paths reduced to their basename)",
   noLineNumber  : "Hide source line-number prefixes (cleaner text for piping)",
 } as const;
 
