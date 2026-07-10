@@ -53,6 +53,9 @@ npm install showsignature
 
 ## 2. Set your AI Agent
 
+> [!NOTE]
+> How the tool is exposed depends on the agent: in **Pi** and **OpenCode** it registers as a **native tool call**, while in **Claude Code** and **Codex** it runs as a **bash command** (their harnesses integrate external tools through the shell).
+
 <details id="claude-code">
 <summary>
 <h2>Claude Code</h2>
@@ -68,6 +71,8 @@ npm install showsignature
 (You have to send two separate prompts for the install to work)
 
 The desktop app has no /plugin command. Install it from the UI instead: Customize, the + by personal plugins, Create plugin and add marketplace, Add from repository, then enter the repo URL.
+
+The agent invokes `showsignature` as a bash command.
 </details>
 
 
@@ -83,6 +88,8 @@ codex
 Open /plugins, select the `showsignature` marketplace, and install `showsignature`. Then open /hooks, review and trust its lifecycle hook, and start a new thread.
 
 This same install also covers the Codex desktop app: restart the app after installing and it picks up the plugin.
+
+The agent invokes `showsignature` as a bash command.
 
 </details>
 
@@ -101,7 +108,7 @@ Add the plugin to your `opencode.json` (project or `~/.config/opencode/opencode.
 }
 ```
 
-OpenCode installs the package automatically at startup and registers the `showsignature_map` and `showsignature_read` tools.
+OpenCode installs the package automatically at startup and registers the `showsignature_map` and `showsignature_read` tools — the agent calls them as native tools, no shell involved.
 </details>
 
 
@@ -129,6 +136,8 @@ pi install git:github.com/FredySandoval/showsignature
 # option 3
 pi install https://github.com/FredySandoval/showsignature
 ```
+
+The extension registers `showsignature` as a native tool call.
 </details>
 
 <details id="from-source">
