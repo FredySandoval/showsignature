@@ -22,6 +22,19 @@
   <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
 </p>
 
+## ベンチマーク
+
+25 個の SWE-bench Lite タスクを対象とした A/B 実験（SWE-agent、showsignature の有無以外は同一の設定）では、エージェントは同数以上のタスクを解決しつつ、タスクあたりの中央値で **62% 少ないトークン** を使用しました:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/towers-dark.svg">
+    <img alt="ベンチマーク: showsignature 使用時、タスクあたりの中央値トークンが 62% 減少（1.79M vs 691K）、解決タスク数は 18/25 vs 17/25" src="assets/towers-light.svg">
+  </picture>
+</p>
+
+<sub>設定: SWE-bench Lite（n=25）、SWE-agent 1.1.0、deepseek-v4-flash、インスタンスあたり $0.25 のコスト上限、100 コール制限、単一シード。これはケーススタディであり、決定的なベンチマークではありません。</sub>
+
 ## インストール
 
 ### 1. NPM registry からローカルまたはグローバルにインストール

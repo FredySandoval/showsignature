@@ -22,6 +22,19 @@ CLI, который извлекает полезную структуру из 
   <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
 </p>
 
+## Бенчмарк
+
+В A/B-эксперименте на 25 задачах SWE-bench Lite (SWE-agent, идентичные конфигурации с showsignature и без него) агент решил столько же задач или больше, при этом медианная задача использовала **на 62% меньше токенов**:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/towers-dark.svg">
+    <img alt="Бенчмарк: на 62% меньше медианных токенов на задачу (1.79M vs 691K) и 18/25 vs 17/25 решённых задач с showsignature" src="assets/towers-light.svg">
+  </picture>
+</p>
+
+<sub>Настройка: SWE-bench Lite (n=25), SWE-agent 1.1.0, deepseek-v4-flash, лимит стоимости $0.25 на инстанс, лимит в 100 вызовов, один сид. Это кейс-стади, а не окончательный бенчмарк.</sub>
+
 ## Установка
 
 ### 1. Установите локально или глобально из NPM registry

@@ -22,6 +22,19 @@
   <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
 </p>
 
+## المعيار المرجعي
+
+في تجربة A/B على 25 مهمة من SWE-bench Lite (باستخدام SWE-agent وإعدادات متطابقة مع showsignature وبدونها)، حلّ الوكيل العدد نفسه من المهام أو أكثر، بينما استخدمت المهمة الوسيطة **عدد tokens أقل بنسبة 62%**:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/towers-dark.svg">
+    <img alt="المعيار المرجعي: انخفاض بنسبة 62% في وسيط tokens لكل مهمة (1.79M vs 691K) وحل 18/25 مقابل 17/25 مهمة مع showsignature" src="assets/towers-light.svg">
+  </picture>
+</p>
+
+<sub>الإعداد: SWE-bench Lite (n=25)، SWE-agent 1.1.0، deepseek-v4-flash، حد تكلفة $0.25 لكل مثيل، حد 100 استدعاء، بذرة واحدة. هذه دراسة حالة وليست معيارًا مرجعيًا نهائيًا.</sub>
+
 ## التثبيت
 
 ### 1. ثبّت محليًا أو عالميًا من NPM registry

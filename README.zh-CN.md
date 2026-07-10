@@ -22,6 +22,19 @@
   <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
 </p>
 
+## 基准测试
+
+在一项针对 25 个 SWE-bench Lite 任务的 A/B 实验中（SWE-agent，使用与不使用 showsignature 时配置完全相同），Agent 解决了相同或更多的任务，同时中位数任务使用的 **token 减少了 62%**：
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/towers-dark.svg">
+    <img alt="基准测试：使用 showsignature 后，每个任务的中位数 token 减少 62%（1.79M vs 691K），解决任务数为 18/25 vs 17/25" src="assets/towers-light.svg">
+  </picture>
+</p>
+
+<sub>设置：SWE-bench Lite（n=25）、SWE-agent 1.1.0、deepseek-v4-flash、每实例 $0.25 成本上限、100 次调用限制、单一种子。这是一项案例研究，并非权威基准测试。</sub>
+
 ## 安装
 
 ### 1. 从 NPM registry 本地或全局安装

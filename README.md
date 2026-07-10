@@ -24,6 +24,19 @@ Use it to understand a codebase quickly, review files, or create compact context
   <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
 </p>
 
+## Benchmark
+
+In an A/B experiment on 25 SWE-bench Lite tasks (SWE-agent, identical configs with and without showsignature), the agent solved the same or more tasks while the median task used **62% fewer tokens**:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/towers-dark.svg">
+    <img alt="Benchmark: 62% fewer median tokens per task (1.79M vs 691K) and 18/25 vs 17/25 tasks resolved with showsignature" src="assets/towers-light.svg">
+  </picture>
+</p>
+
+<sub>Setup: SWE-bench Lite (n=25), SWE-agent 1.1.0, deepseek-v4-flash, $0.25/instance cost cap, 100-call limit, single seed. A case study, not a definitive benchmark.</sub>
+
 ## Install
 
 ### 1. Install locally or globally from the NPM registry

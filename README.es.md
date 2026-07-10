@@ -22,6 +22,19 @@ Una Interfaz de Línea de Comandos. que extrae la estructura útil de los archiv
   <img width="1723" height="623" alt="example-showsignature-1" src="https://github.com/user-attachments/assets/36b636af-c3b3-485a-852d-fd0f3cce6321" />
 </p>
 
+## Benchmark
+
+En un experimento A/B con 25 tareas de SWE-bench Lite (SWE-agent, configuraciones idénticas con y sin showsignature), el agente resolvió la misma cantidad de tareas o más, mientras que la tarea mediana usó **un 62% menos de tokens**:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/towers-dark.svg">
+    <img alt="Benchmark: un 62% menos de tokens medianos por tarea (1.79M vs 691K) y 18/25 vs 17/25 tareas resueltas con showsignature" src="assets/towers-light.svg">
+  </picture>
+</p>
+
+<sub>Configuración: SWE-bench Lite (n=25), SWE-agent 1.1.0, deepseek-v4-flash, límite de costo de $0.25 por instancia, límite de 100 llamadas, una sola semilla. Un estudio de caso, no un benchmark definitivo.</sub>
+
 ## Instalación
 
 ### 1. Instala local o globalmente desde el registro de NPM
