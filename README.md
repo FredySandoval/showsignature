@@ -126,7 +126,7 @@ The extension registers `showsignature` as a native tool call.
 ### Option 1: CLI
 
 ```sh
-opencode plugin showsignature@0.2.1 --global
+opencode plugin showsignature@0.2.2 --global
 ```
 
 ### Option 2: config file
@@ -136,7 +136,7 @@ Add the plugin to your `opencode.json` (project or `~/.config/opencode/opencode.
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["showsignature@0.2.1"]
+  "plugin": ["showsignature@0.2.2"]
 }
 ```
 
