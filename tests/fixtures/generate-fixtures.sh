@@ -28,14 +28,20 @@ if ((${#source_files[@]} == 0)); then
   exit 1
 fi
 
+# Snapshots are map OUTPUT, not source code — store them as .txt under
+# expected/ so nothing (scans, agents, editors) mistakes them for source
+# files in the language of their originating fixture.
+expected_dir="$script_dir/expected"
+mkdir -p "$expected_dir"
+rm -f "$expected_dir"/*.txt
+
 for source_file in "${source_files[@]}"; do
   language_dir="$(dirname "$source_file")"
-  source_name="$(basename "$source_file")"
+  language="$(basename "$language_dir")"
   relative_source="${source_file#"$script_dir/"}"
-  extension="${source_name#basic.}"
 
   for category in "${categories[@]}"; do
-    target_file="$language_dir/$category.$extension"
+    target_file="$expected_dir/$language.$category.txt"
     (cd "$script_dir" && showsignature map --only "$category" "$relative_source") > "$target_file"
     printf 'Generated %s\n' "$target_file"
   done
