@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { basename, delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
@@ -19,8 +20,24 @@ function resolveCliEntry(): string {
   throw new Error("showsignature CLI entry not found next to plugin module");
 }
 
+// Inside standalone-binary hosts (e.g. the compiled opencode executable),
+// process.execPath is the host binary itself, which would ignore the CLI
+// script argument and print its own help. Only reuse execPath when it really
+// is node or bun; otherwise resolve one from PATH.
+function resolveRuntime(): string {
+  if (/^(node|bun)(\.exe)?$/i.test(basename(process.execPath))) return process.execPath;
+  for (const dir of (process.env["PATH"] ?? "").split(delimiter)) {
+    if (!dir) continue;
+    for (const name of ["node", "bun", "node.exe", "bun.exe"]) {
+      const candidate = join(dir, name);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  throw new Error("showsignature: no node or bun runtime found on PATH to run the CLI");
+}
+
 export async function runCli(argv: string[], cwd: string, signal?: AbortSignal): Promise<string> {
-  const result = await execFileAsync(process.execPath, [resolveCliEntry(), ...argv], {
+  const result = await execFileAsync(resolveRuntime(), [resolveCliEntry(), ...argv], {
     cwd,
     signal,
     maxBuffer: 32 * 1024 * 1024,
