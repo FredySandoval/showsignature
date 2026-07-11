@@ -1240,6 +1240,20 @@ async function resolveExecutionPlan(
 
 const MAX_OUTPUT_LINES = 2000;
 const MAX_OUTPUT_BYTES = 50 * 1024;
+
+function truncateToByteLength(text: string, maxBytes: number): string {
+  const buffer = Buffer.from(text, "utf8");
+  if (buffer.length <= maxBytes) {
+    return text;
+  }
+  // Back up off any UTF-8 continuation byte so the cut never splits a
+  // code point into a replacement character.
+  let end = maxBytes;
+  while (end > 0 && (buffer[end]! & 0xc0) === 0x80) {
+    end -= 1;
+  }
+  return buffer.subarray(0, end).toString("utf8");
+}
 const MAX_CAP_SUMMARY_FILES = 200;
 
 function countLines(text: string): number {
@@ -2028,7 +2042,16 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     endLine = cappedEnd;
   }
 
-  const rawContent = lineSegments.slice(startLine - 1, endLine).join("");
+  let rawContent = lineSegments.slice(startLine - 1, endLine).join("");
+  // The line loop above admits one oversized line so a huge single-line file
+  // still makes progress — but the emitted bytes must still honor the cap,
+  // or a minified file blows out the caller's context. Cut mid-line and
+  // disclose it; --all lifts the cap.
+  let midLineTruncated = false;
+  if (!uncapped && Buffer.byteLength(rawContent, "utf8") > MAX_OUTPUT_BYTES) {
+    rawContent = truncateToByteLength(rawContent, MAX_OUTPUT_BYTES);
+    midLineTruncated = true;
+  }
   const redactEnabled = args.redact !== false;
   const content = redactEnabled ? redactSecrets(rawContent) : rawContent;
   const redactionApplied = content !== rawContent;
@@ -2095,7 +2118,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     content === "" || content.endsWith("\n") ? content : `${content}\n`;
 
   if (framing === "tags") {
-    const contentOpenTag = `<content lines="${rangeText}"${redactionApplied ? ' redacted="true"' : ""}>`;
+    const contentOpenTag = `<content lines="${rangeText}"${redactionApplied ? ' redacted="true"' : ""}${midLineTruncated ? ' truncated="true"' : ""}>`;
     outputParts.push(`${contentOpenTag}\n${contentBody}</content>`);
   } else {
     outputParts.push(
@@ -2124,6 +2147,12 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   process.stdout.write(`${outputParts.join("\n")}\n`);
 
   const notes: string[] = [];
+
+  if (midLineTruncated) {
+    notes.push(
+      `line ${startLine} exceeds the ${MAX_OUTPUT_BYTES / 1024} KB output cap; content was cut mid-line (not safe for exact-match edits) — pass --all for the full line`,
+    );
+  }
 
   if (endLine < totalLines) {
     const displayTarget = isStdin ? "-" : toDisplayPath(filePath);

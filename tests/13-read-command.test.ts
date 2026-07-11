@@ -242,6 +242,35 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("cuts a single oversized line at the byte cap and discloses it", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    // One ~120 KB line built from 3-byte code points so the cap boundary
+    // falls mid-character and exercises the UTF-8-safe cut.
+    const hugeLine = `const x = "${"€".repeat(40_000)}";\n`;
+    await writeFixtureFile(rootDir, "src/huge.ts", hugeLine);
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "read", "src/huge.ts"]);
+
+    expect(stdoutBuffer).toContain(
+      '<content lines="1-1 of 1" truncated="true">',
+    );
+    expect(Buffer.byteLength(stdoutBuffer, "utf8")).toBeLessThan(52 * 1024);
+    expect(stdoutBuffer).not.toContain("�");
+    expect(stdoutBuffer).toContain(
+      "line 1 exceeds the 50 KB output cap; content was cut mid-line (not safe for exact-match edits) — pass --all for the full line",
+    );
+    expect(process.exitCode).toBe(0);
+
+    installOutputCapture();
+    await buildCli().run(["showcode", "read", "--all", "src/huge.ts"]);
+    expect(stdoutBuffer).not.toContain('truncated="true"');
+    expect(Buffer.byteLength(stdoutBuffer, "utf8")).toBeGreaterThan(100 * 1024);
+    expect(process.exitCode).toBe(0);
+  });
+
   test("--framing none emits the content only: no tags, no outline", async () => {
     installOutputCapture();
 
