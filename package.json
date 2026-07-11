@@ -41,7 +41,8 @@
     "clean": "git clean -xdf node_modules dist",
     "typecheck": "tsgo --noEmit",
     "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
+    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build",
+    "version": "node scripts/sync-version.js && git add .claude-plugin/plugin.json README.md"
   },
   "keywords": [
     "pi",
