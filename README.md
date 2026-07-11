@@ -123,16 +123,27 @@ The extension registers `showsignature` as a native tool call.
 <h2>OpenCode</h2>
 </summary>
 
+### Option 1: CLI
+
+```sh
+opencode plugin showsignature@0.2.1 --global
+```
+
+### Option 2: config file
+
 Add the plugin to your `opencode.json` (project or `~/.config/opencode/opencode.json` for global):
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["showsignature"]
+  "plugin": ["showsignature@0.2.1"]
 }
 ```
 
 OpenCode installs the package automatically at startup and registers the `showsignature_map` and `showsignature_read` tools — the agent calls them as native tools, no shell involved.
+
+> [!NOTE]
+> Pin an exact version as shown above and update it manually on new releases. OpenCode caches the plugin by its version specifier, so an unpinned (or `@latest`) install is resolved once and never refreshed — publishing a new version to npm won't reach you until the pinned version changes (or you clear `~/.cache/opencode/packages/`).
 
 > [!NOTE]
 > You may need to have installed `node` or `bun`.
