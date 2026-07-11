@@ -124,6 +124,34 @@ describe("map --symbol-summary", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("drops the Go blank-identifier import alias but keeps its specifier", async () => {
+    const dir = await createTempDir();
+    const filePath = await writeFixtureFile(
+      dir,
+      "main.go",
+      `package main
+
+import (
+    alias "example.com/pkg"
+    _ "net/http"
+)
+`,
+    );
+
+    await runCli(["map", "--symbol-summary", filePath]);
+
+    const importsLine = stdoutBuffer
+      .trim()
+      .split("\n")
+      .find((line) => line.startsWith("imports:"));
+    expect(importsLine).toBeDefined();
+    const tokens = importsLine!.split(" ").slice(1);
+
+    expect(tokens).toContain("alias");
+    expect(tokens).toContain("net/http");
+    expect(tokens).not.toContain("_");
+  });
+
   test("import specifiers are one whole token: relative paths reduced to basename, packages verbatim", async () => {
     const dir = await createTempDir();
     const filePath = await writeFixtureFile(

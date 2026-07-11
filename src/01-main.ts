@@ -156,9 +156,7 @@ export function redactSecrets(value: string): string {
     .replace(
       SECRET_VARIABLE_ASSIGNMENT_PATTERN,
       (match, key: string, secret: string) =>
-        isImplausibleSecretValue(secret)
-          ? match
-          : `${key}${REDACTED_SECRET}`,
+        isImplausibleSecretValue(secret) ? match : `${key}${REDACTED_SECRET}`,
     );
 }
 
@@ -552,9 +550,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .command("read")
     .configureHelp({ formatHelp: () => READ_HELP })
     .usage("[OPTION]... <FILE>")
-    .description(
-      "windowed literal read of one file, with an optional outline",
-    )
+    .description("windowed literal read of one file, with an optional outline")
     .argument("<file>", "file to read; use '-' to read stdin")
     .argument("[extra...]")
     .option(
@@ -567,11 +563,7 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
       "--framing <mode>",
       "how the content window is wrapped (default: tags). One of: tags, none",
     )
-    .option(
-      "--all",
-      "lift the 2000-line / 50 KB window cap",
-      false,
-    )
+    .option("--all", "lift the 2000-line / 50 KB window cap", false)
     .option("--lang <lang>", langOptionHelp)
     .option("--outline <extractors>", extractorsOptionHelp)
     .option("--no-redact", "disable built-in secret redaction")
@@ -838,7 +830,20 @@ async function discoverFilesWithDefaultDepth(options: {
   notices: string[];
   stats?: DiscoverFilesStats;
 }): Promise<string[]> {
-  const { registry, folder, includeTests, maxDepth, notices } = options;
+  const { registry, folder, maxDepth, notices } = options;
+  const baseDir = folder !== undefined ? path.resolve(folder) : process.cwd();
+
+  // A scan rooted inside a test directory can only be after test files, so
+  // excluding them would guarantee an empty result.
+  let includeTests = options.includeTests;
+  if (!includeTests && hasTestPathSegment(baseDir)) {
+    includeTests = true;
+    const notice =
+      "scan root is inside a test directory; test files included by default";
+    if (!notices.includes(notice)) {
+      notices.push(notice);
+    }
+  }
 
   if (options.disableDefaultDepth) {
     return discoverFiles({
@@ -861,8 +866,7 @@ async function discoverFilesWithDefaultDepth(options: {
   });
   const probed = includeTests
     ? probedAll
-    : probedAll.filter((filePath) => !isTestFile(filePath));
-  const baseDir = folder !== undefined ? path.resolve(folder) : process.cwd();
+    : probedAll.filter((filePath) => !isTestFile(filePath, baseDir));
   const withinLimitAll = probedAll.filter(
     (filePath) => pathDepthWithin(baseDir, filePath) <= depthLimit,
   );
@@ -870,7 +874,8 @@ async function discoverFilesWithDefaultDepth(options: {
     (filePath) => pathDepthWithin(baseDir, filePath) <= depthLimit,
   );
   if (options.stats) {
-    options.stats.excludedTestFiles += withinLimitAll.length - withinLimit.length;
+    options.stats.excludedTestFiles +=
+      withinLimitAll.length - withinLimit.length;
   }
 
   if (withinLimit.length < probed.length) {
@@ -938,6 +943,27 @@ async function resolveInputTarget(
 
   const inputPaths = args.paths ?? [];
   const stats: DiscoverFilesStats = { excludedTestFiles: 0 };
+  // When --only names markdown extractors exclusively, non-Markdown files are
+  // dropped up front; say so when that leaves nothing, or the run would end
+  // silently empty (e.g. --lang ts --only md:headings).
+  let skippedNonMarkdownFiles = 0;
+  const keepMarkdownOnly = (candidates: string[]): string[] => {
+    if (!usesOnlyMarkdownExtractKinds(extractOrder)) {
+      return candidates;
+    }
+    const kept = candidates.filter(
+      (filePath) => registry.inferFromFile(filePath) === "md",
+    );
+    skippedNonMarkdownFiles += candidates.length - kept.length;
+    return kept;
+  };
+  const noteSkippedNonMarkdown = (files: readonly string[]): void => {
+    if (files.length === 0 && skippedNonMarkdownFiles > 0) {
+      notices.push(
+        `0 entries: --only ${extractOrder.join(", ")} applies only to Markdown files, and the ${skippedNonMarkdownFiles} matched ${pluralize(skippedNonMarkdownFiles, "file is", "files are")} not Markdown; adjust --only${explicitLang ? " or --lang" : ""}`,
+      );
+    }
+  };
   const noteExcludedTests = (): void => {
     if (stats.excludedTestFiles > 0) {
       notices.push(
@@ -994,16 +1020,11 @@ async function resolveInputTarget(
         );
       }
 
-      files.push(
-        ...(!usesOnlyMarkdownExtractKinds(extractOrder)
-          ? filteredFiles
-          : filteredFiles.filter(
-              (filePath) => registry.inferFromFile(filePath) === "md",
-            )),
-      );
+      files.push(...keepMarkdownOnly(filteredFiles));
     }
 
     noteExcludedTests();
+    noteSkippedNonMarkdown(files);
     return { files };
   }
 
@@ -1031,15 +1052,9 @@ async function resolveInputTarget(
     notices.push("no supported files found in .");
   }
 
-  if (!usesOnlyMarkdownExtractKinds(extractOrder)) {
-    return { files };
-  }
-
-  return {
-    files: files.filter(
-      (filePath) => registry.inferFromFile(filePath) === "md",
-    ),
-  };
+  const keptFiles = keepMarkdownOnly(files);
+  noteSkippedNonMarkdown(keptFiles);
+  return { files: keptFiles };
 }
 
 async function resolveExecutionPlan(
@@ -1055,7 +1070,7 @@ async function resolveExecutionPlan(
     : undefined;
 
   if (rawLang && !explicitLang) {
-    throw createCliError(`${rawLang} not supported`);
+    throw createUnsupportedLanguageError(registry, rawLang);
   }
 
   let extractOrder = args.only
@@ -1408,10 +1423,7 @@ function renderPipelineOutput(
       notices.push(
         `--skip ${offset} skips all ${totalEntries} extracted ${pluralize(totalEntries, "entry", "entries")}`,
       );
-    } else if (
-      limit !== undefined &&
-      offset + windowed.shown < totalEntries
-    ) {
+    } else if (limit !== undefined && offset + windowed.shown < totalEntries) {
       notices.push(
         `${totalEntries - offset - windowed.shown} more ${pluralize(totalEntries - offset - windowed.shown, "entry", "entries")} — rerun with ${buildResumeCommand(plan, offset + windowed.shown, limit)}`,
       );
@@ -1426,9 +1438,7 @@ function renderPipelineOutput(
         registry: plan.registry,
         sections,
         ...(plan.explicitLang ? { explicitLang: plan.explicitLang } : {}),
-        ...(plan.output.includeLineNumbers
-          ? { includeLineNumbers: true }
-          : {}),
+        ...(plan.output.includeLineNumbers ? { includeLineNumbers: true } : {}),
         ...(redact ? {} : { redact: false }),
         seenLangs: result.meta.seenLangs,
       });
@@ -1477,13 +1487,12 @@ function renderPipelineOutput(
     );
   }
 
-  const shapeTruncated = sections.some(
-    (section) =>
-      section.entries.some(
-        (entry) =>
-          entry.kind === JSON_SHAPE_KIND &&
-          entry.lines.some((line) => JSON_SHAPE_TRUNCATION_PATTERN.test(line)),
-      ),
+  const shapeTruncated = sections.some((section) =>
+    section.entries.some(
+      (entry) =>
+        entry.kind === JSON_SHAPE_KIND &&
+        entry.lines.some((line) => JSON_SHAPE_TRUNCATION_PATTERN.test(line)),
+    ),
   );
   if (shapeTruncated) {
     notices.push(
@@ -1742,7 +1751,9 @@ async function resolveReadSource(
   if (target === "-") {
     return {
       source: await readStdin(),
-      filePath: explicitLangRaw ? toStdinVirtualFilePath(explicitLangRaw) : "<stdin>",
+      filePath: explicitLangRaw
+        ? toStdinVirtualFilePath(explicitLangRaw)
+        : "<stdin>",
       isStdin: true,
     };
   }
@@ -1810,7 +1821,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     : undefined;
 
   if (rawLang && !explicitLang) {
-    throw createCliError(`${rawLang} not supported`);
+    throw createUnsupportedLanguageError(registry, rawLang);
   }
 
   const extractOrder = args.outline
@@ -1931,7 +1942,9 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     const contentOpenTag = `<content lines="${rangeText}"${redactionApplied ? ' redacted="true"' : ""}>`;
     outputParts.push(`${contentOpenTag}\n${contentBody}</content>`);
   } else {
-    outputParts.push(contentBody.endsWith("\n") ? contentBody.slice(0, -1) : contentBody);
+    outputParts.push(
+      contentBody.endsWith("\n") ? contentBody.slice(0, -1) : contentBody,
+    );
   }
 
   if (includeOutline && adapter && endLine < totalLines) {
@@ -2089,20 +2102,45 @@ export function parseExtractOptions(
   const selected: ExtractKind[] = [];
   const seen = new Set<string>();
 
-  for (const token of tokens) {
-    if (!supportedSet.has(token)) {
-      const available = [...supportedSet].sort().join(", ");
-      throw new Error(
-        `Unsupported extract option: ${token}. Supported options: ${available}`,
-      );
+  const addKind = (kind: string) => {
+    if (!seen.has(kind)) {
+      selected.push(kind as ExtractKind);
+      seen.add(kind);
     }
+  };
 
-    if (seen.has(token)) {
+  for (const token of tokens) {
+    if (supportedSet.has(token)) {
+      addKind(token);
       continue;
     }
 
-    selected.push(token as ExtractKind);
-    seen.add(token);
+    // Group wildcard: `md:*` selects every extractor in that group.
+    if (token.endsWith(":*")) {
+      const prefix = token.slice(0, -1);
+      const members = supportedKinds.filter((kind) => kind.startsWith(prefix));
+      if (members.length > 0) {
+        members.forEach(addKind);
+        continue;
+      }
+    }
+
+    // Bare-name alias: `headings` resolves when exactly one supported kind
+    // is `<group>:headings`.
+    const suffixMatches = supportedKinds.filter(
+      (kind) => kind.split(":")[1] === token,
+    );
+    const suffixMatch =
+      suffixMatches.length === 1 ? suffixMatches[0] : undefined;
+    if (suffixMatch) {
+      addKind(suffixMatch);
+      continue;
+    }
+
+    const available = [...supportedSet].sort().join(", ");
+    throw new Error(
+      `Unsupported extract option: ${token}. Supported options: ${available} (group wildcards like md:* also work)`,
+    );
   }
 
   return selected;
@@ -2236,6 +2274,31 @@ function getRegistryMetadata(
     .find((metadata) => metadata.id === langId);
 }
 
+function createUnsupportedLanguageError(
+  registry: LanguageRegistry,
+  rawLang: string,
+): ExitCodeError {
+  const supported = registry
+    .listAdapterMetadata()
+    .map((metadata) => metadata.id)
+    .sort()
+    .join(", ");
+  return createCliError(
+    `${rawLang} not supported. Supported languages: ${supported} (full names like "python" and file extensions also work)`,
+  );
+}
+
+// Full language names accepted alongside registry ids and extensions, so
+// `--lang python` works as well as `--lang py`.
+const LANGUAGE_NAME_ALIASES: Record<string, string> = {
+  python: "py",
+  typescript: "ts",
+  javascript: "js",
+  golang: "go",
+  rust: "rs",
+  markdown: "md",
+};
+
 function resolveLanguageId(
   registry: LanguageRegistry,
   rawLang: string,
@@ -2247,6 +2310,11 @@ function resolveLanguageId(
 
   if (registry.has(normalized)) {
     return normalized;
+  }
+
+  const alias = LANGUAGE_NAME_ALIASES[normalized];
+  if (alias && registry.has(alias)) {
+    return alias;
   }
 
   const extension = normalizeExtension(normalized);
@@ -2510,20 +2578,25 @@ export function getSupportedGlobs(registry: LanguageRegistry): string[] {
   return [...globs].sort();
 }
 
-export function isTestFile(filePath: string): boolean {
-  const normalized = normalizePathForMatch(filePath);
-  const segments = normalized.split("/");
-
-  if (
-    segments.some(
+function hasTestPathSegment(filePath: string): boolean {
+  return normalizePathForMatch(filePath)
+    .split("/")
+    .some(
       (segment) =>
         segment === "test" || segment === "tests" || segment === "__tests__",
-    )
-  ) {
+    );
+}
+
+// When baseDir is given, directory-segment matching only looks below it, so
+// a scan rooted inside a test directory doesn't mark every file as a test.
+export function isTestFile(filePath: string, baseDir?: string): boolean {
+  const segmentSource = baseDir ? path.relative(baseDir, filePath) : filePath;
+
+  if (hasTestPathSegment(segmentSource)) {
     return true;
   }
 
-  const fileName = path.basename(normalized);
+  const fileName = path.basename(normalizePathForMatch(filePath));
 
   return (
     /(?:\.|_|-)test\.[^/]+$/i.test(fileName) ||
@@ -2566,7 +2639,7 @@ export async function discoverFiles(
 
   const kept = options.includeTests
     ? discovered
-    : discovered.filter((filePath) => !isTestFile(filePath));
+    : discovered.filter((filePath) => !isTestFile(filePath, cwd));
 
   if (options.stats) {
     options.stats.excludedTestFiles += discovered.length - kept.length;

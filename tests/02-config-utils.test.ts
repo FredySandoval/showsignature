@@ -6,6 +6,15 @@ import {
   toPipelineError,
 } from "@/src/01-main.js";
 import { BUILT_IN_EXTRACT_KINDS } from "@/src/00-core-types.js";
+import type { ExtractKind } from "@/src/00-core-types.js";
+
+const ALL_EXTRACT_KINDS = [
+  ...BUILT_IN_EXTRACT_KINDS,
+  "md:headings",
+  "md:tables",
+  "md:codeblocks",
+  "json:shape",
+] as unknown as ExtractKind[];
 
 describe("parseExtractOptions", () => {
   test("parses comma-separated kinds in order", () => {
@@ -43,8 +52,37 @@ describe("parseExtractOptions", () => {
 
   test("throws for unsupported kind", () => {
     expect(() =>
-      parseExtractOptions("comments,unknown", BUILT_IN_EXTRACT_KINDS),
+      parseExtractOptions("comments,unknown", ALL_EXTRACT_KINDS),
     ).toThrow("Unsupported extract option: unknown");
+  });
+
+  test("expands group wildcards like md:*", () => {
+    const result = parseExtractOptions("md:*", ALL_EXTRACT_KINDS);
+
+    expect(result as string[]).toEqual([
+      "md:headings",
+      "md:tables",
+      "md:codeblocks",
+    ]);
+  });
+
+  test("resolves unambiguous bare names to their group-prefixed kind", () => {
+    expect(
+      parseExtractOptions("headings", ALL_EXTRACT_KINDS) as string[],
+    ).toEqual(["md:headings"]);
+    expect(parseExtractOptions("shape", ALL_EXTRACT_KINDS) as string[]).toEqual(
+      ["json:shape"],
+    );
+  });
+
+  test("deduplicates wildcard expansions against explicit kinds", () => {
+    const result = parseExtractOptions("md:headings,md:*", ALL_EXTRACT_KINDS);
+
+    expect(result as string[]).toEqual([
+      "md:headings",
+      "md:tables",
+      "md:codeblocks",
+    ]);
   });
 });
 

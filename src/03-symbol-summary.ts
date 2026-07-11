@@ -79,6 +79,9 @@ const GO_STOPWORDS = [
   "float32", "float64", "int", "int8", "int16", "int32", "int64", "iota",
   "nil", "rune", "string", "true", "uint", "uint8", "uint16", "uint32",
   "uint64", "uintptr",
+  // blank identifier: not referenceable, so it never names anything to grep
+  // for (side-effect imports emit it as their alias)
+  "_",
 ];
 
 const RUST_STOPWORDS = [
@@ -91,6 +94,8 @@ const RUST_STOPWORDS = [
   // primitive types and literals
   "bool", "char", "f32", "f64", "false", "i8", "i16", "i32", "i64", "i128",
   "isize", "str", "true", "u8", "u16", "u32", "u64", "u128", "usize",
+  // wildcard/discard: not a referenceable identifier (`use foo as _;`)
+  "_",
 ];
 
 const LUA_STOPWORDS = [

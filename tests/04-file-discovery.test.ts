@@ -88,6 +88,17 @@ describe("isTestFile", () => {
     expect(isTestFile("/repo/tests/user.ts")).toBe(true);
     expect(isTestFile("/repo/src/user.ts")).toBe(false);
   });
+
+  test("with a baseDir, only matches test directory segments below it", () => {
+    expect(
+      isTestFile("/repo/tests/fixtures/user.ts", "/repo/tests/fixtures"),
+    ).toBe(false);
+    expect(isTestFile("/repo/tests/fixtures/user.ts", "/repo")).toBe(true);
+    // Filename patterns still apply regardless of baseDir.
+    expect(
+      isTestFile("/repo/tests/fixtures/user.test.ts", "/repo/tests/fixtures"),
+    ).toBe(true);
+  });
 });
 
 describe("discoverFiles", () => {

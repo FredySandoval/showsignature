@@ -205,7 +205,8 @@ describe("buildCli", () => {
 
     await expect(
       buildCli().run([
-        "showcode", "map",
+        "showcode",
+        "map",
         "src/app.ts",
         "--output",
         "artifacts/output.txt",
@@ -226,7 +227,8 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode", "map",
+      "showcode",
+      "map",
       "--only=signatures",
       "--no-line-number",
       "src/app.ts",
@@ -248,7 +250,83 @@ describe("buildCli", () => {
 
     await expect(
       buildCli().run(["showcode", "map", "src/app.ts", "--lang", "rb"]),
-    ).rejects.toThrow("rb not supported");
+    ).rejects.toThrow("rb not supported. Supported languages:");
+  });
+
+  test("accepts full language names as --lang aliases", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "const value = 1;");
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode",
+      "map",
+      "src/app.ts",
+      "--lang",
+      "typescript",
+    ]);
+
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("includes test files when the scan root is inside a test directory", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "tests/fixtures/app.ts",
+      "function greet(): void {}",
+    );
+    process.chdir(path.join(rootDir, "tests", "fixtures"));
+
+    await buildCli().run(["showcode", "map", "."]);
+
+    expect(stdoutBuffer).toContain("function greet(): void;");
+    expect(stdoutBuffer).toContain(
+      "scan root is inside a test directory; test files included by default",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("still excludes the tests subtree when scanning from the repo root", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}");
+    await writeFixtureFile(
+      rootDir,
+      "tests/app.ts",
+      "function fromTests(): void {}",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "."]);
+
+    expect(stdoutBuffer).toContain("function greet(): void;");
+    expect(stdoutBuffer).not.toContain("fromTests");
+    expect(stdoutBuffer).toContain(
+      "1 test file excluded; pass --include-tests to include them",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("explains empty output when markdown-only extractors match no Markdown files", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--only", "md:headings", "src"]);
+
+    expect(stdoutBuffer).toContain(
+      "0 entries: --only md:headings applies only to Markdown files, and the 1 matched file is not Markdown; adjust --only",
+    );
+    expect(process.exitCode).toBe(0);
   });
 
   test("does not advertise removed file, folder, and stdin options", async () => {
@@ -381,7 +459,8 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode", "map",
+      "showcode",
+      "map",
       "src/component.tsx",
       "--only",
       "exports,variables",
@@ -412,7 +491,8 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode", "map",
+      "showcode",
+      "map",
       "src/Component.svelte",
       "--only",
       "interfaces,variables",
@@ -495,7 +575,8 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode", "map",
+      "showcode",
+      "map",
       "--only=signatures",
       "--include-tests",
       "tests/fixtures",
@@ -614,7 +695,8 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode", "map",
+      "showcode",
+      "map",
       "--no-line-number",
       "a.ts",
       "b.ts",
@@ -702,7 +784,8 @@ describe("buildCli", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode", "map",
+      "showcode",
+      "map",
       "--skip",
       "1",
       "--take",
@@ -894,7 +977,8 @@ describe("cli round-2 regressions", () => {
     process.chdir(rootDir);
 
     await buildCli().run([
-      "showcode", "map",
+      "showcode",
+      "map",
       "--only",
       "interfaces",
       "basic.lua",
@@ -916,7 +1000,13 @@ describe("cli round-2 regressions", () => {
 
     process.chdir(rootDir);
 
-    await buildCli().run(["showcode", "map", "--only", "variables", "config.py"]);
+    await buildCli().run([
+      "showcode",
+      "map",
+      "--only",
+      "variables",
+      "config.py",
+    ]);
 
     expect(stdoutBuffer).toContain("[redacted]");
     expect(stdoutBuffer).toContain(
@@ -960,7 +1050,11 @@ describe("cli round-3 regressions", () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
-    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      "function greet(): void {}\n",
+    );
 
     process.chdir(rootDir);
 
@@ -976,7 +1070,11 @@ describe("cli round-3 regressions", () => {
     installOutputCapture();
 
     const rootDir = await createTempDir();
-    await writeFixtureFile(rootDir, "src/app.ts", "function greet(): void {}\n");
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      "function greet(): void {}\n",
+    );
 
     process.chdir(rootDir);
 
