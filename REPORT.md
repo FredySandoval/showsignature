@@ -1,3 +1,75 @@
+ showsignature_read
+ <content lines="1-4 of 4">
+ // go/basic.go
+ 14 type Reader interface {
+        Read(p []byte) (n int, err error)
+    }
+ </content>
+
+
+
+ showsignature_read
+ <content lines="1-1 of 1">
+ note: 0 entries for types in 1 file
+ </content>
+
+
+
+ showsignature_read
+ <content lines="1-3 of 3">
+ // rust/basic.rs
+ 10 pub const VERSION: &str = "1.0"
+ 11 static COUNT: usize = 3
+ </content>
+
+ showsignature_map
+ signatures:case01/test1.ts UserAccount User id name email isActive deactivate getProfile createUser
+ signatures:case01/test2.ts UserAccount User id name email isActive deactivate getProfile createUser
+ signatures:case01/test3.ts UserAccount User id name email isActive deactivate getProfile createUser
+ signatures:go/basic.go NewUser id User u Name
+ imports:go/basic.go fmt alias example\.com/pkg _ net/http
+ signatures:lua/basic.lua helper value greet name User new id run opts
+ imports:lua/basic.lua json require http socket\.http
+
+     ⚙ showsignature_map [includeTests=true, lang=python]
+       showsignature map failed (1):
+       [error] python not supported
+
+     ⚙ showsignature_read [file=/home/fredy/Documents/MyProjects_development/04_showsignature/tests/fixtures/json/package.json, limit=10, offset=5, outline=interfaces]
+       showsignature read failed (1):
+       [error] Could not access path: /home/fredy/Documents/MyProjects_development/04_showsignature/tests/fixtures/json/package.json (ENOENT: no such file or directory, stat '/home/fredy/
+       Documents/MyProjects_development/04_showsignature/tests/fixtures/json/package.json')
+
+
+     ⚙ showsignature_map [includeTests=true, only=signatures, lang=typescript]
+       showsignature map failed (1):
+       [error] typescript not supported
+
+
+     → Read src/00-core-types.js [limit=100, offset=1]
+       File not found: /home/fredy/Documents/MyProjects_development/04_showsignature/src/00-core-types.js
+
+
+     Thought: 6.7s
+
+     I notice that when I run showsignature_map without includeTests flag, it doesn't find any supported files and says 51 test files excluded. This is the default behavior - it excludes
+     test files. When I set includeTests=true, it finds all the test fixtures.
+
+     Let me check the documentation to understand the difference between showsignature_map and showsignature_read better.
+
+     From the tool descriptions:
+     - showsignature_map: "Structural overview of code, Markdown, and JSON. Use INSTEAD of read/grep/cat for the FIRST look at any unfamiliar file or folder"
+     - showsignature_read: "Windowed literal read of exactly one file, with a structural outline (real line numbers) around the window for orientation"
+
+     So showsignature_map is meant to be used for the first look/overview, and it excludes test files by default. showsignature_read is for reading specific files with context.
+
+     Let me do a comprehensive test to verify all features are working properly by checking the supported parameters and file types.
+
+     ⚙ showsignature_map [includeTests=true, lang=ts]
+     ⚙ showsignature_map [includeTests=true, maxDepth=1]
+     ⚙ showsignature_map [includeTests=true, take=5]
+     ⚙ showsignature_map [includeTests=true, skip=5]
+
 # REPORT: `showsignature read` as a full replacement for a native read tool
 
 Context: in the SWE-bench A/B experiment, the tool arm runs the pi agent with

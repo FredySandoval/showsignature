@@ -219,6 +219,29 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("refuses binary-looking files unless --no-binary-check is passed", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    const binaryPath = path.join(rootDir, "blob.dat");
+    await writeFile(
+      binaryPath,
+      Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x00, 0x01, 0x02, 0x00]),
+    );
+    process.chdir(rootDir);
+
+    await expect(
+      buildCli().run(["showcode", "read", "blob.dat"]),
+    ).rejects.toThrow(
+      "blob.dat looks binary (application/octet-stream); showsignature reads text.",
+    );
+
+    installOutputCapture();
+    await buildCli().run(["showcode", "read", "--no-binary-check", "blob.dat"]);
+    expect(stdoutBuffer).toContain("<content");
+    expect(process.exitCode).toBe(0);
+  });
+
   test("--framing none emits the content only: no tags, no outline", async () => {
     installOutputCapture();
 

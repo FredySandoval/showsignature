@@ -443,6 +443,7 @@ Options:
                           tags). One of: tags, none.
   --no-line-number        Hide line-number prefixes on outline lines
                           (content never has them).
+  --no-binary-check       Read files that look binary instead of refusing.
   -h, --help              Show this help.
 
 Global options:
@@ -567,6 +568,10 @@ function parseCliArgs(argv: readonly string[]): ParsedCliArgs | null {
     .option("--lang <lang>", langOptionHelp)
     .option("--outline <extractors>", extractorsOptionHelp)
     .option("--no-redact", "disable built-in secret redaction")
+    .option(
+      "--no-binary-check",
+      "read files that look binary instead of refusing",
+    )
     .option(
       "--no-line-number",
       "hide line number prefixes on outline lines (content never has them)",
@@ -1858,9 +1863,36 @@ function renderOutline(
   ].join("\n");
 }
 
+// Sniff window and non-printable threshold for binary detection. A NUL byte
+// is conclusive on its own; the ratio catches NUL-free binary formats.
+const BINARY_SNIFF_BYTES = 8192;
+const BINARY_NON_PRINTABLE_RATIO = 0.3;
+
+export function looksBinary(bytes: Uint8Array): boolean {
+  const sample = bytes.subarray(0, BINARY_SNIFF_BYTES);
+  if (sample.length === 0) {
+    return false;
+  }
+
+  let nonPrintable = 0;
+  for (const byte of sample) {
+    if (byte === 0) {
+      return true;
+    }
+    // Control chars other than tab/newline/carriage return. Bytes >= 0x80
+    // are not counted: they are legitimate in UTF-8 text.
+    if (byte < 0x20 && byte !== 0x09 && byte !== 0x0a && byte !== 0x0d) {
+      nonPrintable += 1;
+    }
+  }
+
+  return nonPrintable / sample.length > BINARY_NON_PRINTABLE_RATIO;
+}
+
 async function resolveReadSource(
   target: string,
   explicitLangRaw: string | undefined,
+  binaryCheck: boolean,
 ): Promise<{ source: string; filePath: string; isStdin: boolean }> {
   if (target === "-") {
     return {
@@ -1894,8 +1926,17 @@ async function resolveReadSource(
     );
   }
 
+  const bytes = await readFile(safePath);
+  if (binaryCheck && looksBinary(bytes)) {
+    // Dumping raw bytes with a success exit is the worst outcome for an
+    // agent: token burn, context noise, and no signal anything went wrong.
+    throw createCliError(
+      `${target} looks binary (application/octet-stream); ${CLI_NAME} reads text. Use a hex viewer or file-type-specific tooling, or pass --no-binary-check to read it anyway.`,
+    );
+  }
+
   return {
-    source: await readFile(safePath, "utf8"),
+    source: bytes.toString("utf8"),
     filePath: safePath,
     isStdin: false,
   };
@@ -1943,6 +1984,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   const { source, filePath, isStdin } = await resolveReadSource(
     args.paths![0]!,
     rawLang,
+    args.binaryCheck !== false,
   );
 
   const lineSegments = splitLinesKeepEnds(source);

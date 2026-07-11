@@ -283,6 +283,8 @@ export interface ParsedCliArgs {
   limit?: number;
   /** read: content window wrapping (--framing) */
   framing?: ReadFraming;
+  /** read: refuse binary-looking files unless disabled (--no-binary-check) */
+  binaryCheck?: boolean;
   all?: boolean;
 }
 

@@ -142,6 +142,7 @@ Options:
                           tags). One of: tags, none.
   --no-line-number        Hide line-number prefixes on outline lines
                           (content never has them).
+  --no-binary-check       Read files that look binary instead of refusing.
   -h, --help              Show this help.
 
 Global options:
