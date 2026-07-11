@@ -135,7 +135,7 @@ Add the plugin to your `opencode.json` (project or `~/.config/opencode/opencode.
 OpenCode installs the package automatically at startup and registers the `showsignature_map` and `showsignature_read` tools — the agent calls them as native tools, no shell involved.
 
 > [!NOTE]
-> When OpenCode runs as its standalone binary (the default install), the tools need a `node` or `bun` executable on your `PATH` to run the CLI.
+> You may need to have installed `node` or `bun`.
 </details>
 
 
