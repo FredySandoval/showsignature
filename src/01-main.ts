@@ -2,7 +2,7 @@
 // CLI                                  [Step 1 — entry point]
 // Uses commanderjs to parse CLI arguments and run the pipeline
 // ============================================================================
-import { readFile, realpath, stat } from "node:fs/promises";
+import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { Buffer } from "node:buffer";
 import path from "node:path";
 import { Command, CommanderError } from "commander";
@@ -687,6 +687,124 @@ function isExitCodeError(error: unknown): error is ExitCodeError {
   return error instanceof Error && "exitCode" in error;
 }
 
+function levenshteinDistance(a: string, b: string): number {
+  const previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = previous[0]!;
+    previous[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = previous[j]!;
+      previous[j] = Math.min(
+        above + 1,
+        previous[j - 1]! + 1,
+        diagonal + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+      diagonal = above;
+    }
+  }
+  return previous[b.length]!;
+}
+
+function nameSimilarity(query: string, candidate: string): number {
+  const q = query.toLowerCase();
+  const c = candidate.toLowerCase();
+  if (q === c) {
+    return 1;
+  }
+  if (c.startsWith(q) || q.startsWith(c)) {
+    return 0.9;
+  }
+  if (c.includes(q) || q.includes(c)) {
+    return 0.8;
+  }
+  return 1 - levenshteinDistance(q, c) / Math.max(q.length, c.length);
+}
+
+// A missing path is a dead end for an agent unless the error names real
+// alternatives. Walk up to the deepest ancestor that exists and fuzzy-match
+// its entries against the first missing segment (and the final basename, for
+// deep guesses like fixtures/json/package.json); never invent paths.
+async function describeMissingPath(
+  requestedPath: string,
+): Promise<string | undefined> {
+  const resolvedPath = path.resolve(requestedPath);
+  let ancestor = path.dirname(resolvedPath);
+  for (;;) {
+    try {
+      if ((await stat(ancestor)).isDirectory()) {
+        break;
+      }
+      return undefined;
+    } catch {
+      const parent = path.dirname(ancestor);
+      if (parent === ancestor) {
+        return undefined;
+      }
+      ancestor = parent;
+    }
+  }
+
+  let entries: string[];
+  try {
+    entries = await readdir(ancestor);
+  } catch {
+    return undefined;
+  }
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  const missingSegment = path
+    .relative(ancestor, resolvedPath)
+    .split(path.sep)[0]!;
+  const finalName = path.basename(resolvedPath);
+  const queries =
+    finalName === missingSegment
+      ? [missingSegment]
+      : [missingSegment, finalName];
+
+  const ancestorDisplay = toDisplayPath(ancestor) || ".";
+  const ranked = entries
+    .map((entry) => ({
+      entry,
+      score: Math.max(...queries.map((query) => nameSimilarity(query, entry))),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const close = ranked
+    .filter((candidate) => candidate.score >= 0.5)
+    .slice(0, 3);
+  if (close.length > 0) {
+    const suggestions = close.map((candidate) =>
+      path.join(ancestorDisplay, candidate.entry),
+    );
+    return `Did you mean: ${suggestions.join(", ")}?`;
+  }
+
+  // Hidden entries are rarely what a mistyped path was aiming for; list
+  // them last so the visible names fit in the shown window.
+  const shown = [...entries]
+    .sort(
+      (a, b) =>
+        Number(a.startsWith(".")) - Number(b.startsWith(".")) ||
+        a.localeCompare(b),
+    )
+    .slice(0, 5);
+  const more = entries.length - shown.length;
+  return `Nearest existing directory is ${ancestorDisplay}, containing: ${shown.join(", ")}${more > 0 ? ` (and ${more} more)` : ""}`;
+}
+
+async function createMissingPathError(
+  label: string,
+  requestedPath: string,
+  error: unknown,
+): Promise<ExitCodeError> {
+  const hint = await describeMissingPath(requestedPath);
+  return createCliError(
+    `Could not access ${label}: ${requestedPath} (${stringifyError(error)})${hint ? `. ${hint}` : ""}`,
+  );
+}
+
 async function assertPathExists(
   targetPath: string,
   label: string,
@@ -694,9 +812,7 @@ async function assertPathExists(
   try {
     await stat(targetPath);
   } catch (error) {
-    throw createCliError(
-      `Could not access ${label}: ${targetPath} (${stringifyError(error)})`,
-    );
+    throw await createMissingPathError(label, targetPath, error);
   }
 }
 
@@ -720,9 +836,7 @@ async function validateInputPaths(args: ParsedCliArgs): Promise<void> {
         throw error;
       }
 
-      throw createCliError(
-        `Could not access path: ${inputPath} (${stringifyError(error)})`,
-      );
+      throw await createMissingPathError("path", inputPath, error);
     }
   }
 }
@@ -1764,9 +1878,7 @@ async function resolveReadSource(
   try {
     targetStats = await stat(resolvedPath);
   } catch (error) {
-    throw createCliError(
-      `Could not access path: ${target} (${stringifyError(error)})`,
-    );
+    throw await createMissingPathError("path", target, error);
   }
 
   if (targetStats.isDirectory()) {
@@ -1905,6 +2017,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   const includeLineNumbers = args.lineNumber !== false;
   const includeOutline = framing !== "none";
   const outputParts: string[] = [];
+  let outlineRendered = false;
 
   if (includeOutline && adapter && startLine > 1) {
     const beforeEntries = entries.filter(
@@ -1922,6 +2035,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
       windowIndent > entryIndentWidth(deepest);
 
     if (outlineEntries.length > 0) {
+      outlineRendered = true;
       outputParts.push(
         renderOutline("before", outlineEntries, {
           includeLineNumbers,
@@ -1954,6 +2068,7 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     const outlineEntries = degradeOutlineByDepth(afterEntries, new Set());
 
     if (outlineEntries.length > 0) {
+      outlineRendered = true;
       outputParts.push(
         renderOutline("after", outlineEntries, {
           includeLineNumbers,
@@ -1972,6 +2087,19 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
     const displayTarget = isStdin ? "-" : toDisplayPath(filePath);
     notes.push(
       `showing lines ${startLine}-${endLine} of ${totalLines}; continue with: ${CLI_NAME} read --offset ${endLine + 1} ${displayTarget}`,
+    );
+  }
+
+  // An omitted outline is indistinguishable from a broken one; say why it
+  // is absent whenever part of the file lies outside the window.
+  if (
+    includeOutline &&
+    adapter &&
+    !outlineRendered &&
+    (startLine > 1 || endLine < totalLines)
+  ) {
+    notes.push(
+      `outline omitted: no ${extractOrder.join(", ")} entries outside lines ${startLine}-${endLine}`,
     );
   }
 

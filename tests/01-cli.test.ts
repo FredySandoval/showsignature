@@ -329,6 +329,37 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("suggests close matches for missing paths", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "const value = 1;");
+    process.chdir(rootDir);
+
+    // typo in the filename → fuzzy suggestion
+    await expect(
+      buildCli().run(["showcode", "map", "src/ap.ts"]),
+    ).rejects.toThrow("Did you mean: src/app.ts?");
+
+    // missing directory segment → matched against the deepest existing
+    // ancestor's entries via the final basename
+    await expect(
+      buildCli().run(["showcode", "map", "src/nested/app.ts"]),
+    ).rejects.toThrow("Did you mean: src/app.ts?");
+  });
+
+  test("lists the nearest existing directory when nothing matches a missing path", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "src/app.ts", "const value = 1;");
+    process.chdir(rootDir);
+
+    await expect(
+      buildCli().run(["showcode", "map", "zzqqxx/wwyyvv.rs"]),
+    ).rejects.toThrow("Nearest existing directory is ., containing: src");
+  });
+
   test("does not advertise removed file, folder, and stdin options", async () => {
     installOutputCapture();
 

@@ -133,7 +133,9 @@ describe("read command", () => {
 
     await expect(
       buildCli().run(["showcode", "read", "a.ts", "b.ts"]),
-    ).rejects.toThrow("'read' takes exactly one file; run one invocation per file");
+    ).rejects.toThrow(
+      "'read' takes exactly one file; run one invocation per file",
+    );
   });
 
   test("reads a whole small file: full range tag, no outlines, no note", async () => {
@@ -189,6 +191,34 @@ describe("read command", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  test("explains an absent outline when no entries exist outside the window", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    await writeFixtureFile(
+      rootDir,
+      "src/app.ts",
+      "function greet(): void {\n  return;\n}\nconst trailing = 1;\nconst more = 2;\n",
+    );
+    process.chdir(rootDir);
+
+    await buildCli().run([
+      "showcode",
+      "read",
+      "--offset",
+      "1",
+      "--limit",
+      "3",
+      "src/app.ts",
+    ]);
+
+    expect(stdoutBuffer).not.toContain("<outline");
+    expect(stdoutBuffer).toContain(
+      "outline omitted: no signatures entries outside lines 1-3",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
   test("--framing none emits the content only: no tags, no outline", async () => {
     installOutputCapture();
 
@@ -221,7 +251,9 @@ describe("read command", () => {
 
     await expect(
       buildCli().run(["showcode", "read", "--framing", "bogus", "a.ts"]),
-    ).rejects.toThrow("Option --framing must be one of: tags, none (got 'bogus')");
+    ).rejects.toThrow(
+      "Option --framing must be one of: tags, none (got 'bogus')",
+    );
   });
 
   test("applies the default cap with an after-outline and continuation note", async () => {
@@ -262,7 +294,9 @@ describe("read command", () => {
     await buildCli().run(["showcode", "read", "--limit", "2400", "big.ts"]);
 
     expect(stdoutBuffer).toContain('<content lines="1-2000 of 2500">');
-    expect(stdoutBuffer).toContain("continue with: showsignature read --offset 2001");
+    expect(stdoutBuffer).toContain(
+      "continue with: showsignature read --offset 2001",
+    );
     expect(process.exitCode).toBe(0);
   });
 
@@ -303,7 +337,9 @@ describe("read command", () => {
 
   test("reads stdin with --lang: outlines frame the window", async () => {
     installOutputCapture();
-    installStdin("def a():\n    pass\ndef b():\n    pass\ndef c():\n    pass\n");
+    installStdin(
+      "def a():\n    pass\ndef b():\n    pass\ndef c():\n    pass\n",
+    );
 
     await buildCli().run([
       "showcode",
@@ -340,7 +376,9 @@ describe("read command", () => {
 
     await buildCli().run(["showcode", "read", "config.ts"]);
 
-    expect(stdoutBuffer).toContain('<content lines="1-2 of 2" redacted="true">');
+    expect(stdoutBuffer).toContain(
+      '<content lines="1-2 of 2" redacted="true">',
+    );
     expect(stdoutBuffer).toContain("const apiKey = [redacted];");
     expect(stdoutBuffer).toContain(
       "note: 1 secret redacted; pass --no-redact for literal bytes",
@@ -468,7 +506,9 @@ describe("outline helpers", () => {
     for (let outer = 0; outer < 10; outer += 1) {
       entries.push(entry(outer * 10 + 1, `def top${outer}():`));
       for (let inner = 0; inner < 6; inner += 1) {
-        entries.push(entry(outer * 10 + 2 + inner, `  def inner${outer}_${inner}():`));
+        entries.push(
+          entry(outer * 10 + 2 + inner, `  def inner${outer}_${inner}():`),
+        );
       }
     }
 
@@ -507,7 +547,10 @@ describe("outline helpers", () => {
     const { chain, deepest } = buildEnclosingChain(entries);
 
     expect(deepest?.lines[0]).toBe("  def m3():");
-    expect([...chain].map((e) => e.lines[0])).toEqual(["class B:", "  def m3():"]);
+    expect([...chain].map((e) => e.lines[0])).toEqual([
+      "class B:",
+      "  def m3():",
+    ]);
   });
 });
 
@@ -523,7 +566,8 @@ describe("read round-2 regressions", () => {
     );
 
     await buildCli().run([
-      "showcode", "read",
+      "showcode",
+      "read",
       "--offset",
       "5",
       "--limit",
@@ -546,7 +590,8 @@ describe("read round-2 regressions", () => {
     );
 
     await buildCli().run([
-      "showcode", "read",
+      "showcode",
+      "read",
       "--offset",
       "3",
       "--limit",
@@ -568,7 +613,8 @@ describe("read round-2 regressions", () => {
     );
 
     await buildCli().run([
-      "showcode", "read",
+      "showcode",
+      "read",
       "--offset",
       "5",
       "--limit",
