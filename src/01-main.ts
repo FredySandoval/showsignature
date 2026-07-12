@@ -2,7 +2,7 @@
 // CLI                                  [Step 1 — entry point]
 // Uses commanderjs to parse CLI arguments and run the pipeline
 // ============================================================================
-import { readdir, readFile, realpath, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { Buffer }                            from "node:buffer"     ;
 import path                                  from "node:path"       ;
 import { Command, CommanderError }           from "commander"       ;
@@ -191,14 +191,16 @@ async function resolveSafeInputPath(
   targetPath: string,
 ): Promise<string | null> {
   const resolvedPath = path.resolve(targetPath);
-  const realTargetPath = await realpath(resolvedPath);
 
-  const targetStats = await stat(realTargetPath);
+  // stat follows symlinks, so this verifies the (possibly linked) target is a
+  // regular file; the path returned stays as given so display paths and
+  // follow-up commands keep the user's spelling, not the link target's.
+  const targetStats = await stat(resolvedPath);
   if (!targetStats.isFile()) {
     return null;
   }
 
-  return realTargetPath;
+  return resolvedPath;
 }
 
 function stripArgvPrefix(argv: readonly string[]): string[] {
@@ -2675,7 +2677,13 @@ export async function discoverFiles(
     cwd,
     absolute: true,
     onlyFiles: true,
-    followSymbolicLinks: false,
+    // Symlinked files/dirs are real project content to an agent mapping a
+    // tree; traversal cycles are bounded by deep (default 2 / --max-depth).
+    followSymbolicLinks: true,
+    throwErrorOnBrokenSymbolicLink: false,
+    // Symlink cycles hit the kernel's ELOOP limit while walking; swallow
+    // those (and unreadable dirs) instead of failing the whole scan.
+    suppressErrors: true,
     gitignore: true,
     ...(options.maxDepth !== undefined ? { deep: options.maxDepth } : {}),
   });

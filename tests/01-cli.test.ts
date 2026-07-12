@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
@@ -152,6 +152,29 @@ describe("buildCli", () => {
       ["// src/app.ts", "1 function greet(name: string): string;", ""].join(
         "\n",
       ),
+    );
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
+  });
+
+  test("mapping a symlinked file keeps the given path in the header", async () => {
+    installOutputCapture();
+
+    const rootDir = await createTempDir();
+    const outsideDir = await createTempDir();
+    const target = await writeFixtureFile(
+      outsideDir,
+      "target.ts",
+      `function greet(name: string): string {\n  return name;\n}\n`,
+    );
+    await symlink(target, path.join(rootDir, "link.ts"));
+
+    process.chdir(rootDir);
+
+    await buildCli().run(["showsignature", "map", "link.ts"]);
+
+    expect(stdoutBuffer).toBe(
+      ["// link.ts", "1 function greet(name: string): string;", ""].join("\n"),
     );
     expect(stderrBuffer).toBe("");
     expect(process.exitCode).toBe(0);

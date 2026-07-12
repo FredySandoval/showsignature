@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -120,6 +120,44 @@ describe("discoverFiles", () => {
     const files = await discoverFiles({ registry, folder: rootDir });
 
     expect(files).toEqual([keepA, keepB].sort());
+  });
+
+  test("follows symlinked files and directories in folder scans", async () => {
+    const rootDir = await createTempDir();
+    const outsideDir = await createTempDir();
+    const registry = createLanguageRegistry();
+    registry.register(createMockAdapter({ id: "ts", extensions: [".ts"] }));
+
+    const direct = await writeFixtureFile(rootDir, "direct.ts");
+    const linkedFileTarget = await writeFixtureFile(outsideDir, "target.ts");
+    await writeFixtureFile(outsideDir, "linked-dir/inner.ts");
+
+    const fileLink = path.join(rootDir, "link.ts");
+    const dirLink = path.join(rootDir, "linked-dir");
+    await symlink(linkedFileTarget, fileLink);
+    await symlink(path.join(outsideDir, "linked-dir"), dirLink);
+
+    const files = await discoverFiles({ registry, folder: rootDir });
+
+    // Paths stay as scanned (through the link), never the link target.
+    expect(files).toEqual(
+      [direct, fileLink, path.join(dirLink, "inner.ts")].sort(),
+    );
+  });
+
+  test("tolerates broken and cyclic symlinks in folder scans", async () => {
+    const rootDir = await createTempDir();
+    const registry = createLanguageRegistry();
+    registry.register(createMockAdapter({ id: "ts", extensions: [".ts"] }));
+
+    const kept = await writeFixtureFile(rootDir, "kept.ts");
+    await symlink(path.join(rootDir, "missing.ts"), path.join(rootDir, "broken.ts"));
+    await symlink(rootDir, path.join(rootDir, "cycle"));
+
+    const files = await discoverFiles({ registry, folder: rootDir });
+
+    expect(files).toContain(kept);
+    expect(files).not.toContain(path.join(rootDir, "broken.ts"));
   });
 
   test("limits recursive folder discovery with maxDepth", async () => {
