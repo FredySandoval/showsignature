@@ -40,8 +40,10 @@
     "test": "bun test",
     "clean": "git clean -xdf node_modules dist",
     "typecheck": "tsgo --noEmit",
+    "gen": "bun scripts/build-instructions.ts",
+    "gen:check": "bun scripts/build-instructions.ts --check",
     "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build",
+    "prepublishOnly": "pnpm gen:check && pnpm typecheck && pnpm test && pnpm build",
     "version": "node scripts/sync-version.js && git add .claude-plugin/plugin.json README.md"
   },
   "keywords": [

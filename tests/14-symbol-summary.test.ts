@@ -396,7 +396,7 @@ import type { Range } from "../../00-core-types.js";
   });
 
   test("relative specifier ending in a slash still contributes one token", async () => {
-    // docs/symbol-summary.md TOKEN RULES: "The quoted module specifier in an
+    // README "Symbol summary" spec TOKEN RULES: "The quoted module specifier in an
     // imports/exports entry contributes exactly one token". A trailing-slash
     // specifier like "./dir/" must not silently drop its token.
     const dir = await createTempDir();
@@ -420,7 +420,7 @@ import type { Range } from "../../00-core-types.js";
   });
 
   test("quoted strings containing spaces do not break the space-delimited token format", async () => {
-    // docs/symbol-summary.md OUTPUT FORMAT: "tokens separated by single
+    // README "Symbol summary" spec OUTPUT FORMAT: "tokens separated by single
     // spaces"; TOKEN RULES: "A token appears at most once per line".
     // A quoted string value with a space ("b c") is emitted as one pseudo
     // token containing a space, so the identifiers b and c are not marked
@@ -444,7 +444,7 @@ import type { Range } from "../../00-core-types.js";
   });
 
   test("import specifier containing a space contributes exactly one unambiguous token", async () => {
-    // docs/symbol-summary.md TOKEN RULES: the specifier contributes "exactly
+    // README "Symbol summary" spec TOKEN RULES: the specifier contributes "exactly
     // one token, never path fragments". With `import sp from "./has
     // space.js"` the output line reads `sp has space\.js` — three
     // space-separated fields, so the fragment `has` leaks as a token.

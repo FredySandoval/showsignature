@@ -18,6 +18,8 @@ metadata:
 allowed-tools: Bash(showsignature:*)
 ---
 
+<!-- GENERATED from src/00-instructions.ts — edit there and run `pnpm gen`. -->
+
 # Showsignature
 
 Two commands (`showsignature <command> --help` for the full option reference):

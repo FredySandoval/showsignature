@@ -1,0 +1,4 @@
+# Generated from src/00-instructions.ts (run `pnpm gen`); reformatting them
+# would make `pnpm gen:check` fail.
+skills/showsignature/SKILL.md
+README.md

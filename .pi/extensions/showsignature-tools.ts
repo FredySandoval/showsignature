@@ -3,8 +3,10 @@ import { Type } from "typebox";
 import {
   MAP_ARG_DOCS    ,
   MAP_DESCRIPTION ,
+  MAP_PROMPT      ,
   READ_ARG_DOCS   ,
   READ_DESCRIPTION,
+  READ_PROMPT     ,
   buildMapArgv    ,
   buildReadArgv   ,
   runCli          ,
@@ -50,10 +52,8 @@ export default function (pi:ExtensionAPI) {
     label            : "Showsignature Map",
     description      : MAP_DESCRIPTION    ,
     parameters       : MAP_PARAMS         ,
-    promptSnippet    : "Map the structure of code/Markdown/JSON files or folders before reading them",
-    promptGuidelines : [
-      "Use showsignature_map instead of read/grep for the first look at any unfamiliar supported file or folder (.ts/.js/.tsx/.svelte/.go/.py/.rs/.lua/.md/.json); it returns the structure with real line numbers at a fraction of the tokens.",
-    ],
+    promptSnippet    : MAP_PROMPT.snippet         ,
+    promptGuidelines : [...MAP_PROMPT.guidelines] ,
     async execute(_toolCallId,params:MapParams,signal,_onUpdate,ctx) {
       const argv = buildMapArgv({...params,paths:params.paths?.map(stripAt)}) ;
       const text = await runCli(argv,ctx.cwd,signal??undefined)               ;
@@ -66,8 +66,8 @@ export default function (pi:ExtensionAPI) {
     label            : "Showsignature Read" ,
     description      : READ_DESCRIPTION     ,
     parameters       : READ_PARAMS          ,
-    promptSnippet    : "Windowed literal read of one file with a structural outline around the window",
-    promptGuidelines : ["Use showsignature_read instead of read for supported file types, jumping to a line number reported by showsignature_map."],
+    promptSnippet    : READ_PROMPT.snippet         ,
+    promptGuidelines : [...READ_PROMPT.guidelines] ,
     async execute(_toolCallId,params:ReadParams,signal,_onUpdate,ctx){
       const argv = buildReadArgv({...params,file:stripAt(params.file)}) ;
       const text = await runCli(argv,ctx.cwd,signal??undefined)         ;
