@@ -3,40 +3,40 @@
 // Uses commanderjs to parse CLI arguments and run the pipeline
 // ============================================================================
 import { readdir, readFile, realpath, stat } from "node:fs/promises";
-import { Buffer } from "node:buffer";
-import path from "node:path";
-import { Command, CommanderError } from "commander";
-import { globby } from "globby";
+import { Buffer }                            from "node:buffer"     ;
+import path                                  from "node:path"       ;
+import { Command, CommanderError }           from "commander"       ;
+import { globby }                            from "globby"          ;
 import {
   BUILT_IN_EXTRACT_KINDS,
-  type AggregatedExtractResult,
-  type BuiltInExtractKind,
-  type CliProgram,
-  type CombinedExtractEntry,
-  type DetectFenceLanguageOptions,
-  type Diagnostic,
-  type DiscoverFilesOptions,
-  type DiscoverFilesStats,
-  type ExecutionPlan,
-  type ExitCodeError,
-  type ExtractEntry,
-  type ExtractFromSourceOptions,
-  type ExtractKind,
-  type ExtractWarning,
-  type FileSection,
-  type FormatFinalOutputOptions,
-  type LanguageAdapter,
-  type LanguageAdapterMetadata,
-  type LanguageRegistry,
+  type AggregatedExtractResult        ,
+  type BuiltInExtractKind             ,
+  type CliProgram                     ,
+  type CombinedExtractEntry           ,
+  type DetectFenceLanguageOptions     ,
+  type Diagnostic                     ,
+  type DiscoverFilesOptions           ,
+  type DiscoverFilesStats             ,
+  type ExecutionPlan                  ,
+  type ExitCodeError                  ,
+  type ExtractEntry                   ,
+  type ExtractFromSourceOptions       ,
+  type ExtractKind                    ,
+  type ExtractWarning                 ,
+  type FileSection                    ,
+  type FormatFinalOutputOptions       ,
+  type LanguageAdapter                ,
+  type LanguageAdapterMetadata        ,
+  type LanguageRegistry               ,
   type LazyLanguageAdapterRegistration,
-  type PackageMetadata,
-  type ParseContext,
-  type ParsedCliArgs,
-  type PipelineError,
-  type PipelineResult,
-  type ProcessFileOptions,
-  type ResolvedInputTarget,
-  type RunPipelineOptions,
+  type PackageMetadata                ,
+  type ParseContext                   ,
+  type ParsedCliArgs                  ,
+  type PipelineError                  ,
+  type PipelineResult                 ,
+  type ProcessFileOptions             ,
+  type ResolvedInputTarget            ,
+  type RunPipelineOptions             ,
 } from "./00-core-types.js";
 import {
   buildSymbolSummaryLines,
