@@ -3,9 +3,10 @@ name: showsignature
 description: >
     Map the structure of code, Markdown, and JSON before reading it. Use
     INSTEAD of Read/Grep/cat for the first look at any unfamiliar file or
-    folder: extracts signatures, imports, exports, types, interfaces,
-    variables, comments, Markdown headings/tables/code blocks, and JSON
-    shapes in a fraction of the tokens. Triggers: exploring a codebase,
+    folder: extracts function/class signatures and imports by default
+    (Markdown headings and JSON shapes for those file types) in a fraction
+    of the tokens; exports, types, interfaces, variables, comments, and
+    Markdown tables/code blocks on request. Triggers: exploring a codebase,
     understanding what a file is responsible for, reviewing an API or data
     shape, planning a refactor or migration, or reading one file in a
     windowed way (showsignature read).
@@ -28,6 +29,8 @@ Two commands (`showsignature <command> --help` for the full option reference):
 - `showsignature read [OPTION]... <FILE>` — literal windowed read of one file. Windows in **LINES**: `--offset <line>` / `--limit <n>`.
 
 Supported files: `.ts/.mts/.cts`, `.js/.mjs/.cjs`, `.tsx/.jsx`, `.svelte`, `.go`, `.py`, `.rs`, `.lua`, `.md`, `.json`. For other file types, use Read/Grep directly.
+
+PATHs are positional operands; every option is a kebab-case `--flag` (`--symbol-summary`, `--max-depth`, `--include-tests`, `--no-line-number`) — never camelCase, never a bare word.
 
 ## What the output looks like
 
@@ -76,7 +79,7 @@ Use Read/Grep instead when the file type is unsupported, you are searching for a
 ## Defaults (what to expect without flags)
 
 - `map` extracts `signatures,imports` for code, `md:*` for Markdown, `json:shape` for JSON; `--only` selects others (exports, types, interfaces, variables, comments).
-- Folder scans go 2 levels deep and skip test files; `--include-tests` brings tests in, `--max-depth <n>` goes deeper.
+- Folder scans go 2 levels deep and skip test files (under test/tests/__tests__ directories or named `*.test.*` / `*_test.*` / `*-test.*` / spec equivalents); `--include-tests` brings tests in, `--max-depth <n>` goes deeper.
 - `read`'s outline uses the `signatures` extractor; `--outline imports,signatures` picks others; `--framing none` yields content only (no tags, no outline).
 - Secrets are redacted and disclosed in the `note:`; `--no-redact` returns literal bytes.
 - `--no-line-number` strips line-number prefixes from map entries / read outlines for cleaner piping.
@@ -87,11 +90,13 @@ Keyword discovery: one line per (extractor, file) pair listing the identifiers t
 
 ```
 $ showsignature map --symbol-summary src/db/
-exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
+signatures:src/db/pool.ts PgPool createPool acquireConn
 imports:src/db/migrate.ts runMigrations MigrationLock schemaVersion
+$ showsignature map --symbol-summary --only exports src/db/
+exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
 ```
 
-Symbol extractors only (`signatures,imports,exports,interfaces,types,variables,json:shape`); identifiers are verbatim with keywords/builtins removed; import specifiers are one whole token (relative paths reduced to basename: `../../00-core-types.js` → `00-core-types\.js`). The same name under `exports:` of one file and `imports:` of another tells you who defines it and who uses it. Here `--skip`/`--take` page over output LINES.
+It summarizes only the ACTIVE extractors: the defaults (`signatures,imports`) unless `--only` selects others (any of `signatures,imports,exports,interfaces,types,variables,json:shape`; comments and `md:*` are excluded); identifiers are verbatim with keywords/builtins removed; import specifiers are one whole token (relative paths reduced to basename: `../../00-core-types.js` → `00-core-types\.js`). The same name under `exports:` of one file and `imports:` of another tells you who defines it and who uses it. Here `--skip`/`--take` page over output LINES.
 
 ## More invocations
 

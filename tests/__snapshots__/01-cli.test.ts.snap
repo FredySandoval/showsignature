@@ -78,7 +78,9 @@ Options:
                          exist there, space-separated (paths containing
                          spaces are double-quoted). Import specifiers are
                          one whole token (relative paths reduced to their
-                         basename). Symbol extractors only
+                         basename). Summarizes the active extractors —
+                         defaults signatures,imports unless --only selects
+                         others; symbol extractors only
                          (no comments / md:*); no line numbers;
                          --skip/--take page over output lines.
   --max-depth <n>        Folder scan depth (default: 2).
