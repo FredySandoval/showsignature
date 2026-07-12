@@ -92,7 +92,9 @@ Options:
                          exist there, space-separated (paths containing
                          spaces are double-quoted). Import specifiers are
                          one whole token (relative paths reduced to their
-                         basename). Symbol extractors only
+                         basename). Summarizes the active extractors —
+                         defaults signatures,imports unless --only selects
+                         others; symbol extractors only
                          (no comments / md:*); no line numbers;
                          --skip/--take page over output lines.
   --max-depth <n>        Folder scan depth (default: ${DEFAULT_DIRECTORY_MAX_DEPTH}).
@@ -183,7 +185,8 @@ Note: read windows LINES (--offset/--limit).
 // ---------------------------------------------------------------------------
 
 export const MAP_DESCRIPTION = 
-`Structural overview of code, Markdown, and JSON. Use INSTEAD of read/grep/cat for the FIRST look at any unfamiliar file or folder: returns signatures, imports, exports, types, interfaces, variables, comments, Markdown headings, and JSON shapes at a fraction of the token cost, each entry prefixed with its real source line number.
+`Structural overview of code, Markdown, and JSON. Use INSTEAD of read/grep/cat for the FIRST look at any unfamiliar file or folder: by default returns ONLY function/class signatures and imports (Markdown headings for .md, value shape for .json) at a fraction of the token cost, each entry prefixed with its real source line number. Exports, types, interfaces, variables, and comments are NOT in the default output — request them explicitly via 'only'.
+Output is plain text (never JSON): one '// path' header per file, then one 'LINE signature' entry per line, e.g. \`16 function formatItem(item: Item): string;\`; class/interface bodies render as indented member lines (no line number) under the class entry — method signatures only for classes (property fields are omitted). Interfaces are NOT in the default output; when selected via 'only' they render the same way, listing their properties as member lines.
 Supported: .ts/.mts/.cts .js/.mjs/.cjs .tsx/.jsx .svelte .go .py .rs .lua .md .json — for other file types use read/grep directly.
 Workflow: map first to see what exists, then jump to exact lines with showsignature_read using the line numbers from the map. Before grepping for a name you are guessing at, run with symbolSummary to get the identifiers that literally exist (each token is a valid ripgrep pattern).
 If the output ends with a 'note:' line, it was capped, depth-limited, or filtered — the note names the exact follow-up flags; never ignore it.`;
@@ -191,18 +194,19 @@ If the output ends with a 'note:' line, it was capped, depth-limited, or filtere
 export const READ_DESCRIPTION = `
 Windowed literal read of exactly one file, with a structural outline (real line numbers) around the window for orientation. Prefer this over plain read for supported file types (.ts/.js/.tsx/.jsx/.svelte/.go/.py/.rs/.lua/.md/.json), typically jumping to a line number that showsignature_map reported.
 The content window carries no line-number prefixes, so it is safe to copy into exact-match edit tools. Windows in LINES (offset/limit), unlike showsignature_map which paginates in ENTRIES (skip/take).
-If the output ends with a 'note:' line, the window was capped — it names the exact follow-up flags.
+Output format: a <content lines="16-27 of 42"> block holding the RAW source lines of the window (this is a literal read — full statements and bodies, NOT a signature map); structure outside the window appears as <outline region="before|after"> blocks of line-numbered signatures — the outline defaults to the signatures extractor ONLY (imports are not outlined unless requested via outline:'imports,signatures'), a region with no matching entries is omitted, class entries appear as a single line (members are not expanded, unlike showsignature_map), and an entry whose body contains the window is annotated with "← window opens inside this". Whenever the window covers the whole file (no offset/limit, or a limit >= the file's length), the whole file is returned as one <content lines="1-N of N"> block and the outline blocks are omitted.
+Every partial window ends with a trailing 'note:' line giving the exact continuation command (e.g. "continue with: showsignature read --offset 28 <file>"); the note also reports capping or filtering when it occurs — never ignore it.
 `.trim();
 
 export const MAP_ARG_DOCS = {
   paths         : "One or more files and/or directories to map",
   only          : "Comma-separated extractors, e.g. 'imports,exports', 'interfaces,types', 'md:headings', 'json:shape'",
-  skip          : "Skip N entries (pagination)",
-  take          : "Take N entries (pagination)",
+  skip          : "Skip N entries (pagination). One entry = one line-numbered item: an import, a function, or a class/interface together with its indented members; file headers and member lines are not entries",
+  take          : "Take N entries (pagination); see skip for what counts as one entry",
   maxDepth      : "Directory scan depth (default 2)",
   lang          : "Restrict to one language, e.g. 'go', 'py', 'ts'",
-  includeTests  : "Include test files (excluded by default)",
-  symbolSummary : "Keyword-discovery mode: one line per (extractor, file) listing identifiers; import specifiers are one whole token (relative paths reduced to their basename)",
+  includeTests  : "Include test files (excluded by default). A test file lives under a test/tests/__tests__ directory or is named *.test.*, *_test.*, *-test.* or the .spec equivalents — a name like test1.ts is NOT a test file",
+  symbolSummary : "Keyword-discovery mode: one line per (extractor, file) listing identifiers, formatted 'extractor:path id1 id2 …' (no line numbers). Summarizes only the ACTIVE extractors — the defaults (signatures,imports) unless combined with 'only' (e.g. only:'exports,types' to list those instead); import specifiers are one whole token (relative paths reduced to their basename)",
   noLineNumber  : "Hide source line-number prefixes (cleaner text for piping)",
 } as const;
 
@@ -236,9 +240,10 @@ name: showsignature
 description: >
     Map the structure of code, Markdown, and JSON before reading it. Use
     INSTEAD of Read/Grep/cat for the first look at any unfamiliar file or
-    folder: extracts signatures, imports, exports, types, interfaces,
-    variables, comments, Markdown headings/tables/code blocks, and JSON
-    shapes in a fraction of the tokens. Triggers: exploring a codebase,
+    folder: extracts function/class signatures and imports by default
+    (Markdown headings and JSON shapes for those file types) in a fraction
+    of the tokens; exports, types, interfaces, variables, comments, and
+    Markdown tables/code blocks on request. Triggers: exploring a codebase,
     understanding what a file is responsible for, reviewing an API or data
     shape, planning a refactor or migration, or reading one file in a
     windowed way (showsignature read).
@@ -261,6 +266,8 @@ Two commands (\`showsignature <command> --help\` for the full option reference):
 - \`showsignature read [OPTION]... <FILE>\` — literal windowed read of one file. Windows in **LINES**: \`--offset <line>\` / \`--limit <n>\`.
 
 Supported files: \`.ts/.mts/.cts\`, \`.js/.mjs/.cjs\`, \`.tsx/.jsx\`, \`.svelte\`, \`.go\`, \`.py\`, \`.rs\`, \`.lua\`, \`.md\`, \`.json\`. For other file types, use Read/Grep directly.
+
+PATHs are positional operands; every option is a kebab-case \`--flag\` (\`--symbol-summary\`, \`--max-depth\`, \`--include-tests\`, \`--no-line-number\`) — never camelCase, never a bare word.
 
 ## What the output looks like
 
@@ -309,7 +316,7 @@ Use Read/Grep instead when the file type is unsupported, you are searching for a
 ## Defaults (what to expect without flags)
 
 - \`map\` extracts \`signatures,imports\` for code, \`md:*\` for Markdown, \`json:shape\` for JSON; \`--only\` selects others (exports, types, interfaces, variables, comments).
-- Folder scans go 2 levels deep and skip test files; \`--include-tests\` brings tests in, \`--max-depth <n>\` goes deeper.
+- Folder scans go 2 levels deep and skip test files (under test/tests/__tests__ directories or named \`*.test.*\` / \`*_test.*\` / \`*-test.*\` / spec equivalents); \`--include-tests\` brings tests in, \`--max-depth <n>\` goes deeper.
 - \`read\`'s outline uses the \`signatures\` extractor; \`--outline imports,signatures\` picks others; \`--framing none\` yields content only (no tags, no outline).
 - Secrets are redacted and disclosed in the \`note:\`; \`--no-redact\` returns literal bytes.
 - \`--no-line-number\` strips line-number prefixes from map entries / read outlines for cleaner piping.
@@ -320,11 +327,13 @@ Keyword discovery: one line per (extractor, file) pair listing the identifiers t
 
 \`\`\`
 $ showsignature map --symbol-summary src/db/
-exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
+signatures:src/db/pool.ts PgPool createPool acquireConn
 imports:src/db/migrate.ts runMigrations MigrationLock schemaVersion
+$ showsignature map --symbol-summary --only exports src/db/
+exports:src/db/pool.ts PgPool createPool POOL_MAX acquireConn
 \`\`\`
 
-Symbol extractors only (\`signatures,imports,exports,interfaces,types,variables,json:shape\`); identifiers are verbatim with keywords/builtins removed; import specifiers are one whole token (relative paths reduced to basename: \`../../00-core-types.js\` → \`00-core-types\\.js\`). The same name under \`exports:\` of one file and \`imports:\` of another tells you who defines it and who uses it. Here \`--skip\`/\`--take\` page over output LINES.
+It summarizes only the ACTIVE extractors: the defaults (\`signatures,imports\`) unless \`--only\` selects others (any of \`signatures,imports,exports,interfaces,types,variables,json:shape\`; comments and \`md:*\` are excluded); identifiers are verbatim with keywords/builtins removed; import specifiers are one whole token (relative paths reduced to basename: \`../../00-core-types.js\` → \`00-core-types\\.js\`). The same name under \`exports:\` of one file and \`imports:\` of another tells you who defines it and who uses it. Here \`--skip\`/\`--take\` page over output LINES.
 
 ## More invocations
 
