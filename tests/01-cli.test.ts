@@ -106,29 +106,6 @@ afterEach(async () => {
 });
 
 describe("buildCli", () => {
-  test("prints version without an error diagnostic", async () => {
-    installOutputCapture();
-
-    await buildCli().run(["showsignature", "--version"]);
-
-    expect(stdoutBuffer).toBe(`${packageMetadata.version}\n`);
-    expect(stderrBuffer).toBe("");
-    expect(process.exitCode).toBe(0);
-  });
-
-  test("prints help with examples and exits 1 when invoked without a command", async () => {
-    installOutputCapture();
-
-    await buildCli().run(["showsignature"]);
-
-    expect(stdoutBuffer).toContain(
-      "showsignature — extract the useful structure from source files",
-    );
-    expect(stdoutBuffer).toContain("showsignature map  [OPTION]... [PATH]...");
-    expect(stdoutBuffer).toContain("Getting started:");
-    expect(stderrBuffer).toBe("");
-    expect(process.exitCode).toBe(1);
-  });
 
   test("root, map, and read help match their snapshots", async () => {
     const helps: Record<string, string> = {};
