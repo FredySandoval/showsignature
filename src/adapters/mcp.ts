@@ -2,6 +2,7 @@ import { isAbsolute }    from "node:path" ;
 import { fileURLToPath } from "node:url"  ;
 import { z }             from "zod"       ;
 import { McpServer }     from "@modelcontextprotocol/sdk/server/mcp.js";
+import { RootsListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
   MAP_ARG_DOCS     ,
@@ -62,17 +63,33 @@ function errorResult(err: unknown): CallToolResult {
 // MCP has no per-call cwd. Resolution order: explicit env override → the
 // host's first file:// workspace root (available post-initialization; hosts
 // without the roots capability just throw) → the server process cwd.
-async function resolveRoot(server: McpServer): Promise<string> {
-  const envRoot = process.env["MCP_SHOWSIGNATURE_ROOT"];
-  if (envRoot) return envRoot;
-  try {
-    const { roots } = await server.server.listRoots();
-    const first = roots?.[0]?.uri;
-    if (first?.startsWith("file://")) return fileURLToPath(first);
-  } catch {
-    // host does not advertise the roots capability
-  }
-  return process.cwd();
+// The roots lookup is one client round-trip, so cache it per resolver;
+// createMcpServer subscribes to roots/list_changed to invalidate the cache.
+function createRootResolver(server: McpServer): {
+  resolveRoot: () => Promise<string>;
+  invalidate: () => void;
+} {
+  let cached: string | undefined;
+  return {
+    invalidate: () => {
+      cached = undefined;
+    },
+    resolveRoot: async () => {
+      const envRoot = process.env["MCP_SHOWSIGNATURE_ROOT"];
+      if (envRoot) return envRoot;
+      if (cached !== undefined) return cached;
+      let root = process.cwd();
+      try {
+        const { roots } = await server.server.listRoots();
+        const first = roots?.[0]?.uri;
+        if (first?.startsWith("file://")) root = fileURLToPath(first);
+      } catch {
+        // host does not advertise the roots capability
+      }
+      cached = root;
+      return root;
+    },
+  };
 }
 
 // Claude Desktop launches stdio servers with cwd "/": refuse to resolve
@@ -94,17 +111,20 @@ export function createMcpServer(): McpServer {
     version : packageMetadata.version ?? "0.0.0"         ,
   });
 
+  const { resolveRoot, invalidate } = createRootResolver(server);
+  server.server.setNotificationHandler(RootsListChangedNotificationSchema, invalidate);
+
   server.registerTool(
     "showsignature_map",
     {
       title       : "Showsignature Map"                       ,
-      description : `${MAP_DESCRIPTION}\n${MCP_PATH_HINT}`    ,
+      description : MAP_DESCRIPTION                           ,
       inputSchema : mapArgs                                   ,
     },
     async (args, extra) => {
       try {
         const paths = args.paths?.map(stripAt);
-        const root = await resolveRoot(server);
+        const root = await resolveRoot();
         const guarded = guardSlashRoot(root, paths ?? []);
         if (guarded) return guarded;
         return textResult(await runCli(buildMapArgv({ ...args, paths }), root, extra.signal));
@@ -118,13 +138,13 @@ export function createMcpServer(): McpServer {
     "showsignature_read",
     {
       title       : "Showsignature Read"                      ,
-      description : `${READ_DESCRIPTION}\n${MCP_PATH_HINT}`   ,
+      description : READ_DESCRIPTION                          ,
       inputSchema : readArgs                                  ,
     },
     async (args, extra) => {
       try {
         const file = stripAt(args.file);
-        const root = await resolveRoot(server);
+        const root = await resolveRoot();
         const guarded = guardSlashRoot(root, [file]);
         if (guarded) return guarded;
         return textResult(await runCli(buildReadArgv({ ...args, file }), root, extra.signal));

@@ -220,7 +220,7 @@ export const READ_ARG_DOCS = {
 } as const;
 
 /**
- * MCP adapter only: appended to the tool descriptions and path param docs.
+ * MCP adapter only: appended to the path param docs (paths / file).
  * MCP has no per-call working directory, so relative paths are only reliable
  * when the server root is explicit; the shared *_ARG_DOCS stay adapter-neutral.
  */
