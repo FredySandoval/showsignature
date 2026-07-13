@@ -62,28 +62,50 @@ no new business logic, no duplicated instruction text.
    already carry the full when-to-use workflow (see the pi extension's note);
    `MAP_PROMPT`/`READ_PROMPT` are pi-specific system-prompt metadata and would
    only duplicate that text.
-5. **Working directory:** MCP has no per-call cwd. Default to
-   `process.cwd()` (the host launches the server in the workspace root); add an
-   optional `MCP_SHOWSIGNATURE_ROOT` env override, and reject/resolve paths
-   the same way the CLI already does (it validates inputs itself).
+5. **Working directory:** MCP has no per-call cwd. Root resolution order:
+   `MCP_SHOWSIGNATURE_ROOT` env override → MCP `roots/list` (spike during
+   implementation: it's in the SDK v1 API and several hosts advertise roots
+   today; if the first root is trivially available after initialization, use
+   it — the analogue of opencode's `context.directory`; if it's awkward
+   because roots arrive async or hosts vary, skip it for now) →
+   `process.cwd()`. Path validation stays in the CLI, which already does it.
+   Two model-facing mitigations, cheap and most effective:
+   - The tool descriptions / param docs tell the model to pass **absolute
+     paths when in doubt** (MCP-adapter-specific wording; add alongside
+     `*_ARG_DOCS` in 00-instructions.ts, not by mutating the shared docs).
+   - **Guard the `/` root:** if the resolved root is `/` (Claude Desktop
+     launches stdio servers there) and the call uses relative paths — or
+     map's default of `"."` (`buildMapArgv` pushes `"."` when `paths` is
+     empty, safe in opencode/pi where a workspace cwd is guaranteed, unsafe
+     here) — return a clear error instead of letting map scan `/` at depth 2.
 6. **Execution:** reuse `runCli(argv, cwd, signal)` from `04-tools-core.ts`
    verbatim — it already resolves the runtime (node/bun), the CLI entry
    (dist/02-cli.js), handles errors by throwing, and caps output at 32 MB.
    Wire MCP's `RequestHandlerExtra.signal` through as the AbortSignal.
-7. **Error mapping:** `runCli` throws on nonzero exit — catch in the tool
+7. **Strip leading `@` from paths**, same as the pi extension's `stripAt`
+   (.pi/extensions/showsignature-tools.ts): some models prepend `@` to path
+   arguments, and the same models will call these MCP tools.
+8. **Error mapping:** `runCli` throws on nonzero exit — catch in the tool
    handler and return `{ isError: true, content: [{ type: "text", text: msg }] }`
    so the model sees the CLI's own diagnostic text instead of a protocol error.
-8. **Entry point / packaging: `showsignature mcp` subcommand (no second bin).**
+9. **Entry point / packaging: `showsignature mcp` subcommand (no second bin).**
    - The existing CLI grows an `mcp` subcommand next to `map`/`read` that
      connects `StdioServerTransport` and blocks until the host disconnects.
      One bin, and the host config line needs no `--package` gymnastics:
      `pnpm dlx showsignature mcp` just works.
    - The SDK import must be **lazy** (dynamic `import()` inside the `mcp`
      command handler) so `map`/`read` startup cost is unchanged.
-   - `package.json`: add an `./mcp` export for `src/adapters/mcp.ts`, and add
-     `@modelcontextprotocol/sdk` to `dependencies` (it's a runtime dep of the
-     server, unlike the opencode/pi host-provided APIs which stay in
-     devDependencies).
+   - `McpServer`'s `name`/`version` come from package.json metadata (same
+     source the CLI already uses) — never hardcoded.
+   - **No `./mcp` package export** — nothing consumes `createMcpServer()`
+     programmatically (the subcommand imports it internally from dist); add an
+     export only when an external consumer appears (e.g. an HTTP transport
+     host). `package.json` only gains
+     `@modelcontextprotocol/sdk` in `dependencies`. Trade-off, accepted:
+     opencode/pi installs download the SDK without ever running `mcp`, but the
+     lazy import makes their runtime cost zero, and a hard dep is required for
+     `pnpm dlx showsignature mcp` to just work (optional/peer deps would break
+     the one-liner).
    - **No stdout pollution:** stdio transport owns stdout. All logging must go
      to stderr (`console.error`) — audit that nothing in the adapter writes to
      stdout (the CLI runs as a child process, so its stdout is captured by
@@ -104,8 +126,19 @@ no new business logic, no duplicated instruction text.
    lazily `import()` the adapter, `createMcpServer()`,
    `await server.connect(new StdioServerTransport())`, log startup to stderr
    (never stdout — the transport owns it), stay alive until disconnect.
-4. **Wire packaging**: `package.json` `./mcp` export + dependency; `files`
-   already ships dist; `tsconfig.build.json` builds `src/`, so no change.
+   Handle `mcp` entirely inside its own commander action, before the pipeline
+   ever runs — cleaner than threading a third variant through the
+   `ParsedCliArgs` / `CliCommandName` union (00-core-types.ts) and the
+   `execute`/`validateCliArgs` dispatch; if that proves awkward, the union
+   branch is the fallback and is trivial.
+   Root help is the static `ROOT_HELP` string from `src/00-instructions.ts`
+   (`configureHelp({ formatHelp: () => ROOT_HELP })`), so mention `mcp` there
+   too — then `pnpm build` (mandatory: pi reads dist/). `pnpm gen` is only
+   needed if the SKILL.md / README generated blocks also change; step 6's
+   `gen:check` catches it either way.
+4. **Wire packaging**: `package.json` gains only the dependency (no new
+   export); `files` already ships dist; `tsconfig.build.json` builds `src/`,
+   so no change.
 5. **Docs**:
    - README: add an "MCP" install section:
      - `claude mcp add showsignature -- pnpm dlx showsignature mcp`
@@ -148,8 +181,9 @@ no new business logic, no duplicated instruction text.
   no JSON Schema path needed. Remaining care: pin a current SDK version
   (≤ ~1.17.5 breaks with zod v4) and keep a single zod copy in the tree.
 - **cwd semantics** — confirmed: hosts differ in what cwd they launch stdio
-  servers with (Claude Desktop uses `/`); relative-path behavior should be
-  documented, and the env override covers the rest.
+  servers with (Claude Desktop uses `/`); mitigated by the resolution order,
+  the `/`-root guard, and the absolute-paths guidance in decision 5. Open:
+  whether the `roots/list` spike pans out in SDK v1 across hosts.
 - ~~**Name conflict**~~ — moot: no second bin; `mcp` is a subcommand of the
   existing `showsignature` bin, so opencode/pi installs are untouched by
   construction. Only care: `mcp` must not collide with a future map/read
