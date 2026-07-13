@@ -317,6 +317,7 @@ function formatUnsupportedFileMessage(
 import {
   DEFAULT_DIRECTORY_MAX_DEPTH,
   MAP_HELP,
+  MCP_HELP,
   READ_HELP,
   ROOT_HELP,
 } from "./00-instructions.js";
@@ -2044,7 +2045,40 @@ async function executeRead(args: ParsedCliArgs): Promise<void> {
   }
 }
 
+// `mcp` bypasses the map/read pipeline entirely: it turns the process into a
+// long-lived MCP stdio server. The SDK import is lazy so map/read startup cost
+// is unchanged. stdout belongs to the transport — log only to stderr.
+async function runMcpServer(): Promise<void> {
+  const [{ createMcpServer }, { StdioServerTransport }] = await Promise.all([
+    import("./adapters/mcp.js"),
+    import("@modelcontextprotocol/sdk/server/stdio.js"),
+  ]);
+  const server = createMcpServer();
+  await server.connect(new StdioServerTransport());
+  console.error(`${CLI_NAME} ${CLI_VERSION} MCP server listening on stdio`);
+  await new Promise<void>((resolve) => {
+    server.server.onclose = resolve;
+  });
+}
+
 async function execute(argv: readonly string[]): Promise<void> {
+  // Dispatch `mcp` before commander: parseCliArgs parses synchronously, so a
+  // commander action could not await the server lifetime.
+  const [command, ...mcpRest] = stripArgvPrefix(argv);
+  if (command === "mcp") {
+    if (mcpRest.includes("-h") || mcpRest.includes("--help")) {
+      process.stdout.write(MCP_HELP);
+      return;
+    }
+    if (mcpRest.length > 0) {
+      throw createCliError(
+        `'${CLI_NAME} mcp' takes no arguments (got: ${mcpRest.join(" ")})`,
+      );
+    }
+    await runMcpServer();
+    return;
+  }
+
   const args = parseCliArgs(argv);
 
   if (!args) {

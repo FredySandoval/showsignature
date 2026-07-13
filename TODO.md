@@ -23,3 +23,18 @@
       - MCP descriptions/param docs tell the model to prefer absolute paths
         (adapter-specific wording added in `src/00-instructions.ts`, not by
         mutating the shared `*_ARG_DOCS`).
+- [x] Add the `mcp` subcommand to the CLI (src/01-main.ts arg parsing):
+      lazily `import()` the adapter, `createMcpServer()`,
+      `await server.connect(new StdioServerTransport())`, log startup to
+      stderr (never stdout — the transport owns it), stay alive until
+      disconnect.
+      Handle `mcp` entirely inside its own commander action, before the
+      pipeline ever runs — cleaner than threading a third variant through the
+      `ParsedCliArgs` / `CliCommandName` union (00-core-types.ts) and the
+      `execute`/`validateCliArgs` dispatch; if that proves awkward, the union
+      branch is the fallback and is trivial.
+      Root help is the static `ROOT_HELP` string from `src/00-instructions.ts`
+      (`configureHelp({ formatHelp: () => ROOT_HELP })`), so mention `mcp`
+      there too — then `pnpm build` (mandatory: pi reads dist/). `pnpm gen` is
+      only needed if the SKILL.md / README generated blocks also change;
+      `gen:check` catches it either way.

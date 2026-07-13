@@ -32,12 +32,15 @@ export const ROOT_HELP =
 Usage:
   ${cli} map  [OPTION]... [PATH]...
   ${cli} read [OPTION]... <FILE>
+  ${cli} mcp
 
 Commands:
   map     Structural overview of files or directories: signatures, imports,
           exports, types, variables, comments, Markdown sections, JSON shapes.
   read    Literal windowed read of exactly one file, with an optional
           structural outline around the window for orientation.
+  mcp     Start an MCP server over stdio exposing map/read as tools for MCP
+          hosts, e.g. \`claude mcp add ${cli} -- ${cli} mcp\`.
 
 Extractors (for map --only and read --outline):
 ${HELP_EXTRACTORS_BODY}
@@ -218,6 +221,24 @@ export const READ_ARG_DOCS = {
   framing : "'none' for plain content only (no tags, no outline)"                 ,
   lang    : "Language hint, e.g. 'py', 'ts'"                                      ,
 } as const;
+
+export const MCP_HELP =
+`${cli} mcp — start an MCP server over stdio exposing map/read as tools
+
+Usage:
+  ${cli} mcp
+
+Takes no arguments. The server speaks MCP over stdin/stdout and exits when
+the host disconnects; logging goes to stderr.
+
+Register with an MCP host, e.g.:
+  claude mcp add ${cli} -- ${cli} mcp
+  Claude Desktop config: {"command": "${cli}", "args": ["mcp"]}
+
+Working directory: MCP has no per-call cwd. Roots are resolved as
+MCP_SHOWSIGNATURE_ROOT env var, else the host's first workspace root,
+else the server process cwd — pass absolute paths when in doubt.
+`;
 
 /**
  * MCP adapter only: appended to the path param docs (paths / file).

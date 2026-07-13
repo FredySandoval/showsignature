@@ -25,6 +25,8 @@ import rawPackageMetadata from "../../package.json" with { type: "json" };
 
 const packageMetadata = rawPackageMetadata as PackageMetadata;
 
+const ROOTS_REQUEST_TIMEOUT_MS = 3_000;
+
 const mapArgs = {
   paths         : z.array(z.string()).optional().describe(`${MAP_ARG_DOCS.paths}. ${MCP_PATH_HINT}`),
   only          : z.string().optional().describe(MAP_ARG_DOCS.only)           ,
@@ -80,11 +82,16 @@ function createRootResolver(server: McpServer): {
       if (cached !== undefined) return cached;
       let root = process.cwd();
       try {
-        const { roots } = await server.server.listRoots();
+        // The SDK sends roots/list even to clients that never declared the
+        // roots capability; a host that then never replies would wedge every
+        // tool call, so bound the request.
+        const { roots } = await server.server.listRoots(undefined, {
+          timeout: ROOTS_REQUEST_TIMEOUT_MS,
+        });
         const first = roots?.[0]?.uri;
         if (first?.startsWith("file://")) root = fileURLToPath(first);
       } catch {
-        // host does not advertise the roots capability
+        // host lacks the roots capability, replied with an error, or timed out
       }
       cached = root;
       return root;

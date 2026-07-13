@@ -8,12 +8,15 @@ exports[`buildCli root, map, and read help match their snapshots 1`] = `
 Usage:
   showsignature map  [OPTION]... [PATH]...
   showsignature read [OPTION]... <FILE>
+  showsignature mcp
 
 Commands:
   map     Structural overview of files or directories: signatures, imports,
           exports, types, variables, comments, Markdown sections, JSON shapes.
   read    Literal windowed read of exactly one file, with an optional
           structural outline around the window for orientation.
+  mcp     Start an MCP server over stdio exposing map/read as tools for MCP
+          hosts, e.g. \`claude mcp add showsignature -- showsignature mcp\`.
 
 Extractors (for map --only and read --outline):
     signatures     Functions, classes, methods, constructors
