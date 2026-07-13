@@ -126,6 +126,16 @@ export function createSignaturesExtractor(): Extractor<GoParseContext> {
         lineIndex = header.endLine;
       }
 
+      // Type declarations (struct/interface) belong in the default map like
+      // TS classes do; rendered identically to the interfaces/types
+      // extractors so overlapping --only selections dedupe.
+      for (const entry of [
+        ...createInterfacesExtractor().extract(context).entries,
+        ...createTypesExtractor().extract(context).entries,
+      ]) {
+        entries.push({ ...entry, kind: "signatures" });
+      }
+
       return toResult(entries);
     },
   };

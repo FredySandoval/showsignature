@@ -89,7 +89,7 @@ export namespace RustHelpers {
   }
 
   export function renderSignature(text: string): string {
-    return `${text.replace(/\s*\{[\s\S]*$/u, "").replace(/;$/u, "").trim()} ...`;
+    return `${text.replace(/\s*\{[\s\S]*$/u, "").replace(/;$/u, "").trim()};`;
   }
 
   export function summarizeValue(value: string): string {

@@ -18,10 +18,6 @@ function isTopLevel(depths: readonly number[], lineIndex: number): boolean {
   return (depths[lineIndex] ?? 0) === 0;
 }
 
-function cleanPubPrefix(text: string): string {
-  return text.replace(/^pub(?:\([^)]*\))?\s+/u, "");
-}
-
 function isPublic(text: string): boolean {
   return /^pub(?:\([^)]*\))?\s+/u.test(text.trim());
 }
@@ -49,21 +45,35 @@ function createDeclarationEntries(context: RustParseContext, kind: "interfaces" 
   return entries;
 }
 
+function collectFnEntries(context: RustParseContext): ExtractEntry[] {
+  const entries: ExtractEntry[] = [];
+  const depths = RustHelpers.topLevelLineStates(context);
+  const fnPattern = /^(?:pub(?:\([^)]*\))?\s+)?(?:async\s+|unsafe\s+|const\s+|extern\s+)*(?:"[^"]+"\s+)?fn\b/u;
+  for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
+    const raw = context.lines[lineIndex] ?? "";
+    if (!isTopLevel(depths, lineIndex)) continue;
+    const trimmed = RustHelpers.stripLineCommentOutsideStrings(raw).trimStart();
+    if (!fnPattern.test(trimmed)) continue;
+    const header = RustHelpers.collectUntilTerminator(context, lineIndex);
+    entries.push(toEntry("signatures", [RustHelpers.renderSignature(header.text)], header.sourcePos, context.filePath));
+    lineIndex = header.endLine;
+  }
+  return entries;
+}
+
 export function createSignaturesExtractor(): Extractor<RustParseContext> {
   return {
     kind: "signatures",
     extract(context) {
-      const entries: ExtractEntry[] = [];
-      const depths = RustHelpers.topLevelLineStates(context);
-      const fnPattern = /^(?:pub(?:\([^)]*\))?\s+)?(?:async\s+|unsafe\s+|const\s+|extern\s+)*(?:"[^"]+"\s+)?fn\b/u;
-      for (let lineIndex = 0; lineIndex < context.lines.length; lineIndex += 1) {
-        const raw = context.lines[lineIndex] ?? "";
-        if (!isTopLevel(depths, lineIndex)) continue;
-        const trimmed = RustHelpers.stripLineCommentOutsideStrings(raw).trimStart();
-        if (!fnPattern.test(trimmed)) continue;
-        const header = RustHelpers.collectUntilTerminator(context, lineIndex);
-        entries.push(toEntry("signatures", [RustHelpers.renderSignature(header.text)], header.sourcePos, context.filePath));
-        lineIndex = header.endLine;
+      const entries = collectFnEntries(context);
+      // Type declarations (trait/struct/enum/union/type) belong in the default
+      // map like TS classes do; rendered identically to the interfaces/types
+      // extractors so overlapping --only selections dedupe.
+      for (const entry of [
+        ...createInterfacesExtractor().extract(context).entries,
+        ...createTypesExtractor().extract(context).entries,
+      ]) {
+        entries.push({ ...entry, kind: "signatures" });
       }
       return toResult(entries);
     },
@@ -184,12 +194,15 @@ export function createExportsExtractor(): Extractor<RustParseContext> {
     kind: "exports",
     extract(context) {
       const entries: ExtractEntry[] = [];
-      for (const entry of createSignaturesExtractor().extract(context).entries) if (isPublic(entry.lines[0] ?? "")) entries.push({ ...entry, kind: "exports" });
+      for (const entry of collectFnEntries(context)) if (isPublic(entry.lines[0] ?? "")) entries.push({ ...entry, kind: "exports" });
       for (const entry of createInterfacesExtractor().extract(context).entries) if (isPublic(entry.lines[0] ?? "") && declarationName(entry.lines[0] ?? "")) entries.push({ ...entry, kind: "exports" });
       for (const entry of createTypesExtractor().extract(context).entries) if (isPublic(entry.lines[0] ?? "") && declarationName(entry.lines[0] ?? "")) entries.push({ ...entry, kind: "exports" });
       for (const entry of createVariablesExtractor().extract(context).entries) if (isPublic(entry.lines[0] ?? "") && declarationName(entry.lines[0] ?? "")) entries.push({ ...entry, kind: "exports" });
       for (const entry of createImportsExtractor().extract(context).entries) if (/^pub\s+/u.test(entry.lines[0] ?? "")) entries.push({ ...entry, kind: "exports" });
-      return toResult(entries.map((entry) => ({ ...entry, lines: entry.lines.map(cleanPubPrefix) })));
+      // Keep the `pub` prefix: identical lines let the combined-mode dedupe
+      // collapse the same item selected via two extractors (e.g. a pub trait
+      // under --only interfaces,exports).
+      return toResult(entries);
     },
   };
 }

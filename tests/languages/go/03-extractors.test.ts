@@ -41,6 +41,25 @@ describe("Go extractors", () => {
     ]);
   });
 
+  test("signatures include type declarations", () => {
+    const source = [
+      "package main",
+      "type User struct { ID string }",
+      "type Reader interface { Read([]byte) (int, error) }",
+      "func NewUser(id string) *User { return &User{ID: id} }",
+    ].join("\n");
+
+    expect(
+      createSignaturesExtractor()
+        .extract(buildContext(source))
+        .entries.map((entry) => entry.lines[0]),
+    ).toEqual([
+      "func NewUser(id string) *User",
+      "type Reader interface { Read([]byte) (int, error) }",
+      "type User struct { ID string }",
+    ]);
+  });
+
   test("extracts interfaces and non-interface types", () => {
     const source = [
       "type Reader interface {",

@@ -185,7 +185,7 @@ Note: read windows LINES (--offset/--limit).
 // ---------------------------------------------------------------------------
 
 export const MAP_DESCRIPTION = 
-`Structural overview of code, Markdown, and JSON. Use INSTEAD of read/grep/cat for the FIRST look at any unfamiliar file or folder: by default returns ONLY function/class signatures and imports (Markdown headings for .md, value shape for .json) at a fraction of the token cost, each entry prefixed with its real source line number. Exports, types, interfaces, variables, and comments are NOT in the default output — request them explicitly via 'only'.
+`Structural overview of code, Markdown, and JSON. Use INSTEAD of read/grep/cat for the FIRST look at any unfamiliar file or folder: by default returns ONLY function/class signatures and imports (Markdown headings for .md, value shape for .json) at a fraction of the token cost, each entry prefixed with its real source line number. In Go and Rust the default also includes type declarations (Go 'type X struct/interface', Rust struct/enum/trait/union/type alias) — they are those languages' class equivalents. Exports, types, interfaces, variables, and comments are otherwise NOT in the default output — request them explicitly via 'only'.
 Output is plain text (never JSON): one '// path' header per file, then one 'LINE signature' entry per line, e.g. \`16 function formatItem(item: Item): string;\`; class/interface bodies render as indented member lines (no line number) under the class entry — method signatures only for classes (property fields are omitted). Interfaces are NOT in the default output; when selected via 'only' they render the same way, listing their properties as member lines.
 Supported: .ts/.mts/.cts .js/.mjs/.cjs .tsx/.jsx .svelte .go .py .rs .lua .md .json — for other file types use read/grep directly.
 Workflow: map first to see what exists, then jump to exact lines with showsignature_read using the line numbers from the map. Before grepping for a name you are guessing at, run with symbolSummary to get the identifiers that literally exist (each token is a valid ripgrep pattern).
@@ -200,7 +200,7 @@ Every partial window ends with a trailing 'note:' line giving the exact continua
 
 export const MAP_ARG_DOCS = {
   paths         : "One or more files and/or directories to map",
-  only          : "Comma-separated extractors, e.g. 'imports,exports', 'interfaces,types', 'md:headings', 'json:shape'",
+  only          : "Comma-separated extractors, e.g. 'imports,exports', 'interfaces,types', 'md:headings', 'json:shape'. Categories are language-semantic, not syntax filters: 'exports' means anything the module exposes, so in Go/Rust/Lua/Python it includes public/exported top-level functions, constants, classes, and variables — not just export statements",
   skip          : "Skip N entries (pagination). One entry = one line-numbered item: an import, a function, or a class/interface together with its indented members; file headers and member lines are not entries",
   take          : "Take N entries (pagination); see skip for what counts as one entry",
   maxDepth      : "Directory scan depth (default 2)",
@@ -315,7 +315,7 @@ Use Read/Grep instead when the file type is unsupported, you are searching for a
 
 ## Defaults (what to expect without flags)
 
-- \`map\` extracts \`signatures,imports\` for code, \`md:*\` for Markdown, \`json:shape\` for JSON; \`--only\` selects others (exports, types, interfaces, variables, comments).
+- \`map\` extracts \`signatures,imports\` for code, \`md:*\` for Markdown, \`json:shape\` for JSON; \`--only\` selects others (exports, types, interfaces, variables, comments). In Go and Rust, \`signatures\` includes type declarations (Go \`type X struct/interface\`, Rust \`struct\`/\`enum\`/\`trait\`/\`union\`/type alias) — those languages' class equivalents. \`--only\` categories are language-semantic: \`exports\` means whatever the module exposes, so in Go/Rust/Lua/Python it includes public/exported top-level functions, constants, classes, and variables, not just export statements.
 - Folder scans go 2 levels deep and skip test files (under test/tests/__tests__ directories or named \`*.test.*\` / \`*_test.*\` / \`*-test.*\` / spec equivalents); \`--include-tests\` brings tests in, \`--max-depth <n>\` goes deeper. Symlinked files and directories are followed (depth limits apply through links), and paths are always reported as given — never resolved to the link target.
 - \`read\`'s outline uses the \`signatures\` extractor; \`--outline imports,signatures\` picks others; \`--framing none\` yields content only (no tags, no outline).
 - Secrets are redacted and disclosed in the \`note:\`; \`--no-redact\` returns literal bytes.
@@ -407,7 +407,7 @@ Code files:
 
 | Mode         | Shows                                                               |
 | ------------ | ------------------------------------------------------------------- |
-| \`signatures\` | Functions, classes, methods, constructors.                          |
+| \`signatures\` | Functions, classes, methods, constructors; Go/Rust type declarations. |
 | \`imports\`    | Import statements/declarations.                                     |
 | \`exports\`    | JS/TS exports, exported Go declarations, and Python public exports. |
 | \`interfaces\` | TypeScript/Go interfaces.                                           |

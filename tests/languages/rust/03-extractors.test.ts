@@ -24,8 +24,12 @@ describe("Rust extractors", () => {
     const context = buildContext(source);
 
     expect(createSignaturesExtractor().extract(context).entries.map((entry) => entry.lines[0])).toEqual([
-      "pub async fn load(id: UserId) -> Result<User, Error> ...",
-      "fn helper(value: &str) -> String ...",
+      "pub async fn load(id: UserId) -> Result<User, Error>;",
+      "fn helper(value: &str) -> String;",
+      "pub trait Named {",
+      "pub struct User {",
+      "enum State {",
+      "type UserId = u64;",
     ]);
     expect(createInterfacesExtractor().extract(context).entries.map((entry) => entry.lines[0])).toEqual([
       "pub trait Named {",
@@ -50,11 +54,11 @@ describe("Rust extractors", () => {
       "extern crate alloc;",
     ]);
     expect(createExportsExtractor().extract(context).entries.map((entry) => entry.lines[0])).toEqual([
-      "async fn load(id: UserId) -> Result<User, Error> ...",
-      "trait Named {",
-      "struct User {",
-      'const VERSION: &str = "1.0"',
-      "use crate::prelude::*;",
+      "pub async fn load(id: UserId) -> Result<User, Error>;",
+      "pub trait Named {",
+      "pub struct User {",
+      'pub const VERSION: &str = "1.0"',
+      "pub use crate::prelude::*;",
     ]);
   });
 });

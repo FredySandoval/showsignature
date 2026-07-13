@@ -78,7 +78,7 @@ Use Read/Grep instead when the file type is unsupported, you are searching for a
 
 ## Defaults (what to expect without flags)
 
-- `map` extracts `signatures,imports` for code, `md:*` for Markdown, `json:shape` for JSON; `--only` selects others (exports, types, interfaces, variables, comments).
+- `map` extracts `signatures,imports` for code, `md:*` for Markdown, `json:shape` for JSON; `--only` selects others (exports, types, interfaces, variables, comments). In Go and Rust, `signatures` includes type declarations (Go `type X struct/interface`, Rust `struct`/`enum`/`trait`/`union`/type alias) — those languages' class equivalents. `--only` categories are language-semantic: `exports` means whatever the module exposes, so in Go/Rust/Lua/Python it includes public/exported top-level functions, constants, classes, and variables, not just export statements.
 - Folder scans go 2 levels deep and skip test files (under test/tests/__tests__ directories or named `*.test.*` / `*_test.*` / `*-test.*` / spec equivalents); `--include-tests` brings tests in, `--max-depth <n>` goes deeper. Symlinked files and directories are followed (depth limits apply through links), and paths are always reported as given — never resolved to the link target.
 - `read`'s outline uses the `signatures` extractor; `--outline imports,signatures` picks others; `--framing none` yields content only (no tags, no outline).
 - Secrets are redacted and disclosed in the `note:`; `--no-redact` returns literal bytes.

@@ -13,27 +13,49 @@
   bounded by scan depth); resolveSafeInputPath no longer realpaths, so `//
   path` headers keep the path as given; documented in the SKILL defaults
   bullet; tests in 04-file-discovery + 01-cli.
-- [ ] Rust defaults feel thinner than TS/Python: `pub const`, `static`,
+- [x] Rust defaults feel thinner than TS/Python: `pub const`, `static`,
   `trait`, `struct`, `enum`, `type` are all absent from default `map` output
   (laguna-m.1 expected them). Candidates for docs or extractor changes.
-- [ ] Long signatures are truncated with `…` with no `note:` explaining it
+  RESOLVED (2026-07-12): extractor change — Rust `signatures` now also emits
+  type declarations (trait/struct/enum/union/type alias), rendered identically
+  to the interfaces/types extractors so overlapping --only selections dedupe.
+  `const`/`static` stay under `variables`/`exports` (TS parity: variables are
+  not defaults either); documented in MAP_DESCRIPTION + SKILL defaults bullet.
+- [x] Long signatures are truncated with `…` with no `note:` explaining it
   (laguna-m.1 flagged the bare `...` on Rust fn signatures as surprising).
-- [ ] Go defaults are thin like Rust: `type User struct` and `type Reader
+  RESOLVED (2026-07-12): not truncation — it was renderSignature's body-elision
+  marker. Rust fn signatures now end with `;` (TS-style normalization) instead
+  of the bare ` ...`. Value summarization ellipses (`= {...}`, 60-char cap)
+  unchanged.
+- [x] Go defaults are thin like Rust: `type User struct` and `type Reader
   interface` are absent from default `map` output — only `import` + `func`
   appear (tencent/hy3 expected them, 2026-07-12). Same docs-or-extractor
   decision as the Rust finding above.
+  RESOLVED (2026-07-12): extractor change — Go `signatures` now also emits
+  type declarations (struct + interface blocks with member lines), same
+  rendering as the types/interfaces extractors so --only overlaps dedupe.
 
-- [ ] `--only` is not a strict filter outside the TS family: with
+- [x] `--only` is not a strict filter outside the TS family: with
   `--only imports,exports,interfaces,types`, TS/TSX output only the requested
   categories, but Go/Rust/Lua/Python leak unrequested entries (`const`,
   `func`/`def`/`function`, `class`, bare variable assignments like
   `Config = {...}`, `x = 2`). Found by tencent/hy3 on the map only run,
   verified directly (2026-07-12). Decide: strict per-language filtering, or
   document the language-dependent behavior.
-- [ ] Rust `pub` items are duplicated under `--only`: `pub use crate::prelude::*`
+  RESOLVED (2026-07-12): documented — the "leak" is the `exports` extractor
+  being language-semantic (in Go/Rust/Lua/Python it includes public/exported
+  top-level functions, constants, classes, and variables, since that IS what
+  those modules export). Documented in the `only` param doc + SKILL defaults
+  bullet; not a filtering bug.
+- [x] Rust `pub` items are duplicated under `--only`: `pub use crate::prelude::*`
   also emits `use crate::prelude::*` at the same line, `pub trait Named` also
   emits `trait Named`, `pub struct User` also emits `struct User`. Verified
   directly on tests/fixtures/rust/basic.rs (2026-07-12).
+  RESOLVED (2026-07-12): Rust exports no longer strips the `pub` prefix, so
+  the lines are identical to the imports/interfaces/types versions and the
+  combined-mode dedupe (keyed on filePath+sourcePos+lines) collapses them.
+  Verified: `--only imports,exports,interfaces,types` on basic.rs shows each
+  item once.
 
 ## Comprehension experiment — one flag per pi run
 

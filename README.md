@@ -255,7 +255,7 @@ Code files:
 
 | Mode         | Shows                                                               |
 | ------------ | ------------------------------------------------------------------- |
-| `signatures` | Functions, classes, methods, constructors.                          |
+| `signatures` | Functions, classes, methods, constructors; Go/Rust type declarations. |
 | `imports`    | Import statements/declarations.                                     |
 | `exports`    | JS/TS exports, exported Go declarations, and Python public exports. |
 | `interfaces` | TypeScript/Go interfaces.                                           |

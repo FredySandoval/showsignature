@@ -1,3 +1,7 @@
 // rust/basic.rs
-27 pub async fn load(id: UserId) -> Result<User, Error> ...
-31 fn helper(value: &str) -> String ...
+13 pub trait Named {
+17 pub struct User {
+21 enum State {
+25 type UserId = u64;
+27 pub async fn load(id: UserId) -> Result<User, Error>;
+31 fn helper(value: &str) -> String;
