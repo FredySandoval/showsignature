@@ -1,14 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 
 import { buildCli } from "@/src/01-main.js";
-
-const require = createRequire(import.meta.url);
-const packageMetadata = require("../package.json") as { version: string };
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
