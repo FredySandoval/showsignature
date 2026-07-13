@@ -2,6 +2,6 @@
 
 ## MCP server adapter (PLAN.md)
 
-- [ ] Add dependency: `pnpm add @modelcontextprotocol/sdk` — must resolve to a
-      current v1.x (zod v4 raw-shape support); confirm it's not an old ≤1.17.x
-      version.
+- [x] Add dependency: `pnpm add @modelcontextprotocol/sdk` — resolved to
+      1.29.0 (current v1.x, zod v4 raw-shape support confirmed; single zod
+      4.1.8 copy in the tree).

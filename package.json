@@ -68,6 +68,7 @@
     "url": "https://github.com/FredySandoval/showsignature/issues"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "commander": "10.0.0",
     "globby": "^16.2.0",
     "typescript": "6.0.2",
