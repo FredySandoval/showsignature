@@ -219,6 +219,14 @@ export const READ_ARG_DOCS = {
   lang    : "Language hint, e.g. 'py', 'ts'"                                      ,
 } as const;
 
+/**
+ * MCP adapter only: appended to the tool descriptions and path param docs.
+ * MCP has no per-call working directory, so relative paths are only reliable
+ * when the server root is explicit; the shared *_ARG_DOCS stay adapter-neutral.
+ */
+export const MCP_PATH_HINT =
+  "This tool runs as an MCP server with no per-call working directory (root resolution: MCP_SHOWSIGNATURE_ROOT env var, else the host's first workspace root, else the server process cwd) — when in doubt, pass absolute paths.";
+
 /** pi extension prompt metadata (system-prompt-level nudges). */
 export const MAP_PROMPT = {
   snippet    : "Map the structure of code/Markdown/JSON files or folders before reading them",
