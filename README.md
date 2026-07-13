@@ -150,6 +150,67 @@ OpenCode installs the package automatically at startup and registers the `showsi
 </details>
 
 
+<details id="mcp">
+<summary>
+<h2>MCP server (Claude Desktop, Cursor, Zed, …)</h2>
+</summary>
+
+For any MCP-capable host, `showsignature` ships an MCP server over stdio that
+exposes `map` and `read` as the tools `showsignature_map` and
+`showsignature_read`. The host injects them into the model's tool list — the
+model calls them directly instead of shelling out.
+
+### 1. Install (optional)
+
+```sh
+# global install — lets the host launch `showsignature mcp` directly
+npm install -g showsignature
+```
+
+You can skip the install and let the host run it on demand with `pnpm dlx`.
+
+### 2. Register the server
+
+Claude Code:
+
+```sh
+# after a global install
+claude mcp add showsignature -- showsignature mcp
+# or without installing
+claude mcp add showsignature -- pnpm dlx showsignature mcp
+```
+
+Claude Desktop / other hosts — add to the MCP servers config:
+
+```json
+{
+  "mcpServers": {
+    "showsignature": { "command": "showsignature", "args": ["mcp"] }
+  }
+}
+```
+
+### Working directory
+
+MCP has no per-call working directory, so the server resolves paths against a
+root chosen in this order:
+
+1. the `MCP_SHOWSIGNATURE_ROOT` environment variable, if set;
+2. the host's first workspace root (`roots/list`), if the host advertises it;
+3. the server process's current directory.
+
+**Pass absolute paths when in doubt.** If the resolved root is `/` (some hosts
+launch stdio servers there) and a call uses relative or default paths, the
+tool returns an error instead of scanning the filesystem root — set
+`MCP_SHOWSIGNATURE_ROOT` or use absolute paths. Run `showsignature mcp --help`
+for the same reference.
+
+> [!NOTE]
+> You may need to have `node` or `bun` installed. Pi and OpenCode keep their
+> native adapters above — the MCP server is additive, for MCP-only hosts.
+</details>
+
+
 <details id="agent-skill">
 <summary>
 <h2>Other Agent Harnesses (SKILL)</h2>

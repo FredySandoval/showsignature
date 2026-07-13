@@ -38,3 +38,19 @@
       there too — then `pnpm build` (mandatory: pi reads dist/). `pnpm gen` is
       only needed if the SKILL.md / README generated blocks also change;
       `gen:check` catches it either way.
+- [x] Docs (PLAN.md step 5) — README "MCP" install section:
+      - `claude mcp add showsignature -- pnpm dlx showsignature mcp`
+      - or after `pnpm add -g showsignature`:
+        `claude mcp add showsignature -- showsignature mcp`
+      - Claude Desktop config JSON equivalent
+        (`{"command": "showsignature", "args": ["mcp"]}`)
+      - document root resolution (`MCP_SHOWSIGNATURE_ROOT` env var → host's
+        first workspace root → server process cwd) and the prefer-absolute-
+        paths guidance; `showsignature mcp --help` already carries the same
+        text, keep them consistent.
+      - The README tool-usage block is generated: if the MCP section touches
+        it, edit `src/00-instructions.ts` and run `pnpm gen` (never edit
+        generated outputs), then `pnpm build` (drift test enforces this).
+      Then final verify (PLAN.md step 6): `pnpm gen:check && pnpm typecheck
+      && pnpm test && pnpm build`, plus optionally a real-host test via
+      `claude mcp add`.
