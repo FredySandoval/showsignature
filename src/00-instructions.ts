@@ -191,13 +191,13 @@ export const MAP_DESCRIPTION =
 `Structural overview of code, Markdown, and JSON. Use INSTEAD of read/grep/cat for the FIRST look at any unfamiliar file or folder: by default returns ONLY function/class signatures and imports (Markdown headings for .md, value shape for .json) at a fraction of the token cost, each entry prefixed with its real source line number. In Go and Rust the default also includes type declarations (Go 'type X struct/interface', Rust struct/enum/trait/union/type alias) — they are those languages' class equivalents. Exports, types, interfaces, variables, and comments are otherwise NOT in the default output — request them explicitly via 'only'.
 Output is plain text (never JSON): one '// path' header per file, then one 'LINE signature' entry per line, e.g. \`16 function formatItem(item: Item): string;\`; class/interface bodies render as indented member lines (no line number) under the class entry — method signatures only for classes (property fields are omitted). Interfaces are NOT in the default output; when selected via 'only' they render the same way, listing their properties as member lines.
 Supported: .ts/.mts/.cts .js/.mjs/.cjs .tsx/.jsx .svelte .go .py .rs .lua .md .json — for other file types use read/grep directly.
-Workflow: map first to see what exists, then jump to exact lines with showsignature_read using the line numbers from the map. Before grepping for a name you are guessing at, run with symbolSummary to get the identifiers that literally exist (each token is a valid ripgrep pattern).
+Workflow: map first to see what exists, then jump to exact lines with \`outline_read\` using the line numbers from the map. Before grepping for a name you are guessing at, run with symbolSummary to get the identifiers that literally exist (each token is a valid ripgrep pattern).
 If the output ends with a 'note:' line, it was capped, depth-limited, or filtered — the note names the exact follow-up flags; never ignore it.`;
 
 export const READ_DESCRIPTION = `
-Windowed literal read of exactly one file, with a structural outline (real line numbers) around the window for orientation. Prefer this over plain read for supported file types (.ts/.js/.tsx/.jsx/.svelte/.go/.py/.rs/.lua/.md/.json), typically jumping to a line number that showsignature_map reported.
-The content window carries no line-number prefixes, so it is safe to copy into exact-match edit tools. Windows in LINES (offset/limit), unlike showsignature_map which paginates in ENTRIES (skip/take).
-Output format: a <content lines="16-27 of 42"> block holding the RAW source lines of the window (this is a literal read — full statements and bodies, NOT a signature map); structure outside the window appears as <outline region="before|after"> blocks of line-numbered signatures — the outline defaults to the signatures extractor ONLY (imports are not outlined unless requested via outline:'imports,signatures'), a region with no matching entries is omitted, class entries appear as a single line (members are not expanded, unlike showsignature_map), and an entry whose body contains the window is annotated with "← window opens inside this". Whenever the window covers the whole file (no offset/limit, or a limit >= the file's length), the whole file is returned as one <content lines="1-N of N"> block and the outline blocks are omitted.
+Windowed literal read of exactly one file, with a structural outline (real line numbers) around the window for orientation. Prefer this over plain read for supported file types (.ts/.js/.tsx/.jsx/.svelte/.go/.py/.rs/.lua/.md/.json), typically jumping to a line number that \`map\` reported.
+The content window carries no line-number prefixes, so it is safe to copy into exact-match edit tools. Windows in LINES (offset/limit), unlike \`map\` which paginates in ENTRIES (skip/take).
+Output format: a <content lines="16-27 of 42"> block holding the RAW source lines of the window (this is a literal read — full statements and bodies, NOT a signature map); structure outside the window appears as <outline region="before|after"> blocks of line-numbered signatures — the outline defaults to the signatures extractor ONLY (imports are not outlined unless requested via outline:'imports,signatures'), a region with no matching entries is omitted, class entries appear as a single line (members are not expanded, unlike \`map\`), and an entry whose body contains the window is annotated with "← window opens inside this". Whenever the window covers the whole file (no offset/limit, or a limit >= the file's length), the whole file is returned as one <content lines="1-N of N"> block and the outline blocks are omitted.
 Every partial window ends with a trailing 'note:' line giving the exact continuation command (e.g. "continue with: showsignature read --offset 28 <file>"); the note also reports capping or filtering when it occurs — never ignore it.
 `.trim();
 
@@ -251,12 +251,12 @@ export const MCP_PATH_HINT =
 /** pi extension prompt metadata (system-prompt-level nudges). */
 export const MAP_PROMPT = {
   snippet    : "Map the structure of code/Markdown/JSON files or folders before reading them",
-  guidelines : [ "Use showsignature_map instead of read/grep for the first look at any unfamiliar supported file or folder (.ts/.js/.tsx/.svelte/.go/.py/.rs/.lua/.md/.json); it returns the structure with real line numbers at a fraction of the tokens.", ],
+  guidelines : [ "Use `map` instead of read/grep for the first look at any unfamiliar supported file or folder (.ts/.js/.tsx/.svelte/.go/.py/.rs/.lua/.md/.json); it returns the structure with real line numbers at a fraction of the tokens.", ],
 } as const;
 
 export const READ_PROMPT = {
   snippet    : "Windowed literal read of one file with a structural outline around the window",
-  guidelines : [ "Use showsignature_read instead of read for supported file types, jumping to a line number reported by showsignature_map.", ],
+  guidelines : [ "Use `outline_read` instead of read for supported file types, jumping to a line number reported by `map`.", ],
 } as const;
 
 // ---------------------------------------------------------------------------

@@ -7,7 +7,7 @@ import { map, read }   from "./opencode.js"      ;
 // this module's exports as plugin instances.
 export const ShowsignaturePlugin: Plugin=async()=>({
   tool: {
-    showsignature_map : map ,
-    showsignature_read: read,
+    map          : map ,
+    outline_read : read,
   },
 });

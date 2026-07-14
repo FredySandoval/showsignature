@@ -14,7 +14,7 @@ import {
   type ReadParams,
 } from "../../dist/04-tools-core.js";
 
-// pi adapter: registers showsignature_map / showsignature_read as structured
+// pi adapter: registers map / outline_read as structured
 // tools over the agent-neutral core shipped in dist/04-tools-core.js. The
 // tool descriptions carry the full when-to-use workflow, so no system-prompt
 // injection is needed. The dist import is deliberate: this file ships in the
@@ -48,8 +48,8 @@ function stripAt(value:string):string{
 
 export default function (pi:ExtensionAPI) {
   pi.registerTool({
-    name             : "showsignature_map",
-    label            : "Showsignature Map",
+    name             : "map",
+    label            : "Map",
     description      : MAP_DESCRIPTION    ,
     parameters       : MAP_PARAMS         ,
     promptSnippet    : MAP_PROMPT.snippet         ,
@@ -62,8 +62,8 @@ export default function (pi:ExtensionAPI) {
   });
 
   pi.registerTool({
-    name             : "showsignature_read" ,
-    label            : "Showsignature Read" ,
+    name             : "outline_read" ,
+    label            : "Outline read" ,
     description      : READ_DESCRIPTION     ,
     parameters       : READ_PARAMS          ,
     promptSnippet    : READ_PROMPT.snippet         ,

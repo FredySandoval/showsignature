@@ -18,7 +18,7 @@ import type { PackageMetadata } from "../00-core-types.js";
 import rawPackageMetadata from "../../package.json" with { type: "json" };
 
 // MCP adapter: zod schemas over the agent-neutral core in 04-tools-core,
-// exposed as showsignature_map / showsignature_read for MCP hosts (Claude
+// exposed as map / outline_read for MCP hosts (Claude
 // Desktop, claude mcp add, Cursor, Zed, …). Bootstrapped by the `showsignature
 // mcp` CLI subcommand over stdio; stdout belongs to the transport, so any
 // logging here must go to stderr.
@@ -122,9 +122,9 @@ export function createMcpServer(): McpServer {
   server.server.setNotificationHandler(RootsListChangedNotificationSchema, invalidate);
 
   server.registerTool(
-    "showsignature_map",
+    "map",
     {
-      title       : "Showsignature Map"                       ,
+      title       : "Map"                                    ,
       description : MAP_DESCRIPTION                           ,
       inputSchema : mapArgs                                   ,
     },
@@ -142,9 +142,9 @@ export function createMcpServer(): McpServer {
   );
 
   server.registerTool(
-    "showsignature_read",
+    "outline_read",
     {
-      title       : "Showsignature Read"                      ,
+      title       : "Outline read"                          ,
       description : READ_DESCRIPTION                          ,
       inputSchema : readArgs                                  ,
     },

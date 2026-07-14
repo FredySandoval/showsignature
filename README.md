@@ -140,7 +140,7 @@ Add the plugin to your `opencode.json` (project or `~/.config/opencode/opencode.
 }
 ```
 
-OpenCode installs the package automatically at startup and registers the `showsignature_map` and `showsignature_read` tools — the agent calls them as native tools, no shell involved.
+OpenCode installs the package automatically at startup and registers the `map` and `outline_read` tools — the agent calls them as native tools, no shell involved.
 
 > [!NOTE]
 > Pin an exact version as shown above and update it manually on new releases. OpenCode caches the plugin by its version specifier, so an unpinned (or `@latest`) install is resolved once and never refreshed — publishing a new version to npm won't reach you until the pinned version changes (or you clear `~/.cache/opencode/packages/`).
@@ -156,8 +156,8 @@ OpenCode installs the package automatically at startup and registers the `showsi
 </summary>
 
 For any MCP-capable host, `showsignature` ships an MCP server over stdio that
-exposes `map` and `read` as the tools `showsignature_map` and
-`showsignature_read`. The host injects them into the model's tool list — the
+exposes `map` and `read` as the tools `map` and
+`outline_read`. The host injects them into the model's tool list — the
 model calls them directly instead of shelling out.
 
 ### 1. Install (optional)

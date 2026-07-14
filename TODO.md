@@ -7,7 +7,7 @@
       4.1.8 copy in the tree).
 - [x] Create `src/adapters/mcp.ts`: `createMcpServer(): McpServer` —
       declares mapArgs / readArgs zod raw shapes from `MAP_ARG_DOCS` /
-      `READ_ARG_DOCS`, registers `showsignature_map` / `showsignature_read`
+      `READ_ARG_DOCS`, registers `map` / `outline_read`
       with title/description/inputSchema and handlers that call
       `runCli(buildMapArgv(args) | buildReadArgv(args), resolveRoot(), extra.signal)`
       and return `{ content: [{ type: "text", text: output }] }`.

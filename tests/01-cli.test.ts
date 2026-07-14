@@ -877,6 +877,7 @@ describe("buildCli", () => {
 
   test("filters recursive discovery by explicit language", async () => {
     installOutputCapture();
+    installStdin("");
 
     const rootDir = await createTempDir();
     await writeFixtureFile(

@@ -35,31 +35,31 @@ Rename the **agent-facing tool registration names** in all three host adapters:
 
 ## Step 2 — MCP: rename the map tool title
 
-- [ ] File: `src/adapters/mcp.ts` (around line 127)
+- [x] File: `src/adapters/mcp.ts` (around line 127)
 - FIND: `      title       : "Showsignature Map"                       ,`
 - REPLACE: `      title       : "Map"                                    ,`
 
 ## Step 3 — MCP: rename the read tool
 
-- [ ] File: `src/adapters/mcp.ts` (around line 145)
+- [x] File: `src/adapters/mcp.ts` (around line 145)
 - FIND: `    "showsignature_read",`
 - REPLACE: `    "outline_read",`
 
 ## Step 4 — MCP: rename the read tool title
 
-- [ ] File: `src/adapters/mcp.ts` (around line 147)
+- [x] File: `src/adapters/mcp.ts` (around line 147)
 - FIND: `      title       : "Showsignature Read"                      ,`
 - REPLACE: `      title       : "Outline read"                          ,`
 
 ## Step 5 — MCP: fix the file comment
 
-- [ ] File: `src/adapters/mcp.ts` (around line 21)
+- [x] File: `src/adapters/mcp.ts` (around line 21)
 - FIND: `// exposed as showsignature_map / showsignature_read for MCP hosts (Claude`
 - REPLACE: `// exposed as map / outline_read for MCP hosts (Claude`
 
 ## Step 6 — OpenCode: rename both tool keys
 
-- [ ] File: `src/adapters/opencode-plugin.ts` (around lines 10–11)
+- [x] File: `src/adapters/opencode-plugin.ts` (around lines 10–11)
 - FIND:
   ```
     showsignature_map : map ,
@@ -75,7 +75,7 @@ Rename the **agent-facing tool registration names** in all three host adapters:
 
 ## Step 7 — pi: rename the map tool (name + label)
 
-- [ ] File: `.pi/extensions/showsignature-tools.ts` (around lines 51–52)
+- [x] File: `.pi/extensions/showsignature-tools.ts` (around lines 51–52)
 - FIND:
   ```
     name             : "showsignature_map",
@@ -89,7 +89,7 @@ Rename the **agent-facing tool registration names** in all three host adapters:
 
 ## Step 8 — pi: rename the read tool (name + label)
 
-- [ ] File: `.pi/extensions/showsignature-tools.ts` (around lines 65–66)
+- [x] File: `.pi/extensions/showsignature-tools.ts` (around lines 65–66)
 - FIND:
   ```
     name             : "showsignature_read" ,
@@ -103,7 +103,7 @@ Rename the **agent-facing tool registration names** in all three host adapters:
 
 ## Step 9 — Repo opencode dev-tools comment
 
-- [ ] File: `.opencode/tools/showsignature.ts` (around line 5)
+- [x] File: `.opencode/tools/showsignature.ts` (around line 5)
 - FIND: `// showsignature_map / showsignature_read and would collide.`
 - REPLACE: `// map / outline_read and would collide.`
 
@@ -114,12 +114,12 @@ These are prose the model reads. Replace only the exact substrings shown (the
 rest of each long line stays as-is). Wrap the new name in backticks as shown so
 `map` is not misread as a verb and `outline_read` is clearly this tool.
 
-- [ ] 10a (around line 194): replace substring `showsignature_read` with `` `outline_read` ``
-- [ ] 10b (around line 198): replace substring `showsignature_map` with `` `map` ``
-- [ ] 10c (around line 199): replace substring `showsignature_map` with `` `map` ``
-- [ ] 10d (around line 200): replace substring `showsignature_map` with `` `map` ``
-- [ ] 10e (around line 254): replace substring `showsignature_map` with `` `map` ``
-- [ ] 10f (around line 259): replace substring `showsignature_read` with `` `outline_read` ``
+- [x] 10a (around line 194): replace substring `showsignature_read` with `` `outline_read` ``
+- [x] 10b (around line 198): replace substring `showsignature_map` with `` `map` ``
+- [x] 10c (around line 199): replace substring `showsignature_map` with `` `map` ``
+- [x] 10d (around line 200): replace substring `showsignature_map` with `` `map` ``
+- [x] 10e (around line 254): replace substring `showsignature_map` with `` `map` ``
+- [x] 10f (around line 259): replace substring `showsignature_read` with `` `outline_read` ``
       AND replace substring `showsignature_map` with `` `map` `` (this line has both)
 
 CHECK after Step 10: run `grep -n "showsignature_" src/00-instructions.ts`.
@@ -127,10 +127,10 @@ Expected result: **no matches**. If any remain, fix them the same way.
 
 ## Step 11 — README hand-written prose (NOT the generated block)
 
-- [ ] 11a File: `README.md` (around line 143)
+- [x] 11a File: `README.md` (around line 143)
   - FIND: `registers the `showsignature_map` and `showsignature_read` tools`
   - REPLACE: `registers the `map` and `outline_read` tools`
-- [ ] 11b File: `README.md` (around lines 159–160)
+- [x] 11b File: `README.md` (around lines 159–160)
   - FIND: `exposes `map` and `read` as the tools `showsignature_map` and`
   - REPLACE: `exposes `map` and `read` as the tools `map` and`
   - FIND (next line): ``showsignature_read`. The host injects them``
@@ -138,7 +138,7 @@ Expected result: **no matches**. If any remain, fix them the same way.
 
 ## Step 12 — TODO.md reference
 
-- [ ] File: `TODO.md` (around line 10)
+- [x] File: `TODO.md` (around line 10)
 - FIND: `` `READ_ARG_DOCS`, registers `showsignature_map` / `showsignature_read` ``
 - REPLACE: `` `READ_ARG_DOCS`, registers `map` / `outline_read` ``
 
@@ -146,13 +146,13 @@ Expected result: **no matches**. If any remain, fix them the same way.
 
 ## Step 13 — Regenerate, build, verify (run these commands in order)
 
-- [ ] `grep -rn "showsignature_map\|showsignature_read\|Showsignature Map\|Showsignature Read" src/ .pi/ .opencode/ README.md TODO.md`
+- [x] `grep -rn "showsignature_map\|showsignature_read\|Showsignature Map\|Showsignature Read" src/ .pi/ .opencode/ README.md TODO.md`
       → expected: **no matches** (except this PLAN.md). If any remain, go fix them.
-- [ ] `pnpm gen`        (regenerates SKILL.md + README generated block)
-- [ ] `pnpm gen:check`  (must print that generated files are up to date)
-- [ ] `pnpm typecheck`  (must pass)
-- [ ] `pnpm build`      (compiles to dist/ so pi + repo opencode tools use new names)
-- [ ] `pnpm test`       (must pass)
+- [x] `pnpm gen`        (regenerates SKILL.md + README generated block)
+- [x] `pnpm gen:check`  (must print that generated files are up to date)
+- [x] `pnpm typecheck`  (must pass)
+- [x] `pnpm build`      (compiles to dist/ so pi + repo opencode tools use new names)
+- [x] `pnpm test`       (must pass)
 
 ---
 
