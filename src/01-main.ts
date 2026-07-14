@@ -752,27 +752,6 @@ function toStdinVirtualFilePath(lang: string): string {
   return `<stdin>.${normalizeExtension(lang).slice(1)}`;
 }
 
-function shouldTryImplicitStdin(args: ParsedCliArgs): boolean {
-  return (
-    (!args.paths || args.paths.length === 0) && process.stdin.isTTY !== true
-  );
-}
-
-function inferImplicitStdinLanguage(
-  extractOrder: readonly ExtractKind[],
-  explicitLang?: string,
-): string | undefined {
-  if (explicitLang) {
-    return explicitLang;
-  }
-
-  if (usesOnlyMarkdownExtractKinds(extractOrder)) {
-    return "md";
-  }
-
-  return undefined;
-}
-
 const DEPTH_LIMIT_NOTICE = `directory scan depth-limited to ${DEFAULT_DIRECTORY_MAX_DEPTH} by default; pass --max-depth <n> to go deeper`;
 
 function pluralize(
@@ -886,25 +865,6 @@ async function resolveInputTarget(
       stdinSource: await readStdin(),
       stdinFilePath: toStdinVirtualFilePath(stdinLang),
     };
-  }
-
-  if (shouldTryImplicitStdin(args)) {
-    const stdinSource = await readStdin();
-
-    if (stdinSource.length > 0) {
-      const stdinLang = inferImplicitStdinLanguage(extractOrder, explicitLang);
-      if (!stdinLang) {
-        throw createCliError(
-          "Could not infer stdin language. Please use --lang. Example: --lang ts",
-        );
-      }
-
-      return {
-        files: [],
-        stdinSource,
-        stdinFilePath: toStdinVirtualFilePath(stdinLang),
-      };
-    }
   }
 
   const inputPaths = args.paths ?? [];

@@ -418,22 +418,12 @@ describe("buildCli", () => {
     ).rejects.toThrow("Stdin operand '-' may only be provided once");
   });
 
-  test("reads piped markdown input without --stdin when extract kinds are markdown-only", async () => {
+  test("ignores piped stdin without the - operand and scans cwd instead", async () => {
     installOutputCapture();
-    installStdin("# Hello\n\n## World\n");
-
-    await buildCli().run(["showcode", "map", "--only", "md:headings"]);
-
-    expect(stdoutBuffer).toBe(
-      ["// <stdin>.md", "1 # Hello", "3 ## World", ""].join("\n"),
-    );
-    expect(stderrBuffer).toBe("");
-    expect(process.exitCode).toBe(0);
-  });
-
-  test("falls back to cwd discovery when implicit stdin is empty", async () => {
-    installOutputCapture();
-    installStdin("");
+    // A non-TTY stream with content must NOT be drained implicitly: no path and
+    // no '-' operand means scan the current directory, never read stdin. (Reading
+    // it would hang on an open, idle pipe — see REPORT.md.)
+    installStdin("# Piped\n\n## Ignored\n");
 
     const rootDir = await createTempDir();
     await writeFixtureFile(rootDir, "README.md", "# Title\n\n## Install\n");
@@ -448,15 +438,20 @@ describe("buildCli", () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test("throws when implicit stdin has content but its language is ambiguous", async () => {
+  test("scans cwd when no path is given, regardless of stdin content", async () => {
     installOutputCapture();
     installStdin("function greet(): void {}\n");
 
-    await expect(
-      buildCli().run(["showcode", "map", "--only", "signatures"]),
-    ).rejects.toThrow(
-      "Could not infer stdin language. Please use --lang. Example: --lang ts",
-    );
+    const rootDir = await createTempDir();
+    await writeFixtureFile(rootDir, "app.ts", "export function run(): void {}\n");
+    process.chdir(rootDir);
+
+    await buildCli().run(["showcode", "map", "--only", "signatures"]);
+
+    expect(stdoutBuffer).toContain("// app.ts");
+    expect(stdoutBuffer).toContain("export function run(): void;");
+    expect(stderrBuffer).toBe("");
+    expect(process.exitCode).toBe(0);
   });
 
   test("sets exit code and prints pipeline errors for unsupported files", async () => {
