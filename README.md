@@ -152,7 +152,7 @@ OpenCode installs the package automatically at startup and registers the `map` a
 
 <details id="mcp">
 <summary>
-<h2>MCP server (Claude Desktop, Cursor, Zed, …)</h2>
+<h2>MCP server (Claude Desktop, Cursor, Cline... etc.)</h2>
 </summary>
 
 For any MCP-capable host, `showsignature` ships an MCP server over stdio that
@@ -160,32 +160,35 @@ exposes `map` and `read` as the tools `map` and
 `outline_read`. The host injects them into the model's tool list — the
 model calls them directly instead of shelling out.
 
-### 1. Install (optional)
+### 1. Install
 
 ```sh
 # global install — lets the host launch `showsignature mcp` directly
 npm install -g showsignature
 ```
 
-You can skip the install and let the host run it on demand with `pnpm dlx`.
-
 ### 2. Register the server
 
-Claude Code:
-
 ```sh
-# after a global install
+# For Claude Code
 claude mcp add showsignature -- showsignature mcp
-# or without installing
-claude mcp add showsignature -- pnpm dlx showsignature mcp
-```
 
-Claude Desktop / other hosts — add to the MCP servers config:
+# For Codex
+codex mcp add showsignature -- showsignature mcp
+```
+--- 
+
+### Other Agents (Manual installation)
+Manual — add to the MCP servers config:
 
 ```json
 {
   "mcpServers": {
-    "showsignature": { "command": "showsignature", "args": ["mcp"] }
+    "showsignature": {
+      "command": "showsignature",
+      "args": [ "mcp" ],
+      "type": "stdio"
+    }
   }
 }
 ```
@@ -199,7 +202,8 @@ root chosen in this order:
 2. the host's first workspace root (`roots/list`), if the host advertises it;
 3. the server process's current directory.
 
-**Pass absolute paths when in doubt.** If the resolved root is `/` (some hosts
+**Pass absolute paths when in doubt.** 
+If the resolved root is `/` (some hosts
 launch stdio servers there) and a call uses relative or default paths, the
 tool returns an error instead of scanning the filesystem root — set
 `MCP_SHOWSIGNATURE_ROOT` or use absolute paths. Run `showsignature mcp --help`
