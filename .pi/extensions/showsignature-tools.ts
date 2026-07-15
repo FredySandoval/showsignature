@@ -1,5 +1,8 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
+import type { ExtensionAPI }        from "@earendil-works/pi-coding-agent";
+import { Type }                     from "typebox"                        ;
+import { existsSync, realpathSync } from "node:fs"                        ;
+import { fileURLToPath }            from "node:url"                       ;
+import path                         from "node:path"                      ;
 import {
   MAP_ARG_DOCS    ,
   MAP_DESCRIPTION ,
@@ -46,7 +49,22 @@ function stripAt(value:string):string{
   return value.startsWith("@")?value.slice(1):value;
 }
 
+// When pi runs inside a project that carries its own copy of this extension
+// (e.g. this repo itself), the globally-installed copy must step aside or the
+// two register the same tool names and pi reports a conflict on startup.
+function projectHasOwnCopy():boolean{
+  const local = path.join(process.cwd(),".pi","extensions","showsignature-tools.ts");
+  if (!existsSync(local)) return false;
+  try {
+    return realpathSync(local) !== realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
 export default function (pi:ExtensionAPI) {
+  if (projectHasOwnCopy()) return; // yield to the project-local copy
+
   pi.registerTool({
     name             : "map",
     label            : "Map",
