@@ -43,6 +43,7 @@
     "gen": "bun scripts/build-instructions.ts",
     "gen:check": "bun scripts/build-instructions.ts --check",
     "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.prepare.json",
     "prepublishOnly": "pnpm gen:check && pnpm typecheck && pnpm test && pnpm build",
     "version": "node scripts/sync-version.js && git add .claude-plugin/plugin.json README.md"
   },
@@ -69,8 +70,10 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/node": "^24.9.0",
     "commander": "10.0.0",
     "globby": "^16.2.0",
+    "typebox": "^1.3.4",
     "typescript": "6.0.2",
     "zod": "^4.1.8"
   },
@@ -78,8 +81,7 @@
     "@opencode-ai/plugin": "^1.17.13",
     "@types/bun": "1.3.10",
     "@typescript/native-preview": "7.0.0-dev.20260331.1",
-    "prettier": "3.8.1",
-    "typebox": "^1.3.4"
+    "prettier": "3.8.1"
   },
   "packageManager": "pnpm@10.31.0",
   "engines": {
